@@ -2,6 +2,30 @@
 
 This is a work time management system for tracking employee hours, generating reports, and managing payroll. The application is built as a full-stack web application with a React frontend and Express.js backend, designed for managers to track employee attendance, work hours, and quality ratings across different time periods.
 
+## Recent Changes (August 21, 2025)
+
+### Completed Timesheet Module Features
+- **Full CRUD Operations**: Create, read, update, and delete time entries with proper validation
+- **Smart Cell Management**: 
+  - Future dates are automatically locked (non-editable)
+  - Terminated employees show "У" status after termination date
+  - Cells are clickable for editing with real-time validation
+- **Data Entry Validation**: 
+  - Accepts 1-24 hours or status letters (О, Б, НН, У)
+  - Automatic uppercase conversion for status letters
+  - Default quality score of 3 for numeric entries
+- **Bulk Operations**:
+  - "Clear All" button removes all data from current reporting period (except future dates)
+  - Right-click context menu with advanced operations
+- **Context Menu Functions**:
+  - Clear entire employee row
+  - Fill to end of period using source cell value
+  - Fill with 5/2 schedule (weekdays only) using source cell value
+  - Fill with 2/2 schedule (alternating work/rest) using source cell value
+  - Quality score adjustment for numeric values (1-4 scale)
+- **Color-coded Interface**: Quality-based cell coloring and status-specific highlighting
+- **Responsive Design**: Compact single-screen layout without scrollbars
+
 # User Preferences
 
 Preferred communication style: Simple, everyday language.
@@ -38,11 +62,24 @@ Preferred communication style: Simple, everyday language.
 - **Error Boundaries**: Comprehensive error handling with toast notifications
 
 ## Data Models
-- **Users**: Authentication and role-based access
-- **Employees**: Staff records with status tracking (active, not_registered, fired)
-- **Time Entries**: Daily work hours with quality ratings and special day types
+- **Users**: Authentication and role-based access (admin/admin login)
+- **Employees**: Staff records with status tracking (active, not_registered, fired) and termination dates
+- **Time Entries**: Daily work hours with quality ratings (1-4 scale) and day types (work, О, Б, НН, У)
 - **Reports**: Generated payroll reports with advance/salary distinction
 - **Settings**: Application configuration storage
+
+## Key Business Logic
+- **Timesheet Rules**:
+  - Current reporting period: August 2025 (editable)
+  - Future dates automatically locked for data entry
+  - Terminated employees show automatic "У" status after termination
+  - Quality scoring: 1=Poor, 2=Satisfactory, 3=Good (default), 4=Excellent
+  - Status codes: О=Vacation, Б=Sick leave, НН=Non-working day, У=Terminated
+- **Bulk Fill Operations**:
+  - All operations use source cell value (not hardcoded values)
+  - 5/2 schedule fills weekdays only
+  - 2/2 schedule alternates 2 work days / 2 rest days
+  - Fill to end applies from selected date to month end
 
 # External Dependencies
 

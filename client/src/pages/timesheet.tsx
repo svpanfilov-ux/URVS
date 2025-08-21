@@ -380,9 +380,9 @@ export default function Timesheet() {
                               handleCellChange(employee.id, day.date, value, qualityScore)
                             }
                             onClearRow={() => handleClearRow(employee.id)}
-                            onFillToEnd={() => handleFillToEnd(employee.id, day.date, entry?.hours !== null ? entry?.hours : entry?.dayType, entry?.qualityScore)}
-                            onFill5_2={() => handleFill5_2Schedule(employee.id, entry?.hours !== null ? entry?.hours : entry?.dayType, entry?.qualityScore)}
-                            onFill2_2={() => handleFill2_2Schedule(employee.id, entry?.hours !== null ? entry?.hours : entry?.dayType, entry?.qualityScore)}
+                            onFillToEnd={() => handleFillToEnd(employee.id, day.date, entry?.hours !== null ? entry?.hours : entry?.dayType, entry?.qualityScore || undefined)}
+                            onFill5_2={() => handleFill5_2Schedule(employee.id, entry?.hours !== null ? entry?.hours : entry?.dayType, entry?.qualityScore || undefined)}
+                            onFill2_2={() => handleFill2_2Schedule(employee.id, entry?.hours !== null ? entry?.hours : entry?.dayType, entry?.qualityScore || undefined)}
                           />
                         </td>
                       );
