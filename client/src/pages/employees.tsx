@@ -101,10 +101,7 @@ export default function Employees() {
     return matchesSearch && matchesStatus;
   });
 
-  // Group employees by status
-  const activeEmployees = filteredEmployees.filter((emp: Employee) => emp.status === "active");
-  const partTimeEmployees = filteredEmployees.filter((emp: Employee) => emp.status === "not_registered");
-  const firedEmployees = filteredEmployees.filter((emp: Employee) => emp.status === "fired");
+  // Remove grouping - use all filtered employees
 
   const getStatusBadge = (status: string) => {
     const variants = {
@@ -122,11 +119,12 @@ export default function Employees() {
     );
   };
 
-  const EmployeeTable = ({ employees, title, totalHours }: { employees: Employee[], title: string, totalHours?: string }) => (
-    <Card className="mb-6">
+  // Single table component without grouping
+  const EmployeeTable = ({ employees }: { employees: Employee[] }) => (
+    <Card>
       <CardHeader className="border-b">
         <CardTitle className="flex items-center justify-between">
-          {title}
+          Список сотрудников
           <Badge variant="outline">{employees.length}</Badge>
         </CardTitle>
       </CardHeader>
@@ -184,13 +182,6 @@ export default function Employees() {
             </tbody>
           </table>
         </div>
-        {totalHours && (
-          <div className="px-6 py-3 bg-muted/30 border-t">
-            <div className="text-sm text-muted-foreground">
-              Итого часов по группе: <span className="font-medium">{totalHours}</span>
-            </div>
-          </div>
-        )}
       </CardContent>
     </Card>
   );
@@ -259,28 +250,11 @@ export default function Employees() {
         </CardContent>
       </Card>
 
-      {/* Employee Tables */}
+      {/* Employee Table */}
       {isLoading ? (
         <div className="text-center py-8">Загрузка...</div>
       ) : (
-        <>
-          <EmployeeTable 
-            employees={activeEmployees} 
-            title="Активные сотрудники" 
-            totalHours="3,840 ч"
-          />
-          <EmployeeTable 
-            employees={partTimeEmployees} 
-            title="Подработка" 
-            totalHours="240 ч"
-          />
-          {firedEmployees.length > 0 && (
-            <EmployeeTable 
-              employees={firedEmployees} 
-              title="Уволенные"
-            />
-          )}
-        </>
+        <EmployeeTable employees={filteredEmployees} />
       )}
 
       <EmployeeModal
