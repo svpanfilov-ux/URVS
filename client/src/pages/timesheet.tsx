@@ -375,29 +375,133 @@ export default function Timesheet() {
         // Sort entries by date
         prevEntries.sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime());
         
-        // Get the pattern from last week of previous month
-        const lastWeekEntries = prevEntries.slice(-7);
+        // Detect pattern based on employee's work schedule
+        const workSchedule = employee.workSchedule || "5/2";
         
-        // Apply pattern to current month
-        for (let i = 0; i < days.length; i++) {
-          const day = days[i];
-          if (isCellLocked(day.date) || isCellTerminated(employee, day.date)) continue;
+        // Apply pattern based on employee's schedule
+        if (workSchedule === "5/2") {
+          // Fill weekdays only, using last working day pattern from previous month
+          const lastWorkEntry = prevEntries.filter((entry: any) => entry.hours !== null).pop();
+          if (lastWorkEntry) {
+            for (const day of days) {
+              if (isCellLocked(day.date) || isCellTerminated(employee, day.date) || day.isWeekend) continue;
+              
+              const existingEntry = getTimeEntry(employee.id, day.date);
+              if (!existingEntry) {
+                entriesToCreate.push({
+                  employeeId: employee.id,
+                  date: day.date,
+                  hours: lastWorkEntry.hours,
+                  dayType: lastWorkEntry.dayType,
+                  qualityScore: lastWorkEntry.qualityScore || 3,
+                });
+              }
+            }
+          }
+        } else if (workSchedule === "2/2") {
+          // 2/2 pattern: detect the last cycle and continue it
+          const lastTwoWeeks = prevEntries.slice(-14);
+          let isWorkDay = true;
+          let dayCount = 0;
           
-          const existingEntry = getTimeEntry(employee.id, day.date);
-          if (existingEntry) continue;
-
-          // Use cyclic pattern from last week
-          const patternIndex = i % lastWeekEntries.length;
-          const patternEntry = lastWeekEntries[patternIndex];
-          
-          if (patternEntry && (patternEntry.hours !== null || patternEntry.dayType !== 'work')) {
-            entriesToCreate.push({
-              employeeId: employee.id,
-              date: day.date,
-              hours: patternEntry.hours,
-              dayType: patternEntry.dayType,
-              qualityScore: patternEntry.qualityScore || 3,
-            });
+          // Find the pattern from the end of previous month
+          if (lastTwoWeeks.length > 0) {
+            const lastWorkEntry = lastTwoWeeks.filter((entry: any) => entry.hours !== null).pop();
+            if (lastWorkEntry) {
+              for (const day of days) {
+                if (isCellLocked(day.date) || isCellTerminated(employee, day.date)) continue;
+                
+                const existingEntry = getTimeEntry(employee.id, day.date);
+                if (!existingEntry && dayCount < 2 && isWorkDay) {
+                  entriesToCreate.push({
+                    employeeId: employee.id,
+                    date: day.date,
+                    hours: lastWorkEntry.hours,
+                    dayType: lastWorkEntry.dayType,
+                    qualityScore: lastWorkEntry.qualityScore || 3,
+                  });
+                }
+                
+                dayCount++;
+                if (dayCount === 2) {
+                  dayCount = 0;
+                  isWorkDay = !isWorkDay;
+                }
+              }
+            }
+          }
+        } else if (workSchedule === "3/3") {
+          // 3/3 pattern
+          const lastWorkEntry = prevEntries.filter((entry: any) => entry.hours !== null).pop();
+          if (lastWorkEntry) {
+            let isWorkDay = true;
+            let dayCount = 0;
+            
+            for (const day of days) {
+              if (isCellLocked(day.date) || isCellTerminated(employee, day.date)) continue;
+              
+              const existingEntry = getTimeEntry(employee.id, day.date);
+              if (!existingEntry && dayCount < 3 && isWorkDay) {
+                entriesToCreate.push({
+                  employeeId: employee.id,
+                  date: day.date,
+                  hours: lastWorkEntry.hours,
+                  dayType: lastWorkEntry.dayType,
+                  qualityScore: lastWorkEntry.qualityScore || 3,
+                });
+              }
+              
+              dayCount++;
+              if (dayCount === 3) {
+                dayCount = 0;
+                isWorkDay = !isWorkDay;
+              }
+            }
+          }
+        } else if (workSchedule === "6/1") {
+          // 6/1 pattern
+          const lastWorkEntry = prevEntries.filter((entry: any) => entry.hours !== null).pop();
+          if (lastWorkEntry) {
+            let dayCount = 0;
+            
+            for (const day of days) {
+              if (isCellLocked(day.date) || isCellTerminated(employee, day.date)) continue;
+              
+              const existingEntry = getTimeEntry(employee.id, day.date);
+              if (!existingEntry && dayCount < 6) {
+                entriesToCreate.push({
+                  employeeId: employee.id,
+                  date: day.date,
+                  hours: lastWorkEntry.hours,
+                  dayType: lastWorkEntry.dayType,
+                  qualityScore: lastWorkEntry.qualityScore || 3,
+                });
+              }
+              
+              dayCount++;
+              if (dayCount === 7) {
+                dayCount = 0;
+              }
+            }
+          }
+        } else if (workSchedule === "вахта (7/0)") {
+          // Вахта: all days are working days
+          const lastWorkEntry = prevEntries.filter((entry: any) => entry.hours !== null).pop();
+          if (lastWorkEntry) {
+            for (const day of days) {
+              if (isCellLocked(day.date) || isCellTerminated(employee, day.date)) continue;
+              
+              const existingEntry = getTimeEntry(employee.id, day.date);
+              if (!existingEntry) {
+                entriesToCreate.push({
+                  employeeId: employee.id,
+                  date: day.date,
+                  hours: lastWorkEntry.hours,
+                  dayType: lastWorkEntry.dayType,
+                  qualityScore: lastWorkEntry.qualityScore || 3,
+                });
+              }
+            }
           }
         }
       }
