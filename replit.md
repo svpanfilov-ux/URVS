@@ -16,13 +16,19 @@ This is a work time management system for tracking employee hours, generating re
   - Default quality score of 3 for numeric entries
 - **Bulk Operations**:
   - "Clear All" button removes all data from current reporting period (except future dates)
-  - Right-click context menu with advanced operations
-- **Context Menu Functions**:
+  - Right-click context menu with streamlined operations
+- **Context Menu Functions** (Updated):
   - Clear entire employee row
-  - Fill to end of period using source cell value
-  - Fill with 5/2 schedule (weekdays only) using source cell value
-  - Fill with 2/2 schedule (alternating work/rest) using source cell value
+  - Fill by employee schedule (replaces multiple schedule options)
   - Quality score adjustment for numeric values (1-4 scale)
+- **Employee Work Schedules**:
+  - Added work schedule field in employee management (5/2, 2/2, 3/3, 6/1, вахта)
+  - Context menu "Fill by employee schedule" uses assigned schedule automatically
+- **Autofill Feature**:
+  - Button extends patterns from previous month (July 2025)
+  - Analyzes last working entries and applies employee's work schedule
+  - Respects locked cells and termination dates
+  - Fills only empty cells according to schedule pattern
 - **Color-coded Interface**: Quality-based cell coloring and status-specific highlighting
 - **Responsive Design**: Compact single-screen layout without scrollbars
 
