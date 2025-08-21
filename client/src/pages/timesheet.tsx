@@ -115,6 +115,155 @@ export default function Timesheet() {
     },
   });
 
+  const bulkDeleteMutation = useMutation({
+    mutationFn: async (entryIds: string[]) => {
+      await Promise.all(entryIds.map(id => apiRequest("DELETE", `/api/time-entries/${id}`)));
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/time-entries", selectedMonth] });
+      toast({ title: "Данные успешно удалены" });
+    },
+    onError: () => {
+      toast({ title: "Ошибка при удалении данных", variant: "destructive" });
+    },
+  });
+
+  const bulkCreateMutation = useMutation({
+    mutationFn: async (entries: any[]) => {
+      await Promise.all(entries.map(entry => apiRequest("POST", "/api/time-entries", entry)));
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/time-entries", selectedMonth] });
+      toast({ title: "Данные успешно заполнены" });
+    },
+    onError: () => {
+      toast({ title: "Ошибка при заполнении данных", variant: "destructive" });
+    },
+  });
+
+  const isCellLocked = (date: string) => {
+    // Future dates should not be editable 
+    const today = new Date();
+    const cellDate = new Date(date);
+    return cellDate > today;
+  };
+
+  const isCellTerminated = (employee: Employee, date: string) => {
+    if (employee.status !== "fired" || !employee.terminationDate) return false;
+    return isAfter(parseISO(date), parseISO(employee.terminationDate));
+  };
+
+  // Clear all data for current month
+  const handleClearAll = () => {
+    const entriesToDelete = timeEntries
+      .filter((entry: TimeEntry) => !isCellLocked(entry.date))
+      .map((entry: TimeEntry) => entry.id);
+    
+    if (entriesToDelete.length > 0) {
+      bulkDeleteMutation.mutate(entriesToDelete);
+    }
+  };
+
+  // Clear row data for specific employee
+  const handleClearRow = (employeeId: string) => {
+    const entriesToDelete = timeEntries
+      .filter((entry: TimeEntry) => 
+        entry.employeeId === employeeId && !isCellLocked(entry.date)
+      )
+      .map((entry: TimeEntry) => entry.id);
+    
+    if (entriesToDelete.length > 0) {
+      bulkDeleteMutation.mutate(entriesToDelete);
+    }
+  };
+
+  // Fill row to end of month
+  const handleFillToEnd = (employeeId: string, fromDate: string) => {
+    const employee = employees.find(emp => emp.id === employeeId);
+    if (!employee) return;
+
+    const fromIndex = days.findIndex(day => day.date === fromDate);
+    if (fromIndex === -1) return;
+
+    const entriesToCreate = [];
+    for (let i = fromIndex; i < days.length; i++) {
+      const day = days[i];
+      if (isCellLocked(day.date) || isCellTerminated(employee, day.date)) continue;
+      
+      const existingEntry = getTimeEntry(employeeId, day.date);
+      if (!existingEntry) {
+        entriesToCreate.push({
+          employeeId,
+          date: day.date,
+          hours: day.isWeekend ? null : 8,
+          dayType: day.isWeekend ? "НН" : "work",
+          qualityScore: 3,
+        });
+      }
+    }
+
+    if (entriesToCreate.length > 0) {
+      bulkCreateMutation.mutate(entriesToCreate);
+    }
+  };
+
+  // Fill with 5/2 schedule (work weekdays, weekend off)
+  const handleFill5_2Schedule = (employeeId: string) => {
+    const employee = employees.find(emp => emp.id === employeeId);
+    if (!employee) return;
+
+    const entriesToCreate = [];
+    for (const day of days) {
+      if (isCellLocked(day.date) || isCellTerminated(employee, day.date)) continue;
+      
+      const existingEntry = getTimeEntry(employeeId, day.date);
+      if (!existingEntry) {
+        entriesToCreate.push({
+          employeeId,
+          date: day.date,
+          hours: day.isWeekend ? null : 8,
+          dayType: day.isWeekend ? "НН" : "work",
+          qualityScore: 3,
+        });
+      }
+    }
+
+    if (entriesToCreate.length > 0) {
+      bulkCreateMutation.mutate(entriesToCreate);
+    }
+  };
+
+  // Fill with 2/2 schedule (alternating work/rest)
+  const handleFill2_2Schedule = (employeeId: string) => {
+    const employee = employees.find(emp => emp.id === employeeId);
+    if (!employee) return;
+
+    const entriesToCreate = [];
+    for (let i = 0; i < days.length; i++) {
+      const day = days[i];
+      if (isCellLocked(day.date) || isCellTerminated(employee, day.date)) continue;
+      
+      const existingEntry = getTimeEntry(employeeId, day.date);
+      if (!existingEntry) {
+        // 2/2 schedule: work 2 days, rest 2 days
+        const cycle = Math.floor(i / 2) % 2;
+        const isWorkDay = cycle === 0;
+        
+        entriesToCreate.push({
+          employeeId,
+          date: day.date,
+          hours: isWorkDay ? 8 : null,
+          dayType: isWorkDay ? "work" : "НН",
+          qualityScore: 3,
+        });
+      }
+    }
+
+    if (entriesToCreate.length > 0) {
+      bulkCreateMutation.mutate(entriesToCreate);
+    }
+  };
+
   const handleAutoFill = () => {
     toast({ title: "Автозаполнение выполнено", description: "Табель заполнен данными из предыдущего месяца" });
   };
@@ -132,6 +281,16 @@ export default function Timesheet() {
         </div>
         
         <div className="flex items-center space-x-4">
+          <Button 
+            onClick={handleClearAll} 
+            variant="destructive" 
+            size="sm"
+            disabled={bulkDeleteMutation.isPending}
+            data-testid="button-clear-all"
+          >
+            Очистить всё
+          </Button>
+          
           <Button onClick={handleAutoFill} variant="outline" size="sm">
             <Wand2 className="w-4 h-4 mr-2" />
             Автозаполнение
@@ -200,18 +359,25 @@ export default function Timesheet() {
                     </td>
                     {days.map((day) => {
                       const entry = getTimeEntry(employee.id, day.date);
-                      const isTerminated = isEmployeeTerminated(employee, day.date);
+                      const isTerminated = isCellTerminated(employee, day.date);
+                      const isLocked = isCellLocked(day.date);
                       
                       return (
                         <td key={day.date} className="p-0">
                           <TimesheetCell
                             value={entry?.hours !== null ? entry?.hours : entry?.dayType}
                             qualityScore={entry?.qualityScore || 3}
-                            isLocked={false} // Все ячейки открыты для редактирования в текущем периоде
+                            isLocked={isLocked}
                             isTerminated={isTerminated}
+                            employeeId={employee.id}
+                            date={day.date}
                             onChange={(value, qualityScore) => 
                               handleCellChange(employee.id, day.date, value, qualityScore)
                             }
+                            onClearRow={() => handleClearRow(employee.id)}
+                            onFillToEnd={() => handleFillToEnd(employee.id, day.date)}
+                            onFill5_2={() => handleFill5_2Schedule(employee.id)}
+                            onFill2_2={() => handleFill2_2Schedule(employee.id)}
                           />
                         </td>
                       );

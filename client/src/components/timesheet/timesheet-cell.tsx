@@ -4,6 +4,7 @@ import {
   ContextMenu,
   ContextMenuContent,
   ContextMenuItem,
+  ContextMenuSeparator,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
 
@@ -12,8 +13,13 @@ interface TimesheetCellProps {
   qualityScore?: number;
   isLocked?: boolean;
   isTerminated?: boolean;
+  employeeId?: string;
+  date?: string;
   onChange: (value: string | number, qualityScore?: number) => void;
-  onContextMenu?: (action: string) => void;
+  onClearRow?: () => void;
+  onFillToEnd?: () => void;
+  onFill5_2?: () => void;
+  onFill2_2?: () => void;
 }
 
 export function TimesheetCell({ 
@@ -21,8 +27,13 @@ export function TimesheetCell({
   qualityScore = 3, 
   isLocked = false, 
   isTerminated = false,
+  employeeId,
+  date,
   onChange, 
-  onContextMenu 
+  onClearRow,
+  onFillToEnd,
+  onFill5_2,
+  onFill2_2
 }: TimesheetCellProps) {
   const [localValue, setLocalValue] = useState<string>("");
   const [editing, setEditing] = useState(false);
@@ -167,19 +178,42 @@ export function TimesheetCell({
         </div>
       </ContextMenuTrigger>
       
-      {typeof value === "number" && !isLocked && !isTerminated && (
+      {!isLocked && !isTerminated && (
         <ContextMenuContent>
-          <ContextMenuItem onClick={() => handleQualityChange(1)}>
-            Оценка 1 (Плохо)
+          {typeof value === "number" && (
+            <>
+              <ContextMenuItem onClick={() => handleQualityChange(1)}>
+                Оценка 1 (Плохо)
+              </ContextMenuItem>
+              <ContextMenuItem onClick={() => handleQualityChange(2)}>
+                Оценка 2 (Удовлетворительно)
+              </ContextMenuItem>
+              <ContextMenuItem onClick={() => handleQualityChange(3)}>
+                Оценка 3 (Хорошо)
+              </ContextMenuItem>
+              <ContextMenuItem onClick={() => handleQualityChange(4)}>
+                Оценка 4 (Отлично)
+              </ContextMenuItem>
+              <ContextMenuSeparator />
+            </>
+          )}
+          
+          <ContextMenuItem onClick={onClearRow} data-testid="context-clear-row">
+            Очистить строку
           </ContextMenuItem>
-          <ContextMenuItem onClick={() => handleQualityChange(2)}>
-            Оценка 2 (Удовлетворительно)
+          
+          <ContextMenuItem onClick={onFillToEnd} data-testid="context-fill-to-end">
+            Заполнить до конца периода
           </ContextMenuItem>
-          <ContextMenuItem onClick={() => handleQualityChange(3)}>
-            Оценка 3 (Хорошо)
+          
+          <ContextMenuSeparator />
+          
+          <ContextMenuItem onClick={onFill5_2} data-testid="context-fill-5-2">
+            Заполнить по графику 5/2
           </ContextMenuItem>
-          <ContextMenuItem onClick={() => handleQualityChange(4)}>
-            Оценка 4 (Отлично)
+          
+          <ContextMenuItem onClick={onFill2_2} data-testid="context-fill-2-2">
+            Заполнить по графику 2/2
           </ContextMenuItem>
         </ContextMenuContent>
       )}
