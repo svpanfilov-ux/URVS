@@ -195,8 +195,8 @@ export default function Timesheet() {
         entriesToCreate.push({
           employeeId,
           date: day.date,
-          hours: day.isWeekend ? null : 8,
-          dayType: day.isWeekend ? "НН" : "work",
+          hours: 8,
+          dayType: "work",
           qualityScore: 3,
         });
       }
@@ -221,8 +221,8 @@ export default function Timesheet() {
         entriesToCreate.push({
           employeeId,
           date: day.date,
-          hours: day.isWeekend ? null : 8,
-          dayType: day.isWeekend ? "НН" : "work",
+          hours: 8,
+          dayType: "work",
           qualityScore: 3,
         });
       }
@@ -245,15 +245,11 @@ export default function Timesheet() {
       
       const existingEntry = getTimeEntry(employeeId, day.date);
       if (!existingEntry) {
-        // 2/2 schedule: work 2 days, rest 2 days
-        const cycle = Math.floor(i / 2) % 2;
-        const isWorkDay = cycle === 0;
-        
         entriesToCreate.push({
           employeeId,
           date: day.date,
-          hours: isWorkDay ? 8 : null,
-          dayType: isWorkDay ? "work" : "НН",
+          hours: 8,
+          dayType: "work",
           qualityScore: 3,
         });
       }
