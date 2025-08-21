@@ -71,9 +71,9 @@ export default function Timesheet() {
       return true;
     }
     if (emp.status === "fired" && emp.terminationDate) {
-      // Show fired employees if their termination date is within the current month
+      // Show fired employees if current month is same or before their termination month
       const terminationMonth = emp.terminationDate.substring(0, 7); // YYYY-MM format
-      return terminationMonth === selectedMonth;
+      return selectedMonth <= terminationMonth;
     }
     return false;
   });
