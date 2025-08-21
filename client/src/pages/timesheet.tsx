@@ -801,6 +801,19 @@ export default function Timesheet() {
                   </tr>
                 );
               })}
+
+              {/* Overall Total Row */}
+              <tr className="bg-gray-200 dark:bg-gray-800 border-t-4 border-gray-400">
+                <td className="sticky left-0 z-10 bg-gray-200 dark:bg-gray-800 border-r p-1 font-bold text-gray-800 dark:text-gray-200">
+                  <div className="text-[11px]">ОБЩИЙ ИТОГ:</div>
+                </td>
+                {days.map((day) => (
+                  <td key={day.date} className="p-0 bg-gray-200 dark:bg-gray-800"></td>
+                ))}
+                <td className="border-r p-1 text-center font-bold bg-gray-300 dark:bg-gray-700 text-gray-800 dark:text-gray-200">
+                  <div className="text-[11px]">{calculateGroupTotal([...activeEmployees, ...partTimeEmployees, ...firedEmployees])}</div>
+                </td>
+              </tr>
             </tbody>
           </table>
         </div>
