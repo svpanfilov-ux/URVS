@@ -11,7 +11,8 @@ import {
   Calendar
 } from "lucide-react";
 import { useLocation } from "wouter";
-import { Employee } from "@shared/schema";
+import { Employee, TimeEntry } from "@shared/schema";
+import { format, getDaysInMonth, differenceInDays, parseISO } from "date-fns";
 
 export default function Dashboard() {
   const [, navigate] = useLocation();
@@ -20,15 +21,49 @@ export default function Dashboard() {
     queryKey: ["/api/employees"],
   });
 
+  const { data: timeEntries = [] } = useQuery<TimeEntry[]>({
+    queryKey: ["/api/time-entries", format(new Date(), "yyyy-MM")],
+  });
+
   const activeEmployees = employees.filter((emp) => emp.status === "active");
   const totalEmployees = employees.length;
 
-  // Calculate deadline days (mock data for demo)
-  const daysToAdvanceDeadline = 3;
-  const daysToSalaryDeadline = 12;
-  const monthlyNormHours = 176;
-  const actualHours = 164;
+  // Calculate real deadline days
+  const today = new Date();
+  const currentMonth = today.getMonth();
+  const currentYear = today.getFullYear();
+  
+  // Авансовый период: до 15 числа
+  const advanceDeadline = new Date(currentYear, currentMonth, 15);
+  // Зарплатный период: до 5 числа следующего месяца
+  const salaryDeadline = new Date(currentYear, currentMonth + 1, 5);
+  
+  const daysToAdvanceDeadline = Math.max(0, differenceInDays(advanceDeadline, today));
+  const daysToSalaryDeadline = Math.max(0, differenceInDays(salaryDeadline, today));
+
+  // Calculate real monthly statistics
+  const currentMonthStr = format(today, "yyyy-MM");
+  const daysInCurrentMonth = getDaysInMonth(today);
+  const workdaysInMonth = Array.from({ length: daysInCurrentMonth }, (_, i) => {
+    const date = new Date(currentYear, currentMonth, i + 1);
+    const dayOfWeek = date.getDay();
+    return dayOfWeek !== 0 && dayOfWeek !== 6; // Исключаем выходные
+  }).filter(Boolean).length;
+  
+  const monthlyNormHours = workdaysInMonth * 8; // 8 часов в день
+  
+  const actualHours = timeEntries
+    .filter((entry: TimeEntry) => typeof entry.hours === 'number')
+    .reduce((sum: number, entry: TimeEntry) => sum + (entry.hours || 0), 0);
+  
   const deviation = actualHours - monthlyNormHours;
+
+  // Helper function for proper Russian pluralization
+  const getDayWord = (days: number) => {
+    if (days % 10 === 1 && days % 100 !== 11) return "день";
+    if ([2, 3, 4].includes(days % 10) && ![12, 13, 14].includes(days % 100)) return "дня";
+    return "дней";
+  };
 
   return (
     <div className="space-y-6">
@@ -45,7 +80,7 @@ export default function Dashboard() {
               <div>
                 <p className="text-sm font-medium text-muted-foreground">До закрытия аванса</p>
                 <p className="text-2xl font-semibold text-orange-600 mt-1" data-testid="days-to-advance">
-                  {daysToAdvanceDeadline} дня
+                  {daysToAdvanceDeadline} {getDayWord(daysToAdvanceDeadline)}
                 </p>
               </div>
               <div className="bg-orange-100 dark:bg-orange-900/20 p-3 rounded-full">
@@ -64,7 +99,7 @@ export default function Dashboard() {
               <div>
                 <p className="text-sm font-medium text-muted-foreground">До закрытия зарплаты</p>
                 <p className="text-2xl font-semibold text-green-600 mt-1" data-testid="days-to-salary">
-                  {daysToSalaryDeadline} дней
+                  {daysToSalaryDeadline} {getDayWord(daysToSalaryDeadline)}
                 </p>
               </div>
               <div className="bg-green-100 dark:bg-green-900/20 p-3 rounded-full">
