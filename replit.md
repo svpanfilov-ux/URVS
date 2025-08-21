@@ -29,6 +29,16 @@ This is a work time management system for tracking employee hours, generating re
   - Analyzes last working entries and applies employee's work schedule
   - Respects locked cells and termination dates
   - Fills only empty cells according to schedule pattern
+- **Section-based Layout** (New):
+  - Divided timesheet into "Active Employees" and "Contract Work" sections
+  - Color-coded headers (blue for active, orange for contract work)
+  - Intermediate subtotals for each employee category
+  - Overall total row at bottom with comprehensive summary
+- **Planned Hours Column** (New):
+  - Added "План час" column showing expected working hours
+  - Calculates 8 hours × working days (Monday-Friday, excluding weekends)
+  - Accounts for termination dates for fired employees
+  - Shows planned hours totals for each section and overall
 - **Color-coded Interface**: Quality-based cell coloring and status-specific highlighting
 - **Responsive Design**: Compact single-screen layout without scrollbars
 
