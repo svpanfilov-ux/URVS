@@ -337,8 +337,90 @@ export default function Timesheet() {
     }
   };
 
-  const handleAutoFill = () => {
-    toast({ title: "Автозаполнение выполнено", description: "Табель заполнен данными из предыдущего месяца" });
+  const handleAutoFill = async () => {
+    try {
+      // Get previous month data (July 2025)
+      const prevMonth = new Date(2025, 6, 1); // July 2025
+      const prevMonthStr = `${prevMonth.getFullYear()}-${String(prevMonth.getMonth() + 1).padStart(2, '0')}`;
+      
+      // Fetch previous month entries
+      const response = await fetch(`/api/time-entries?month=${prevMonthStr}`);
+      const prevMonthEntries = await response.json();
+      
+      if (!prevMonthEntries || prevMonthEntries.length === 0) {
+        toast({ 
+          title: "Нет данных", 
+          description: "Данные за предыдущий месяц не найдены",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Group previous month entries by employee
+      const prevEntriesByEmployee = prevMonthEntries.reduce((acc: any, entry: any) => {
+        if (!acc[entry.employeeId]) {
+          acc[entry.employeeId] = [];
+        }
+        acc[entry.employeeId].push(entry);
+        return acc;
+      }, {});
+
+      const entriesToCreate = [];
+
+      // For each employee, analyze their pattern and extend it to current month
+      for (const employee of employees) {
+        const prevEntries = prevEntriesByEmployee[employee.id] || [];
+        if (prevEntries.length === 0) continue;
+
+        // Sort entries by date
+        prevEntries.sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime());
+        
+        // Get the pattern from last week of previous month
+        const lastWeekEntries = prevEntries.slice(-7);
+        
+        // Apply pattern to current month
+        for (let i = 0; i < days.length; i++) {
+          const day = days[i];
+          if (isCellLocked(day.date) || isCellTerminated(employee, day.date)) continue;
+          
+          const existingEntry = getTimeEntry(employee.id, day.date);
+          if (existingEntry) continue;
+
+          // Use cyclic pattern from last week
+          const patternIndex = i % lastWeekEntries.length;
+          const patternEntry = lastWeekEntries[patternIndex];
+          
+          if (patternEntry && (patternEntry.hours !== null || patternEntry.dayType !== 'work')) {
+            entriesToCreate.push({
+              employeeId: employee.id,
+              date: day.date,
+              hours: patternEntry.hours,
+              dayType: patternEntry.dayType,
+              qualityScore: patternEntry.qualityScore || 3,
+            });
+          }
+        }
+      }
+
+      if (entriesToCreate.length > 0) {
+        bulkCreateMutation.mutate(entriesToCreate);
+        toast({ 
+          title: "Автозаполнение выполнено", 
+          description: `Заполнено ${entriesToCreate.length} записей на основе данных предыдущего месяца` 
+        });
+      } else {
+        toast({ 
+          title: "Нет данных для заполнения", 
+          description: "Все ячейки уже заполнены или заблокированы" 
+        });
+      }
+    } catch (error) {
+      toast({ 
+        title: "Ошибка автозаполнения", 
+        description: "Не удалось получить данные предыдущего месяца",
+        variant: "destructive"
+      });
+    }
   };
 
   return (

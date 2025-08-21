@@ -93,11 +93,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Time Entries
   app.get("/api/time-entries", async (req, res) => {
     try {
-      const { employeeId, startDate, endDate } = req.query;
+      const { employeeId, startDate, endDate, month } = req.query;
+      
+      let finalStartDate = startDate as string;
+      let finalEndDate = endDate as string;
+      
+      // If month parameter is provided (YYYY-MM format), set start and end dates for that month
+      if (month) {
+        const [year, monthNum] = (month as string).split('-');
+        const monthStart = new Date(parseInt(year), parseInt(monthNum) - 1, 1);
+        const monthEnd = new Date(parseInt(year), parseInt(monthNum), 0);
+        
+        finalStartDate = monthStart.toISOString().split('T')[0];
+        finalEndDate = monthEnd.toISOString().split('T')[0];
+      }
+      
       const entries = await storage.getTimeEntries(
         employeeId as string,
-        startDate as string,
-        endDate as string
+        finalStartDate,
+        finalEndDate
       );
       res.json(entries);
     } catch (error) {

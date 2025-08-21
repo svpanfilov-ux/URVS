@@ -89,6 +89,64 @@ export class MemStorage implements IStorage {
       this.employees.set(employee.id, employee);
     });
 
+    // Add sample time entries for July 2025 (previous month) for autofill demonstration
+    const employeeIds = Array.from(this.employees.keys());
+    if (employeeIds.length > 0) {
+      // Generate July 2025 data for the first employee (5/2 schedule)
+      const firstEmployeeId = employeeIds[0];
+      for (let day = 1; day <= 31; day++) {
+        const date = `2025-07-${day.toString().padStart(2, '0')}`;
+        const dayOfWeek = new Date(2025, 6, day).getDay(); // 0 = Sunday, 6 = Saturday
+        
+        // 5/2 schedule: work on weekdays (Monday-Friday)
+        if (dayOfWeek >= 1 && dayOfWeek <= 5) {
+          const timeEntry: TimeEntry = {
+            id: randomUUID(),
+            employeeId: firstEmployeeId,
+            date,
+            hours: 8,
+            dayType: "work",
+            qualityScore: 3,
+            comment: null,
+            createdAt: new Date()
+          };
+          this.timeEntries.set(timeEntry.id, timeEntry);
+        }
+      }
+
+      // Generate July 2025 data for the second employee (2/2 schedule)
+      if (employeeIds.length > 1) {
+        const secondEmployeeId = employeeIds[1];
+        let workDayCount = 0;
+        let isWorkPeriod = true;
+        
+        for (let day = 1; day <= 31; day++) {
+          const date = `2025-07-${day.toString().padStart(2, '0')}`;
+          
+          // 2/2 schedule: 2 work days, then 2 rest days
+          if (isWorkPeriod && workDayCount < 2) {
+            const timeEntry: TimeEntry = {
+              id: randomUUID(),
+              employeeId: secondEmployeeId,
+              date,
+              hours: 12,
+              dayType: "work",
+              qualityScore: 3,
+              comment: null,
+              createdAt: new Date()
+            };
+            this.timeEntries.set(timeEntry.id, timeEntry);
+          }
+          
+          workDayCount++;
+          if (workDayCount === 2) {
+            workDayCount = 0;
+            isWorkPeriod = !isWorkPeriod;
+          }
+        }
+      }
+    }
+
     // Initialize default settings
     const defaultSettings = [
       { key: "theme", value: "light" },
