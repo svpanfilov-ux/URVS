@@ -78,10 +78,14 @@ export default function Timesheet() {
     return false;
   });
 
-  // Separate employees into active and part-time workers
-  const activeEmployees = allVisibleEmployees.filter(emp => emp.status === "active");
-  const partTimeEmployees = allVisibleEmployees.filter(emp => emp.status === "not_registered");
-  const firedEmployees = allVisibleEmployees.filter(emp => emp.status === "fired");
+  // Separate employees into active and part-time workers (including fired employees in their sections)
+  // For now, all fired employees go to active section since we don't track original status
+  const activeEmployees = allVisibleEmployees.filter(emp => 
+    emp.status === "active" || emp.status === "fired"
+  );
+  const partTimeEmployees = allVisibleEmployees.filter(emp => 
+    emp.status === "not_registered"
+  );
 
   const getTimeEntry = (employeeId: string, date: string) => {
     return timeEntries.find((entry: TimeEntry) => 
@@ -653,10 +657,10 @@ export default function Timesheet() {
                   .reduce((sum: number, entry: TimeEntry) => sum + (entry.hours || 0), 0);
 
                 return (
-                  <tr key={employee.id} className="hover:bg-muted/30">
+                  <tr key={employee.id} className={`hover:bg-muted/30 ${employee.status === "fired" ? "opacity-75" : ""}`}>
                     <td className="sticky left-0 z-10 bg-background border-r p-1 font-medium">
                       <div className="text-[10px] truncate max-w-28" title={employee.name}>
-                        {employee.name}
+                        {employee.name}{employee.status === "fired" ? " (уволен)" : ""}
                       </div>
                       <div className="text-[8px] text-muted-foreground truncate">
                         {employee.position}
@@ -730,10 +734,10 @@ export default function Timesheet() {
                   .reduce((sum: number, entry: TimeEntry) => sum + (entry.hours || 0), 0);
 
                 return (
-                  <tr key={employee.id} className="hover:bg-muted/30">
+                  <tr key={employee.id} className={`hover:bg-muted/30 ${employee.status === "fired" ? "opacity-75" : ""}`}>
                     <td className="sticky left-0 z-10 bg-background border-r p-1 font-medium">
                       <div className="text-[10px] truncate max-w-28" title={employee.name}>
-                        {employee.name}
+                        {employee.name}{employee.status === "fired" ? " (уволен)" : ""}
                       </div>
                       <div className="text-[8px] text-muted-foreground truncate">
                         {employee.position}
@@ -791,55 +795,7 @@ export default function Timesheet() {
                 </tr>
               )}
 
-              {/* Fired Employees (if any in current month) */}
-              {firedEmployees.map((employee) => {
-                const totalHours = timeEntries
-                  .filter((entry: TimeEntry) => entry.employeeId === employee.id && typeof entry.hours === 'number')
-                  .reduce((sum: number, entry: TimeEntry) => sum + (entry.hours || 0), 0);
 
-                return (
-                  <tr key={employee.id} className="hover:bg-muted/30 opacity-75">
-                    <td className="sticky left-0 z-10 bg-background border-r p-1 font-medium">
-                      <div className="text-[10px] truncate max-w-28" title={employee.name}>
-                        {employee.name} (уволен)
-                      </div>
-                      <div className="text-[8px] text-muted-foreground truncate">
-                        {employee.position}
-                      </div>
-                    </td>
-                    {days.map((day) => {
-                      const entry = getTimeEntry(employee.id, day.date);
-                      const isTerminated = isCellTerminated(employee, day.date);
-                      const isLocked = isCellLocked(day.date);
-                      
-                      return (
-                        <td key={day.date} className="p-0">
-                          <TimesheetCell
-                            value={entry?.hours !== null ? entry?.hours : entry?.dayType}
-                            qualityScore={entry?.qualityScore || 3}
-                            isLocked={isLocked}
-                            isTerminated={isTerminated}
-                            employeeId={employee.id}
-                            date={day.date}
-                            isPartTime={false}
-                            onChange={(value, qualityScore) => 
-                              handleCellChange(employee.id, day.date, value, qualityScore)
-                            }
-                            onClearRow={() => handleClearRow(employee.id)}
-                            onFillBySchedule={() => handleFillBySchedule(employee.id, entry?.hours !== null ? entry?.hours : entry?.dayType, entry?.qualityScore || undefined)}
-                          />
-                        </td>
-                      );
-                    })}
-                    <td className="border-r p-1 text-center font-bold bg-primary/5">
-                      <div className="text-[9px]">{totalHours}</div>
-                    </td>
-                    <td className="border-r p-1 text-center font-bold bg-green-50 dark:bg-green-950/20">
-                      <div className="text-[9px]">{calculatePlannedHours(employee)}</div>
-                    </td>
-                  </tr>
-                );
-              })}
 
               {/* Overall Total Row */}
               <tr className="bg-gray-200 dark:bg-gray-800 border-t-4 border-gray-400">
@@ -850,10 +806,10 @@ export default function Timesheet() {
                   <td key={day.date} className="p-0 bg-gray-200 dark:bg-gray-800"></td>
                 ))}
                 <td className="border-r p-1 text-center font-bold bg-gray-300 dark:bg-gray-700 text-gray-800 dark:text-gray-200">
-                  <div className="text-[11px]">{calculateGroupTotal([...activeEmployees, ...partTimeEmployees, ...firedEmployees])}</div>
+                  <div className="text-[11px]">{calculateGroupTotal([...activeEmployees, ...partTimeEmployees])}</div>
                 </td>
                 <td className="border-r p-1 text-center font-bold bg-green-200 dark:bg-green-700 text-green-800 dark:text-green-200">
-                  <div className="text-[11px]">{[...activeEmployees, ...partTimeEmployees, ...firedEmployees].reduce((total, emp) => total + calculatePlannedHours(emp), 0)}</div>
+                  <div className="text-[11px]">{[...activeEmployees, ...partTimeEmployees].reduce((total, emp) => total + calculatePlannedHours(emp), 0)}</div>
                 </td>
               </tr>
             </tbody>
