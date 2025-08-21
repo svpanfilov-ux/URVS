@@ -95,7 +95,9 @@ export default function Timesheet() {
 
   const isEmployeeTerminated = (employee: Employee, date: string) => {
     if (employee.status !== "fired" || !employee.terminationDate) return false;
-    return isAfter(parseISO(date), parseISO(employee.terminationDate));
+    const cellDate = parseISO(date);
+    const terminationDate = parseISO(employee.terminationDate);
+    return cellDate >= terminationDate;
   };
 
   const isCellLocked = (date: string) => {
