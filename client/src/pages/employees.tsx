@@ -210,7 +210,7 @@ export default function Employees() {
             variant="outline"
             data-testid="import-csv"
           >
-            <Upload className="h-4 w-4 mr-2" />
+            <Download className="h-4 w-4 mr-2" />
             Импорт CSV
           </Button>
           <Button 
@@ -218,7 +218,7 @@ export default function Employees() {
             variant="outline"
             data-testid="export-csv"
           >
-            <Download className="h-4 w-4 mr-2" />
+            <Upload className="h-4 w-4 mr-2" />
             Экспорт CSV
           </Button>
         </div>
