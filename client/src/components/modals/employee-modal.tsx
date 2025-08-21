@@ -31,6 +31,7 @@ const employeeSchema = z.object({
   name: z.string().min(1, "ФИО обязательно"),
   position: z.string().min(1, "Должность обязательна"),
   status: z.enum(["active", "not_registered", "fired"]),
+  workSchedule: z.enum(["5/2", "2/2", "3/3", "6/1", "вахта (7/0)"]),
   terminationDate: z.string().optional(),
 });
 
@@ -52,6 +53,7 @@ export function EmployeeModal({ isOpen, onClose, onSave, employee }: EmployeeMod
       name: "",
       position: "",
       status: "active",
+      workSchedule: "5/2",
       terminationDate: "",
     },
   });
@@ -62,6 +64,7 @@ export function EmployeeModal({ isOpen, onClose, onSave, employee }: EmployeeMod
         name: employee.name,
         position: employee.position,
         status: employee.status as "active" | "not_registered" | "fired",
+        workSchedule: (employee.workSchedule || "5/2") as "5/2" | "2/2" | "3/3" | "6/1" | "вахта (7/0)",
         terminationDate: employee.terminationDate || "",
       });
       setShowTerminationDate(employee.status === "fired");
@@ -70,6 +73,7 @@ export function EmployeeModal({ isOpen, onClose, onSave, employee }: EmployeeMod
         name: "",
         position: "",
         status: "active",
+        workSchedule: "5/2",
         terminationDate: "",
       });
       setShowTerminationDate(false);
@@ -159,6 +163,31 @@ export function EmployeeModal({ isOpen, onClose, onSave, employee }: EmployeeMod
                       <SelectItem value="active">Активный</SelectItem>
                       <SelectItem value="not_registered">Подработка</SelectItem>
                       <SelectItem value="fired">Уволен</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="workSchedule"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>График работы</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger data-testid="select-employee-schedule">
+                        <SelectValue placeholder="Выберите график работы" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="5/2">5/2</SelectItem>
+                      <SelectItem value="2/2">2/2</SelectItem>
+                      <SelectItem value="3/3">3/3</SelectItem>
+                      <SelectItem value="6/1">6/1</SelectItem>
+                      <SelectItem value="вахта (7/0)">вахта (7/0)</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />

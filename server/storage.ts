@@ -74,9 +74,9 @@ export class MemStorage implements IStorage {
 
     // Create sample employees
     const sampleEmployees = [
-      { name: "Иванов Иван Иванович", position: "Менеджер по продажам", status: "active" },
-      { name: "Петров Пётр Петрович", position: "Кассир", status: "active" },
-      { name: "Сидоров Семён Семёнович", position: "Помощник", status: "not_registered" },
+      { name: "Иванов Иван Иванович", position: "Менеджер по продажам", status: "active", workSchedule: "5/2" },
+      { name: "Петров Пётр Петрович", position: "Кассир", status: "active", workSchedule: "2/2" },
+      { name: "Сидоров Семён Семёнович", position: "Помощник", status: "not_registered", workSchedule: "6/1" },
     ];
 
     sampleEmployees.forEach(emp => {
@@ -144,6 +144,7 @@ export class MemStorage implements IStorage {
       ...insertEmployee, 
       id,
       status: insertEmployee.status || "active",
+      workSchedule: insertEmployee.workSchedule || "5/2",
       terminationDate: insertEmployee.terminationDate ?? null,
       createdAt: new Date()
     };

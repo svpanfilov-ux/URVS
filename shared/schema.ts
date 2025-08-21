@@ -16,6 +16,7 @@ export const employees = pgTable("employees", {
   name: text("name").notNull(),
   position: text("position").notNull(),
   status: text("status").notNull().default("active"), // active, not_registered, fired
+  workSchedule: text("work_schedule").notNull().default("5/2"), // 5/2, 2/2, 3/3, 6/1, вахта (7/0)
   terminationDate: text("termination_date"),
   createdAt: timestamp("created_at").defaultNow(),
 });
