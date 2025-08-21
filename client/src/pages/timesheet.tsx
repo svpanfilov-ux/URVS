@@ -319,28 +319,28 @@ export default function Timesheet() {
 
       {/* Timesheet Table */}
       <div className="overflow-hidden border rounded-lg bg-background">
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse text-xs">
+        <div className="w-full">
+          <table className="w-full border-collapse text-[10px] table-fixed">
             {/* Header */}
             <thead>
               <tr>
-                <th className="sticky left-0 z-10 bg-background border-r border-b p-2 text-left w-40">
-                  Сотрудник
+                <th className="sticky left-0 z-10 bg-background border-r border-b p-1 text-left w-32">
+                  <div className="text-[9px] font-medium truncate">Сотрудник</div>
                 </th>
                 {days.map((day) => (
                   <th 
                     key={day.day}
-                    className={`border-b border-r p-1 text-center min-w-12 ${
+                    className={`border-b border-r p-0.5 text-center w-7 ${
                       day.isWeekend ? 'bg-red-50 dark:bg-red-950/20' : 'bg-gray-50 dark:bg-gray-950/50'
                     }`}
                   >
-                    <div className="text-[10px] font-medium">{day.dayOfWeek}</div>
-                    <div className="text-xs font-bold">{day.day}</div>
+                    <div className="text-[8px] font-medium">{day.dayOfWeek}</div>
+                    <div className="text-[9px] font-bold">{day.day}</div>
                   </th>
                 ))}
-                <th className="border-b p-2 text-center bg-primary/5 min-w-16">
-                  <div className="text-[10px]">Итого</div>
-                  <div className="text-xs font-bold">часов</div>
+                <th className="border-b p-1 text-center bg-primary/5 w-12">
+                  <div className="text-[8px]">Итого</div>
+                  <div className="text-[9px] font-bold">час</div>
                 </th>
               </tr>
             </thead>
@@ -354,11 +354,11 @@ export default function Timesheet() {
 
                 return (
                   <tr key={employee.id} className="hover:bg-muted/30">
-                    <td className="sticky left-0 z-10 bg-background border-r p-2 font-medium">
-                      <div className="text-sm truncate max-w-36" title={employee.name}>
+                    <td className="sticky left-0 z-10 bg-background border-r p-1 font-medium">
+                      <div className="text-[10px] truncate max-w-28" title={employee.name}>
                         {employee.name}
                       </div>
-                      <div className="text-[10px] text-muted-foreground truncate">
+                      <div className="text-[8px] text-muted-foreground truncate">
                         {employee.position}
                       </div>
                     </td>
@@ -387,8 +387,8 @@ export default function Timesheet() {
                         </td>
                       );
                     })}
-                    <td className="border-r p-2 text-center font-bold bg-primary/5">
-                      {totalHours}
+                    <td className="border-r p-1 text-center font-bold bg-primary/5">
+                      <div className="text-[9px]">{totalHours}</div>
                     </td>
                   </tr>
                 );

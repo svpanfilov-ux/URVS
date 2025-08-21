@@ -118,7 +118,7 @@ export function TimesheetCell({
 
   // Determine cell styling
   const getCellClass = () => {
-    let classes = "w-12 h-12 border border-gray-300 dark:border-gray-600 cursor-pointer transition-colors hover:bg-gray-50 dark:hover:bg-gray-800 ";
+    let classes = "w-7 h-8 border border-gray-300 dark:border-gray-600 cursor-pointer transition-colors hover:bg-gray-50 dark:hover:bg-gray-800 ";
     
     if (isTerminated) {
       classes += "bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200 ";
@@ -163,13 +163,13 @@ export function TimesheetCell({
               onChange={handleInputChange}
               onBlur={handleInputBlur}
               onKeyDown={handleKeyDown}
-              className="w-full h-full text-center text-sm border-0 bg-transparent p-0 focus:ring-0"
+              className="w-full h-full text-center text-[10px] border-0 bg-transparent p-0 focus:ring-0"
               maxLength={3}
               data-testid="timesheet-input"
             />
           ) : (
             <div 
-              className="text-center text-sm font-medium p-2 cursor-pointer"
+              className="text-center text-[10px] font-medium p-1 cursor-pointer leading-tight"
               onClick={handleCellClick}
             >
               {displayValue}
