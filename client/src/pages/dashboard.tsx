@@ -11,15 +11,16 @@ import {
   Calendar
 } from "lucide-react";
 import { useLocation } from "wouter";
+import { Employee } from "@shared/schema";
 
 export default function Dashboard() {
   const [, navigate] = useLocation();
 
-  const { data: employees = [] } = useQuery({
+  const { data: employees = [] } = useQuery<Employee[]>({
     queryKey: ["/api/employees"],
   });
 
-  const activeEmployees = employees.filter((emp: any) => emp.status === "active");
+  const activeEmployees = employees.filter((emp) => emp.status === "active");
   const totalEmployees = employees.length;
 
   // Calculate deadline days (mock data for demo)

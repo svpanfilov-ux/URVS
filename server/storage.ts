@@ -120,7 +120,7 @@ export class MemStorage implements IStorage {
 
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = randomUUID();
-    const user: User = { ...insertUser, id };
+    const user: User = { ...insertUser, id, role: insertUser.role || "manager" };
     this.users.set(id, user);
     return user;
   }
@@ -143,6 +143,8 @@ export class MemStorage implements IStorage {
     const employee: Employee = { 
       ...insertEmployee, 
       id,
+      status: insertEmployee.status || "active",
+      terminationDate: insertEmployee.terminationDate ?? null,
       createdAt: new Date()
     };
     this.employees.set(id, employee);
@@ -186,6 +188,10 @@ export class MemStorage implements IStorage {
     const entry: TimeEntry = { 
       ...insertEntry, 
       id,
+      hours: insertEntry.hours ?? null,
+      dayType: insertEntry.dayType || "work",
+      qualityScore: insertEntry.qualityScore ?? 3,
+      comment: insertEntry.comment || null,
       createdAt: new Date()
     };
     this.timeEntries.set(id, entry);
@@ -221,6 +227,8 @@ export class MemStorage implements IStorage {
     const report: Report = { 
       ...insertReport, 
       id,
+      status: insertReport.status || "draft",
+      sentAt: insertReport.sentAt || null,
       createdAt: new Date()
     };
     this.reports.set(id, report);

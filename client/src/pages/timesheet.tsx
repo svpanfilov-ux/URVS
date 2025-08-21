@@ -10,6 +10,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { format, getDaysInMonth, startOfMonth, getDay } from "date-fns";
 import { ru } from "date-fns/locale";
 import { Wand2 } from "lucide-react";
+import { Employee, TimeEntry } from "@shared/schema";
 
 export default function Timesheet() {
   const [selectedMonth, setSelectedMonth] = useState("2024-02");
@@ -18,7 +19,7 @@ export default function Timesheet() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: employees = [] } = useQuery({
+  const { data: employees = [] } = useQuery<Employee[]>({
     queryKey: ["/api/employees"],
   });
 
@@ -72,8 +73,8 @@ export default function Timesheet() {
   });
 
   // Group employees by status
-  const activeEmployees = employees.filter((emp: any) => emp.status === "active");
-  const partTimeEmployees = employees.filter((emp: any) => emp.status === "not_registered");
+  const activeEmployees = employees.filter((emp) => emp.status === "active");
+  const partTimeEmployees = employees.filter((emp) => emp.status === "not_registered");
 
   const getTimeEntry = (employeeId: string, date: string) => {
     return timeEntries.find((entry: any) => 

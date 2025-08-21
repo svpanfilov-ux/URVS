@@ -211,7 +211,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const employee = await storage.createEmployee(employeeData);
           results.push({ success: true, employee });
         } catch (error) {
-          results.push({ success: false, error: error.message, data: emp });
+          results.push({ success: false, error: (error as Error).message, data: emp });
         }
       }
       

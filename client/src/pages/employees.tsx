@@ -20,7 +20,7 @@ export default function Employees() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: employees = [], isLoading } = useQuery({
+  const { data: employees = [], isLoading } = useQuery<Employee[]>({
     queryKey: ["/api/employees"],
   });
 
@@ -97,7 +97,7 @@ export default function Employees() {
   // Filter employees
   const filteredEmployees = employees.filter((employee: Employee) => {
     const matchesSearch = employee.name.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = !statusFilter || employee.status === statusFilter;
+    const matchesStatus = !statusFilter || statusFilter === "all" || employee.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
@@ -243,7 +243,7 @@ export default function Employees() {
                 <SelectValue placeholder="Все статусы" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Все статусы</SelectItem>
+                <SelectItem value="all">Все статусы</SelectItem>
                 <SelectItem value="active">Активный</SelectItem>
                 <SelectItem value="not_registered">Подработка</SelectItem>
                 <SelectItem value="fired">Уволен</SelectItem>

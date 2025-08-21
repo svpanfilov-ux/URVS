@@ -10,13 +10,14 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useTheme } from "@/components/ui/theme-provider";
 import { Download, Upload, Trash2, RefreshCw, CheckCircle } from "lucide-react";
+import { Setting } from "@shared/schema";
 
 export default function Settings() {
   const { toast } = useToast();
   const { theme, setTheme } = useTheme();
   const queryClient = useQueryClient();
 
-  const { data: settings = [] } = useQuery({
+  const { data: settings = [] } = useQuery<Setting[]>({
     queryKey: ["/api/settings"],
   });
 
@@ -35,7 +36,7 @@ export default function Settings() {
   });
 
   const getSetting = (key: string) => {
-    return settings.find((s: any) => s.key === key)?.value || "";
+    return settings.find((s) => s.key === key)?.value || "";
   };
 
   const handleSettingChange = (key: string, value: string) => {
