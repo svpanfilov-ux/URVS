@@ -65,8 +65,18 @@ export default function Timesheet() {
     };
   });
 
-  // Filter active employees
-  const activeEmployees = employees.filter((emp) => emp.status === "active" || emp.status === "not_registered");
+  // Filter employees for current period - include fired employees if termination is within the reporting period
+  const visibleEmployees = employees.filter((emp) => {
+    if (emp.status === "active" || emp.status === "not_registered") {
+      return true;
+    }
+    if (emp.status === "fired" && emp.terminationDate) {
+      // Show fired employees if their termination date is within the current month
+      const terminationMonth = emp.terminationDate.substring(0, 7); // YYYY-MM format
+      return terminationMonth === selectedMonth;
+    }
+    return false;
+  });
 
   const getTimeEntry = (employeeId: string, date: string) => {
     return timeEntries.find((entry: TimeEntry) => 
@@ -347,7 +357,7 @@ export default function Timesheet() {
 
             {/* Body */}
             <tbody>
-              {activeEmployees.map((employee) => {
+              {visibleEmployees.map((employee) => {
                 const totalHours = timeEntries
                   .filter((entry: TimeEntry) => entry.employeeId === employee.id && typeof entry.hours === 'number')
                   .reduce((sum: number, entry: TimeEntry) => sum + (entry.hours || 0), 0);
