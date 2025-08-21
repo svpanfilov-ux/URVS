@@ -65,8 +65,8 @@ export default function Timesheet() {
     };
   });
 
-  // Filter employees for current period - include fired employees if termination is within the reporting period
-  const visibleEmployees = employees.filter((emp) => {
+  // Filter and separate employees into two groups
+  const allVisibleEmployees = employees.filter((emp) => {
     if (emp.status === "active" || emp.status === "not_registered") {
       return true;
     }
@@ -78,6 +78,11 @@ export default function Timesheet() {
     return false;
   });
 
+  // Separate employees into active and part-time workers
+  const activeEmployees = allVisibleEmployees.filter(emp => emp.status === "active");
+  const partTimeEmployees = allVisibleEmployees.filter(emp => emp.status === "not_registered");
+  const firedEmployees = allVisibleEmployees.filter(emp => emp.status === "fired");
+
   const getTimeEntry = (employeeId: string, date: string) => {
     return timeEntries.find((entry: TimeEntry) => 
       entry.employeeId === employeeId && entry.date === date
@@ -87,6 +92,26 @@ export default function Timesheet() {
   const isEmployeeTerminated = (employee: Employee, date: string) => {
     if (employee.status !== "fired" || !employee.terminationDate) return false;
     return isAfter(parseISO(date), parseISO(employee.terminationDate));
+  };
+
+  const isCellLocked = (date: string) => {
+    const cellDate = parseISO(date);
+    const today = new Date();
+    return isAfter(cellDate, today);
+  };
+
+  const isCellTerminated = (employee: Employee, date: string) => {
+    return isEmployeeTerminated(employee, date);
+  };
+
+  // Calculate total hours for a group of employees
+  const calculateGroupTotal = (employeeList: Employee[]) => {
+    return employeeList.reduce((total, employee) => {
+      const employeeTotal = timeEntries
+        .filter((entry: TimeEntry) => entry.employeeId === employee.id && typeof entry.hours === 'number')
+        .reduce((sum: number, entry: TimeEntry) => sum + (entry.hours || 0), 0);
+      return total + employeeTotal;
+    }, 0);
   };
 
   const handleCellChange = (employeeId: string, date: string, value: string | number, qualityScore?: number) => {
@@ -151,17 +176,7 @@ export default function Timesheet() {
     },
   });
 
-  const isCellLocked = (date: string) => {
-    // Future dates should not be editable 
-    const today = new Date();
-    const cellDate = new Date(date);
-    return cellDate > today;
-  };
 
-  const isCellTerminated = (employee: Employee, date: string) => {
-    if (employee.status !== "fired" || !employee.terminationDate) return false;
-    return isAfter(parseISO(date), parseISO(employee.terminationDate));
-  };
 
   // Clear all data for current month
   const handleClearAll = () => {
@@ -599,9 +614,19 @@ export default function Timesheet() {
               </tr>
             </thead>
 
-            {/* Body */}
+            {/* Body - Active Employees Section */}
             <tbody>
-              {visibleEmployees.map((employee) => {
+              {/* Active Employees Header */}
+              {activeEmployees.length > 0 && (
+                <tr className="bg-blue-50 dark:bg-blue-950/20">
+                  <td colSpan={days.length + 2} className="p-2 font-semibold text-sm text-blue-800 dark:text-blue-200">
+                    Активные сотрудники
+                  </td>
+                </tr>
+              )}
+              
+              {/* Active Employees Rows */}
+              {activeEmployees.map((employee) => {
                 const totalHours = timeEntries
                   .filter((entry: TimeEntry) => entry.employeeId === employee.id && typeof entry.hours === 'number')
                   .reduce((sum: number, entry: TimeEntry) => sum + (entry.hours || 0), 0);
@@ -611,6 +636,137 @@ export default function Timesheet() {
                     <td className="sticky left-0 z-10 bg-background border-r p-1 font-medium">
                       <div className="text-[10px] truncate max-w-28" title={employee.name}>
                         {employee.name}
+                      </div>
+                      <div className="text-[8px] text-muted-foreground truncate">
+                        {employee.position}
+                      </div>
+                    </td>
+                    {days.map((day) => {
+                      const entry = getTimeEntry(employee.id, day.date);
+                      const isTerminated = isCellTerminated(employee, day.date);
+                      const isLocked = isCellLocked(day.date);
+                      
+                      return (
+                        <td key={day.date} className="p-0">
+                          <TimesheetCell
+                            value={entry?.hours !== null ? entry?.hours : entry?.dayType}
+                            qualityScore={entry?.qualityScore || 3}
+                            isLocked={isLocked}
+                            isTerminated={isTerminated}
+                            employeeId={employee.id}
+                            date={day.date}
+                            onChange={(value, qualityScore) => 
+                              handleCellChange(employee.id, day.date, value, qualityScore)
+                            }
+                            onClearRow={() => handleClearRow(employee.id)}
+                            onFillBySchedule={() => handleFillBySchedule(employee.id, entry?.hours !== null ? entry?.hours : entry?.dayType, entry?.qualityScore || undefined)}
+                          />
+                        </td>
+                      );
+                    })}
+                    <td className="border-r p-1 text-center font-bold bg-primary/5">
+                      <div className="text-[9px]">{totalHours}</div>
+                    </td>
+                  </tr>
+                );
+              })}
+              
+              {/* Active Employees Subtotal */}
+              {activeEmployees.length > 0 && (
+                <tr className="bg-blue-100 dark:bg-blue-900/30 border-t-2 border-blue-300">
+                  <td className="sticky left-0 z-10 bg-blue-100 dark:bg-blue-900/30 border-r p-1 font-bold text-blue-800 dark:text-blue-200">
+                    <div className="text-[10px]">Итого активные:</div>
+                  </td>
+                  {days.map((day) => (
+                    <td key={day.date} className="p-0 bg-blue-100 dark:bg-blue-900/30"></td>
+                  ))}
+                  <td className="border-r p-1 text-center font-bold bg-blue-200 dark:bg-blue-800/50 text-blue-800 dark:text-blue-200">
+                    <div className="text-[10px]">{calculateGroupTotal(activeEmployees)}</div>
+                  </td>
+                </tr>
+              )}
+
+              {/* Part-time Employees Header */}
+              {partTimeEmployees.length > 0 && (
+                <tr className="bg-orange-50 dark:bg-orange-950/20">
+                  <td colSpan={days.length + 2} className="p-2 font-semibold text-sm text-orange-800 dark:text-orange-200">
+                    Подработка
+                  </td>
+                </tr>
+              )}
+              
+              {/* Part-time Employees Rows */}
+              {partTimeEmployees.map((employee) => {
+                const totalHours = timeEntries
+                  .filter((entry: TimeEntry) => entry.employeeId === employee.id && typeof entry.hours === 'number')
+                  .reduce((sum: number, entry: TimeEntry) => sum + (entry.hours || 0), 0);
+
+                return (
+                  <tr key={employee.id} className="hover:bg-muted/30">
+                    <td className="sticky left-0 z-10 bg-background border-r p-1 font-medium">
+                      <div className="text-[10px] truncate max-w-28" title={employee.name}>
+                        {employee.name}
+                      </div>
+                      <div className="text-[8px] text-muted-foreground truncate">
+                        {employee.position}
+                      </div>
+                    </td>
+                    {days.map((day) => {
+                      const entry = getTimeEntry(employee.id, day.date);
+                      const isTerminated = isCellTerminated(employee, day.date);
+                      const isLocked = isCellLocked(day.date);
+                      
+                      return (
+                        <td key={day.date} className="p-0">
+                          <TimesheetCell
+                            value={entry?.hours !== null ? entry?.hours : entry?.dayType}
+                            qualityScore={entry?.qualityScore || 3}
+                            isLocked={isLocked}
+                            isTerminated={isTerminated}
+                            employeeId={employee.id}
+                            date={day.date}
+                            onChange={(value, qualityScore) => 
+                              handleCellChange(employee.id, day.date, value, qualityScore)
+                            }
+                            onClearRow={() => handleClearRow(employee.id)}
+                            onFillBySchedule={() => handleFillBySchedule(employee.id, entry?.hours !== null ? entry?.hours : entry?.dayType, entry?.qualityScore || undefined)}
+                          />
+                        </td>
+                      );
+                    })}
+                    <td className="border-r p-1 text-center font-bold bg-primary/5">
+                      <div className="text-[9px]">{totalHours}</div>
+                    </td>
+                  </tr>
+                );
+              })}
+              
+              {/* Part-time Employees Subtotal */}
+              {partTimeEmployees.length > 0 && (
+                <tr className="bg-orange-100 dark:bg-orange-900/30 border-t-2 border-orange-300">
+                  <td className="sticky left-0 z-10 bg-orange-100 dark:bg-orange-900/30 border-r p-1 font-bold text-orange-800 dark:text-orange-200">
+                    <div className="text-[10px]">Итого подработка:</div>
+                  </td>
+                  {days.map((day) => (
+                    <td key={day.date} className="p-0 bg-orange-100 dark:bg-orange-900/30"></td>
+                  ))}
+                  <td className="border-r p-1 text-center font-bold bg-orange-200 dark:bg-orange-800/50 text-orange-800 dark:text-orange-200">
+                    <div className="text-[10px]">{calculateGroupTotal(partTimeEmployees)}</div>
+                  </td>
+                </tr>
+              )}
+
+              {/* Fired Employees (if any in current month) */}
+              {firedEmployees.map((employee) => {
+                const totalHours = timeEntries
+                  .filter((entry: TimeEntry) => entry.employeeId === employee.id && typeof entry.hours === 'number')
+                  .reduce((sum: number, entry: TimeEntry) => sum + (entry.hours || 0), 0);
+
+                return (
+                  <tr key={employee.id} className="hover:bg-muted/30 opacity-75">
+                    <td className="sticky left-0 z-10 bg-background border-r p-1 font-medium">
+                      <div className="text-[10px] truncate max-w-28" title={employee.name}>
+                        {employee.name} (уволен)
                       </div>
                       <div className="text-[8px] text-muted-foreground truncate">
                         {employee.position}
