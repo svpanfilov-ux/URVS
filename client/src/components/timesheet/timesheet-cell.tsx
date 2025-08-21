@@ -15,6 +15,7 @@ interface TimesheetCellProps {
   isTerminated?: boolean;
   employeeId?: string;
   date?: string;
+  isPartTime?: boolean; // New prop to identify part-time employees
   onChange: (value: string | number, qualityScore?: number) => void;
   onClearRow?: () => void;
   onFillBySchedule?: () => void;
@@ -27,6 +28,7 @@ export function TimesheetCell({
   isTerminated = false,
   employeeId,
   date,
+  isPartTime = false,
   onChange, 
   onClearRow,
   onFillBySchedule
@@ -59,9 +61,16 @@ export function TimesheetCell({
       inputValue = "НН";
     }
     
-    // Allow only valid characters
-    if (inputValue.match(/^[0-9БОННУ]*$/)) {
-      setLocalValue(inputValue);
+    // For part-time employees, only allow numbers and "У" (termination)
+    if (isPartTime) {
+      if (inputValue.match(/^[0-9У]*$/)) {
+        setLocalValue(inputValue);
+      }
+    } else {
+      // For regular employees, allow all status letters
+      if (inputValue.match(/^[0-9БОННУ]*$/)) {
+        setLocalValue(inputValue);
+      }
     }
   };
 

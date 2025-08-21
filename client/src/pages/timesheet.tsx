@@ -676,6 +676,7 @@ export default function Timesheet() {
                             isTerminated={isTerminated}
                             employeeId={employee.id}
                             date={day.date}
+                            isPartTime={false}
                             onChange={(value, qualityScore) => 
                               handleCellChange(employee.id, day.date, value, qualityScore)
                             }
@@ -752,6 +753,7 @@ export default function Timesheet() {
                             isTerminated={isTerminated}
                             employeeId={employee.id}
                             date={day.date}
+                            isPartTime={true}
                             onChange={(value, qualityScore) => 
                               handleCellChange(employee.id, day.date, value, qualityScore)
                             }
@@ -819,6 +821,7 @@ export default function Timesheet() {
                             isTerminated={isTerminated}
                             employeeId={employee.id}
                             date={day.date}
+                            isPartTime={false}
                             onChange={(value, qualityScore) => 
                               handleCellChange(employee.id, day.date, value, qualityScore)
                             }
