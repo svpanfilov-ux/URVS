@@ -11,7 +11,7 @@ import { Wand2, Calendar } from "lucide-react";
 import { Employee, TimeEntry } from "@shared/schema";
 
 export default function Timesheet() {
-  const [selectedMonth, setSelectedMonth] = useState("2024-02");
+  const [selectedMonth, setSelectedMonth] = useState("2025-08");
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -121,12 +121,12 @@ export default function Timesheet() {
               <SelectValue placeholder="Выберите месяц" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="2024-01">Январь 2024</SelectItem>
-              <SelectItem value="2024-02">Февраль 2024</SelectItem>
-              <SelectItem value="2024-03">Март 2024</SelectItem>
-              <SelectItem value="2024-04">Апрель 2024</SelectItem>
-              <SelectItem value="2024-05">Май 2024</SelectItem>
-              <SelectItem value="2024-06">Июнь 2024</SelectItem>
+              <SelectItem value="2025-06">Июнь 2025</SelectItem>
+              <SelectItem value="2025-07">Июль 2025</SelectItem>
+              <SelectItem value="2025-08">Август 2025</SelectItem>
+              <SelectItem value="2025-09">Сентябрь 2025</SelectItem>
+              <SelectItem value="2025-10">Октябрь 2025</SelectItem>
+              <SelectItem value="2025-11">Ноябрь 2025</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -186,7 +186,7 @@ export default function Timesheet() {
                           <TimesheetCell
                             value={entry?.hours !== null ? entry?.hours : entry?.dayType}
                             qualityScore={entry?.qualityScore || 3}
-                            isLocked={day.day <= 15} // Lock advance period (mock)
+                            isLocked={false} // Все ячейки открыты для редактирования в текущем периоде
                             isTerminated={isTerminated}
                             onChange={(value, qualityScore) => 
                               handleCellChange(employee.id, day.date, value, qualityScore)
@@ -230,7 +230,8 @@ export default function Timesheet() {
         <div className="mt-3 text-xs text-muted-foreground">
           • Числа от 1 до 24 — количество рабочих часов<br/>
           • Правый клик на числовой ячейке — изменение оценки качества работы<br/>
-          • Серый фон — заблокированные ячейки (аванс уже отправлен)
+          • Цвета ячеек: красный (оценка 1), оранжевый (2), жёлтый (3), зелёный (4)<br/>
+          • Клик на ячейку для редактирования, Enter для сохранения, Escape для отмены
         </div>
       </div>
     </div>
