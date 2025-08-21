@@ -114,6 +114,23 @@ export default function Timesheet() {
     }, 0);
   };
 
+  // Calculate planned hours for employee based on 5/2 schedule (8 hours per working day)
+  const calculatePlannedHours = (employee: Employee) => {
+    if (employee.status === 'fired' && employee.terminationDate) {
+      // For fired employees, count only working days until termination
+      const terminationDate = parseISO(employee.terminationDate);
+      const workingDays = days.filter(day => {
+        const dayDate = parseISO(day.date);
+        return !day.isWeekend && !isAfter(dayDate, terminationDate);
+      }).length;
+      return workingDays * 8;
+    } else {
+      // For active employees, count all working days in month
+      const workingDays = days.filter(day => !day.isWeekend).length;
+      return workingDays * 8;
+    }
+  };
+
   const handleCellChange = (employeeId: string, date: string, value: string | number, qualityScore?: number) => {
     const existingEntry = getTimeEntry(employeeId, date);
     
@@ -611,6 +628,10 @@ export default function Timesheet() {
                   <div className="text-[8px]">Итого</div>
                   <div className="text-[9px] font-bold">час</div>
                 </th>
+                <th className="border-b p-1 text-center bg-green-50 dark:bg-green-950/20 w-12">
+                  <div className="text-[8px]">План</div>
+                  <div className="text-[9px] font-bold">час</div>
+                </th>
               </tr>
             </thead>
 
@@ -619,7 +640,7 @@ export default function Timesheet() {
               {/* Active Employees Header */}
               {activeEmployees.length > 0 && (
                 <tr className="bg-blue-50 dark:bg-blue-950/20">
-                  <td colSpan={days.length + 2} className="p-2 font-semibold text-sm text-blue-800 dark:text-blue-200">
+                  <td colSpan={days.length + 3} className="p-2 font-semibold text-sm text-blue-800 dark:text-blue-200">
                     Активные сотрудники
                   </td>
                 </tr>
@@ -667,6 +688,9 @@ export default function Timesheet() {
                     <td className="border-r p-1 text-center font-bold bg-primary/5">
                       <div className="text-[9px]">{totalHours}</div>
                     </td>
+                    <td className="border-r p-1 text-center font-bold bg-green-50 dark:bg-green-950/20">
+                      <div className="text-[9px]">{calculatePlannedHours(employee)}</div>
+                    </td>
                   </tr>
                 );
               })}
@@ -683,13 +707,16 @@ export default function Timesheet() {
                   <td className="border-r p-1 text-center font-bold bg-blue-200 dark:bg-blue-800/50 text-blue-800 dark:text-blue-200">
                     <div className="text-[10px]">{calculateGroupTotal(activeEmployees)}</div>
                   </td>
+                  <td className="border-r p-1 text-center font-bold bg-green-100 dark:bg-green-800/50 text-green-800 dark:text-green-200">
+                    <div className="text-[10px]">{activeEmployees.reduce((total, emp) => total + calculatePlannedHours(emp), 0)}</div>
+                  </td>
                 </tr>
               )}
 
               {/* Part-time Employees Header */}
               {partTimeEmployees.length > 0 && (
                 <tr className="bg-orange-50 dark:bg-orange-950/20">
-                  <td colSpan={days.length + 2} className="p-2 font-semibold text-sm text-orange-800 dark:text-orange-200">
+                  <td colSpan={days.length + 3} className="p-2 font-semibold text-sm text-orange-800 dark:text-orange-200">
                     Подработка
                   </td>
                 </tr>
@@ -737,6 +764,9 @@ export default function Timesheet() {
                     <td className="border-r p-1 text-center font-bold bg-primary/5">
                       <div className="text-[9px]">{totalHours}</div>
                     </td>
+                    <td className="border-r p-1 text-center font-bold bg-green-50 dark:bg-green-950/20">
+                      <div className="text-[9px]">{calculatePlannedHours(employee)}</div>
+                    </td>
                   </tr>
                 );
               })}
@@ -752,6 +782,9 @@ export default function Timesheet() {
                   ))}
                   <td className="border-r p-1 text-center font-bold bg-orange-200 dark:bg-orange-800/50 text-orange-800 dark:text-orange-200">
                     <div className="text-[10px]">{calculateGroupTotal(partTimeEmployees)}</div>
+                  </td>
+                  <td className="border-r p-1 text-center font-bold bg-green-100 dark:bg-green-800/50 text-green-800 dark:text-green-200">
+                    <div className="text-[10px]">{partTimeEmployees.reduce((total, emp) => total + calculatePlannedHours(emp), 0)}</div>
                   </td>
                 </tr>
               )}
@@ -798,6 +831,9 @@ export default function Timesheet() {
                     <td className="border-r p-1 text-center font-bold bg-primary/5">
                       <div className="text-[9px]">{totalHours}</div>
                     </td>
+                    <td className="border-r p-1 text-center font-bold bg-green-50 dark:bg-green-950/20">
+                      <div className="text-[9px]">{calculatePlannedHours(employee)}</div>
+                    </td>
                   </tr>
                 );
               })}
@@ -812,6 +848,9 @@ export default function Timesheet() {
                 ))}
                 <td className="border-r p-1 text-center font-bold bg-gray-300 dark:bg-gray-700 text-gray-800 dark:text-gray-200">
                   <div className="text-[11px]">{calculateGroupTotal([...activeEmployees, ...partTimeEmployees, ...firedEmployees])}</div>
+                </td>
+                <td className="border-r p-1 text-center font-bold bg-green-200 dark:bg-green-700 text-green-800 dark:text-green-200">
+                  <div className="text-[11px]">{[...activeEmployees, ...partTimeEmployees, ...firedEmployees].reduce((total, emp) => total + calculatePlannedHours(emp), 0)}</div>
                 </td>
               </tr>
             </tbody>
