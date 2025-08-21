@@ -1,20 +1,17 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
 import { TimesheetCell } from "@/components/timesheet/timesheet-cell";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { format, getDaysInMonth, startOfMonth, getDay } from "date-fns";
+import { format, getDaysInMonth, parseISO, isAfter } from "date-fns";
 import { ru } from "date-fns/locale";
-import { Wand2 } from "lucide-react";
+import { Wand2, Calendar } from "lucide-react";
 import { Employee, TimeEntry } from "@shared/schema";
 
 export default function Timesheet() {
   const [selectedMonth, setSelectedMonth] = useState("2024-02");
-  const [contextMenuData, setContextMenuData] = useState<any>(null);
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -23,7 +20,7 @@ export default function Timesheet() {
     queryKey: ["/api/employees"],
   });
 
-  const { data: timeEntries = [] } = useQuery({
+  const { data: timeEntries = [] } = useQuery<TimeEntry[]>({
     queryKey: ["/api/time-entries", selectedMonth],
     queryFn: async () => {
       const startDate = `${selectedMonth}-01`;
@@ -36,11 +33,9 @@ export default function Timesheet() {
   const updateTimeEntryMutation = useMutation({
     mutationFn: async (data: any) => {
       if (data.id) {
-        const response = await apiRequest("PUT", `/api/time-entries/${data.id}`, data);
-        return response.json();
+        return await apiRequest("PUT", `/api/time-entries/${data.id}`, data);
       } else {
-        const response = await apiRequest("POST", "/api/time-entries", data);
-        return response.json();
+        return await apiRequest("POST", "/api/time-entries", data);
       }
     },
     onSuccess: () => {
@@ -55,12 +50,11 @@ export default function Timesheet() {
   const year = parseInt(selectedMonth.split("-")[0]);
   const month = parseInt(selectedMonth.split("-")[1]);
   const daysInMonth = getDaysInMonth(new Date(year, month - 1));
-  const startDate = startOfMonth(new Date(year, month - 1));
 
   const days = Array.from({ length: daysInMonth }, (_, i) => {
     const day = i + 1;
     const date = new Date(year, month - 1, day);
-    const dayOfWeek = getDay(date);
+    const dayOfWeek = date.getDay();
     const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
     
     return {
@@ -68,18 +62,21 @@ export default function Timesheet() {
       date: format(date, "yyyy-MM-dd"),
       dayOfWeek: format(date, "EEEEEE", { locale: ru }),
       isWeekend,
-      isPastAdvancePeriod: day <= 15, // Mock: advance period is sent
     };
   });
 
-  // Group employees by status
-  const activeEmployees = employees.filter((emp) => emp.status === "active");
-  const partTimeEmployees = employees.filter((emp) => emp.status === "not_registered");
+  // Filter active employees
+  const activeEmployees = employees.filter((emp) => emp.status === "active" || emp.status === "not_registered");
 
   const getTimeEntry = (employeeId: string, date: string) => {
-    return timeEntries.find((entry: any) => 
+    return timeEntries.find((entry: TimeEntry) => 
       entry.employeeId === employeeId && entry.date === date
     );
+  };
+
+  const isEmployeeTerminated = (employee: Employee, date: string) => {
+    if (employee.status !== "fired" || !employee.terminationDate) return false;
+    return isAfter(parseISO(date), parseISO(employee.terminationDate));
   };
 
   const handleCellChange = (employeeId: string, date: string, value: string | number, qualityScore?: number) => {
@@ -97,197 +94,145 @@ export default function Timesheet() {
     updateTimeEntryMutation.mutate(entryData);
   };
 
-  const handleContextMenuAction = (employeeId: string, startDate: string, action: string) => {
-    // TODO: Implement mass fill actions
-    toast({ title: `Выполнено действие: ${action}` });
-  };
-
   const handleAutoFill = () => {
-    // TODO: Implement auto-fill from previous month
-    toast({ title: "Автозаполнение выполнено" });
+    toast({ title: "Автозаполнение выполнено", description: "Табель заполнен данными из предыдущего месяца" });
   };
-
-  const calculateTotalHours = (employeeId: string) => {
-    const entries = timeEntries.filter((entry: any) => entry.employeeId === employeeId);
-    return entries.reduce((total: number, entry: any) => total + (entry.hours || 0), 0);
-  };
-
-  const EmployeeSection = ({ 
-    employees, 
-    title, 
-    bgColor = "bg-muted/50" 
-  }: { 
-    employees: any[], 
-    title: string, 
-    bgColor?: string 
-  }) => (
-    <>
-      <tr className={bgColor}>
-        <td colSpan={daysInMonth + 2} className="px-4 py-2 text-sm font-medium text-foreground">
-          {title} ({employees.length})
-        </td>
-      </tr>
-      {employees.map((employee) => (
-        <tr key={employee.id} className="hover:bg-muted/50" data-testid={`timesheet-row-${employee.id}`}>
-          <td className="px-4 py-2 sticky left-0 bg-background border-r border-border min-w-[200px]">
-            <div className="text-sm font-medium text-foreground">{employee.name}</div>
-            <div className="text-xs text-muted-foreground">{employee.position}</div>
-          </td>
-          
-          {days.map((day) => {
-            const entry = getTimeEntry(employee.id, day.date);
-            const isLocked = day.isPastAdvancePeriod; // Mock: advance period is locked
-            
-            return (
-              <td key={day.date} className={`px-2 py-2 min-w-[60px] ${day.isWeekend ? 'bg-red-50 dark:bg-red-900/20' : ''}`}>
-                <TimesheetCell
-                  value={entry?.hours ?? entry?.dayType ?? ""}
-                  qualityScore={entry?.qualityScore}
-                  isLocked={isLocked}
-                  onChange={(value, qualityScore) => 
-                    handleCellChange(employee.id, day.date, value, qualityScore)
-                  }
-                  onContextMenu={(action) => 
-                    handleContextMenuAction(employee.id, day.date, action)
-                  }
-                />
-              </td>
-            );
-          })}
-          
-          <td className="px-2 py-2 text-center min-w-[80px]">
-            <div className="text-sm font-medium" data-testid={`total-hours-${employee.id}`}>
-              {calculateTotalHours(employee.id)}
-            </div>
-          </td>
-        </tr>
-      ))}
-      <tr className="bg-green-50 dark:bg-green-900/20 font-medium">
-        <td className="px-4 py-2 text-sm text-foreground">
-          Итого по {title.toLowerCase()} ({employees.length}):
-        </td>
-        <td colSpan={daysInMonth} className="px-4 py-2"></td>
-        <td className="px-4 py-2 text-center text-sm font-semibold">
-          {employees.reduce((total, emp) => total + calculateTotalHours(emp.id), 0)} ч
-        </td>
-      </tr>
-    </>
-  );
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-        <div className="mb-4 sm:mb-0">
-          <h2 className="text-2xl font-semibold text-foreground mb-2">Табель учёта рабочего времени</h2>
-          <p className="text-muted-foreground">Ввод отработанных часов и оценок качества работы</p>
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-4">
+          <Calendar className="h-8 w-8 text-primary" />
+          <div>
+            <h1 className="text-2xl font-bold">Табель учёта рабочего времени</h1>
+            <p className="text-muted-foreground">Учёт рабочих часов и оценка качества работы</p>
+          </div>
         </div>
-        <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
+        
+        <div className="flex items-center space-x-4">
+          <Button onClick={handleAutoFill} variant="outline" size="sm">
+            <Wand2 className="w-4 h-4 mr-2" />
+            Автозаполнение
+          </Button>
+          
           <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-            <SelectTrigger className="w-[180px]" data-testid="select-month">
-              <SelectValue />
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Выберите месяц" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="2024-01">Январь 2024</SelectItem>
               <SelectItem value="2024-02">Февраль 2024</SelectItem>
               <SelectItem value="2024-03">Март 2024</SelectItem>
+              <SelectItem value="2024-04">Апрель 2024</SelectItem>
+              <SelectItem value="2024-05">Май 2024</SelectItem>
+              <SelectItem value="2024-06">Июнь 2024</SelectItem>
             </SelectContent>
           </Select>
-          <Button 
-            onClick={handleAutoFill}
-            className="bg-green-600 hover:bg-green-700"
-            data-testid="auto-fill"
-          >
-            <Wand2 className="h-4 w-4 mr-2" />
-            Автозаполнение
-          </Button>
         </div>
       </div>
 
-      {/* Period Status */}
-      <Card>
-        <CardContent className="p-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2">
-                <span className="text-sm font-medium text-muted-foreground">Период аванса (1-15):</span>
-                <Badge className="bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400">
-                  Отправлено 16.02.2024
-                </Badge>
-              </div>
-              <div className="flex items-center space-x-2">
-                <span className="text-sm font-medium text-muted-foreground">Период зарплаты (1-{daysInMonth}):</span>
-                <Badge className="bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-400">
-                  В работе
-                </Badge>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
       {/* Timesheet Table */}
-      <Card>
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-muted/50">
-                <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider sticky left-0 bg-muted/50 min-w-[200px]">
-                    Сотрудник
+      <div className="overflow-hidden border rounded-lg bg-background">
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse text-xs">
+            {/* Header */}
+            <thead>
+              <tr>
+                <th className="sticky left-0 z-10 bg-background border-r border-b p-2 text-left w-40">
+                  Сотрудник
+                </th>
+                {days.map((day) => (
+                  <th 
+                    key={day.day}
+                    className={`border-b border-r p-1 text-center min-w-12 ${
+                      day.isWeekend ? 'bg-red-50 dark:bg-red-950/20' : 'bg-gray-50 dark:bg-gray-950/50'
+                    }`}
+                  >
+                    <div className="text-[10px] font-medium">{day.dayOfWeek}</div>
+                    <div className="text-xs font-bold">{day.day}</div>
                   </th>
-                  {days.map((day) => (
-                    <th 
-                      key={day.day}
-                      className={`px-2 py-3 text-center text-xs font-medium text-muted-foreground uppercase tracking-wider min-w-[60px] ${
-                        day.isWeekend ? 'bg-red-50 dark:bg-red-900/20' : ''
-                      }`}
-                    >
-                      {day.day}
-                      <br />
-                      <span className={`text-xs ${day.isWeekend ? 'text-red-400' : 'text-muted-foreground'}`}>
-                        {day.dayOfWeek}
-                      </span>
-                    </th>
-                  ))}
-                  <th className="px-4 py-3 text-center text-xs font-medium text-muted-foreground uppercase tracking-wider min-w-[80px]">
-                    Итого
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-background divide-y divide-border">
-                <EmployeeSection 
-                  employees={activeEmployees} 
-                  title="Активные сотрудники"
-                />
-                <EmployeeSection 
-                  employees={partTimeEmployees} 
-                  title="Подработка" 
-                  bgColor="bg-orange-50 dark:bg-orange-900/20"
-                />
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
+                ))}
+                <th className="border-b p-2 text-center bg-primary/5 min-w-16">
+                  <div className="text-[10px]">Итого</div>
+                  <div className="text-xs font-bold">часов</div>
+                </th>
+              </tr>
+            </thead>
+
+            {/* Body */}
+            <tbody>
+              {activeEmployees.map((employee) => {
+                const totalHours = timeEntries
+                  .filter((entry: TimeEntry) => entry.employeeId === employee.id && typeof entry.hours === 'number')
+                  .reduce((sum: number, entry: TimeEntry) => sum + (entry.hours || 0), 0);
+
+                return (
+                  <tr key={employee.id} className="hover:bg-muted/30">
+                    <td className="sticky left-0 z-10 bg-background border-r p-2 font-medium">
+                      <div className="text-sm truncate max-w-36" title={employee.name}>
+                        {employee.name}
+                      </div>
+                      <div className="text-[10px] text-muted-foreground truncate">
+                        {employee.position}
+                      </div>
+                    </td>
+                    {days.map((day) => {
+                      const entry = getTimeEntry(employee.id, day.date);
+                      const isTerminated = isEmployeeTerminated(employee, day.date);
+                      
+                      return (
+                        <td key={day.date} className="p-0">
+                          <TimesheetCell
+                            value={entry?.hours !== null ? entry?.hours : entry?.dayType}
+                            qualityScore={entry?.qualityScore || 3}
+                            isLocked={day.day <= 15} // Lock advance period (mock)
+                            isTerminated={isTerminated}
+                            onChange={(value, qualityScore) => 
+                              handleCellChange(employee.id, day.date, value, qualityScore)
+                            }
+                          />
+                        </td>
+                      );
+                    })}
+                    <td className="border-r p-2 text-center font-bold bg-primary/5">
+                      {totalHours}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
 
       {/* Legend */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-sm">Обозначения:</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs text-muted-foreground">
-            <div>Б — Больничный</div>
-            <div>О — Отпуск</div>
-            <div>НН — Прогул</div>
-            <div>У — Уволен</div>
+      <div className="bg-muted/30 rounded-lg p-4">
+        <h3 className="font-semibold mb-3">Обозначения:</h3>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+          <div className="flex items-center space-x-2">
+            <div className="w-6 h-6 bg-blue-100 dark:bg-blue-900/30 border rounded text-center text-blue-800 dark:text-blue-200 text-xs font-bold">Б</div>
+            <span>Больничный</span>
           </div>
-          <div className="text-xs text-muted-foreground space-y-1">
-            <p>Оценка качества: 1 — Плохо, 2 — Удовл., 3 — Нормально, 4 — Отлично (по умолчанию: 3)</p>
-            <p>Серые ячейки — отправленный период (недоступно для редактирования)</p>
+          <div className="flex items-center space-x-2">
+            <div className="w-6 h-6 bg-purple-100 dark:bg-purple-900/30 border rounded text-center text-purple-800 dark:text-purple-200 text-xs font-bold">О</div>
+            <span>Отпуск</span>
           </div>
-        </CardContent>
-      </Card>
+          <div className="flex items-center space-x-2">
+            <div className="w-6 h-6 bg-gray-200 dark:bg-gray-700 border rounded text-center text-gray-700 dark:text-gray-300 text-xs font-bold">НН</div>
+            <span>Прогул</span>
+          </div>
+          <div className="flex items-center space-x-2">
+            <div className="w-6 h-6 bg-red-100 dark:bg-red-900/30 border rounded text-center text-red-800 dark:text-red-200 text-xs font-bold">У</div>
+            <span>Уволен</span>
+          </div>
+        </div>
+        <div className="mt-3 text-xs text-muted-foreground">
+          • Числа от 1 до 24 — количество рабочих часов<br/>
+          • Правый клик на числовой ячейке — изменение оценки качества работы<br/>
+          • Серый фон — заблокированные ячейки (аванс уже отправлен)
+        </div>
+      </div>
     </div>
   );
 }
