@@ -178,9 +178,9 @@ export default function Timesheet() {
   };
 
   // Fill row to end of month
-  const handleFillToEnd = (employeeId: string, fromDate: string) => {
+  const handleFillToEnd = (employeeId: string, fromDate: string, sourceValue?: string | number, sourceQuality?: number) => {
     const employee = employees.find(emp => emp.id === employeeId);
-    if (!employee) return;
+    if (!employee || !sourceValue) return;
 
     const fromIndex = days.findIndex(day => day.date === fromDate);
     if (fromIndex === -1) return;
@@ -195,9 +195,9 @@ export default function Timesheet() {
         entriesToCreate.push({
           employeeId,
           date: day.date,
-          hours: 8,
-          dayType: "work",
-          qualityScore: 3,
+          hours: typeof sourceValue === "number" ? sourceValue : null,
+          dayType: typeof sourceValue === "string" ? sourceValue.toUpperCase() : "work",
+          qualityScore: sourceQuality || 3,
         });
       }
     }
@@ -208,9 +208,9 @@ export default function Timesheet() {
   };
 
   // Fill with 5/2 schedule (work weekdays, weekend off)
-  const handleFill5_2Schedule = (employeeId: string) => {
+  const handleFill5_2Schedule = (employeeId: string, sourceValue?: string | number, sourceQuality?: number) => {
     const employee = employees.find(emp => emp.id === employeeId);
-    if (!employee) return;
+    if (!employee || !sourceValue) return;
 
     const entriesToCreate = [];
     for (const day of days) {
@@ -218,13 +218,16 @@ export default function Timesheet() {
       
       const existingEntry = getTimeEntry(employeeId, day.date);
       if (!existingEntry) {
-        entriesToCreate.push({
-          employeeId,
-          date: day.date,
-          hours: 8,
-          dayType: "work",
-          qualityScore: 3,
-        });
+        // 5/2: work on weekdays only
+        if (!day.isWeekend) {
+          entriesToCreate.push({
+            employeeId,
+            date: day.date,
+            hours: typeof sourceValue === "number" ? sourceValue : null,
+            dayType: typeof sourceValue === "string" ? sourceValue.toUpperCase() : "work",
+            qualityScore: sourceQuality || 3,
+          });
+        }
       }
     }
 
@@ -234,9 +237,9 @@ export default function Timesheet() {
   };
 
   // Fill with 2/2 schedule (alternating work/rest)
-  const handleFill2_2Schedule = (employeeId: string) => {
+  const handleFill2_2Schedule = (employeeId: string, sourceValue?: string | number, sourceQuality?: number) => {
     const employee = employees.find(emp => emp.id === employeeId);
-    if (!employee) return;
+    if (!employee || !sourceValue) return;
 
     const entriesToCreate = [];
     for (let i = 0; i < days.length; i++) {
@@ -245,13 +248,19 @@ export default function Timesheet() {
       
       const existingEntry = getTimeEntry(employeeId, day.date);
       if (!existingEntry) {
-        entriesToCreate.push({
-          employeeId,
-          date: day.date,
-          hours: 8,
-          dayType: "work",
-          qualityScore: 3,
-        });
+        // 2/2 schedule: work 2 days, rest 2 days
+        const cycle = Math.floor(i / 2) % 2;
+        const isWorkDay = cycle === 0;
+        
+        if (isWorkDay) {
+          entriesToCreate.push({
+            employeeId,
+            date: day.date,
+            hours: typeof sourceValue === "number" ? sourceValue : null,
+            dayType: typeof sourceValue === "string" ? sourceValue.toUpperCase() : "work",
+            qualityScore: sourceQuality || 3,
+          });
+        }
       }
     }
 
@@ -371,9 +380,9 @@ export default function Timesheet() {
                               handleCellChange(employee.id, day.date, value, qualityScore)
                             }
                             onClearRow={() => handleClearRow(employee.id)}
-                            onFillToEnd={() => handleFillToEnd(employee.id, day.date)}
-                            onFill5_2={() => handleFill5_2Schedule(employee.id)}
-                            onFill2_2={() => handleFill2_2Schedule(employee.id)}
+                            onFillToEnd={() => handleFillToEnd(employee.id, day.date, entry?.hours !== null ? entry?.hours : entry?.dayType, entry?.qualityScore)}
+                            onFill5_2={() => handleFill5_2Schedule(employee.id, entry?.hours !== null ? entry?.hours : entry?.dayType, entry?.qualityScore)}
+                            onFill2_2={() => handleFill2_2Schedule(employee.id, entry?.hours !== null ? entry?.hours : entry?.dayType, entry?.qualityScore)}
                           />
                         </td>
                       );
