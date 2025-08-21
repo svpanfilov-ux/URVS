@@ -128,6 +128,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.delete("/api/time-entries/:id", async (req, res) => {
+    try {
+      const deleted = await storage.deleteTimeEntry(req.params.id);
+      if (!deleted) {
+        return res.status(404).json({ message: "Запись времени не найдена" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      res.status(400).json({ message: "Ошибка удаления записи времени" });
+    }
+  });
+
   // Reports
   app.get("/api/reports", async (req, res) => {
     try {

@@ -39,11 +39,18 @@ export function TimesheetCell({
   const handleCellClick = () => {
     if (isLocked || isTerminated) return;
     setEditing(true);
+    // Set current value for editing
+    setLocalValue(value?.toString() || "");
     setTimeout(() => inputRef.current?.focus(), 0);
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const inputValue = e.target.value.toUpperCase();
+    let inputValue = e.target.value.toUpperCase();
+    
+    // Handle special case for НН
+    if (inputValue === "Н" || inputValue === "НН") {
+      inputValue = "НН";
+    }
     
     // Allow only valid characters
     if (inputValue.match(/^[0-9БОННУ]*$/)) {
@@ -70,12 +77,14 @@ export function TimesheetCell({
     if (!inputValue.trim()) {
       // Empty value - reset to default dash
       setLocalValue("");
+      onChange("", undefined);
       return;
     }
 
-    // Handle letter codes
-    if (["Б", "О", "НН", "У"].includes(inputValue)) {
-      onChange(inputValue, undefined);
+    // Handle letter codes (ensure uppercase)
+    const upperValue = inputValue.toUpperCase();
+    if (["Б", "О", "НН", "У"].includes(upperValue)) {
+      onChange(upperValue, undefined);
       return;
     }
 
@@ -148,7 +157,10 @@ export function TimesheetCell({
               data-testid="timesheet-input"
             />
           ) : (
-            <div className="text-center text-sm font-medium p-2">
+            <div 
+              className="text-center text-sm font-medium p-2 cursor-pointer"
+              onClick={handleCellClick}
+            >
               {displayValue}
             </div>
           )}

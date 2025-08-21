@@ -82,17 +82,38 @@ export default function Timesheet() {
   const handleCellChange = (employeeId: string, date: string, value: string | number, qualityScore?: number) => {
     const existingEntry = getTimeEntry(employeeId, date);
     
+    // If empty value, delete entry
+    if (value === "") {
+      if (existingEntry?.id) {
+        // Delete existing entry
+        deleteTimeEntryMutation.mutate(existingEntry.id);
+      }
+      return;
+    }
+    
     const entryData = {
       id: existingEntry?.id,
       employeeId,
       date,
       hours: typeof value === "number" ? value : null,
-      dayType: typeof value === "string" ? value.toLowerCase() : "work",
+      dayType: typeof value === "string" ? value.toUpperCase() : "work",
       qualityScore: qualityScore || 3,
     };
 
     updateTimeEntryMutation.mutate(entryData);
   };
+
+  const deleteTimeEntryMutation = useMutation({
+    mutationFn: async (id: string) => {
+      return await apiRequest("DELETE", `/api/time-entries/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/time-entries", selectedMonth] });
+    },
+    onError: () => {
+      toast({ title: "Ошибка при удалении данных", variant: "destructive" });
+    },
+  });
 
   const handleAutoFill = () => {
     toast({ title: "Автозаполнение выполнено", description: "Табель заполнен данными из предыдущего месяца" });
