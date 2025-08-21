@@ -8,12 +8,16 @@ This is a work time management system for tracking employee hours, generating re
 - **Full CRUD Operations**: Create, read, update, and delete time entries with proper validation
 - **Smart Cell Management**: 
   - Future dates are automatically locked (non-editable)
-  - Terminated employees show "У" status after termination date
+  - Terminated employees show "У" status from termination date (inclusive)
   - Cells are clickable for editing with real-time validation
 - **Data Entry Validation**: 
   - Accepts 1-24 hours or status letters (О, Б, НН, У)
   - Automatic uppercase conversion for status letters
   - Default quality score of 3 for numeric entries
+- **Employee Status-Based Input Restrictions** (New):
+  - Active employees: Can input all statuses (hours, О, Б, НН, У)
+  - Contract workers (подработчики): Restricted to hours (1-24) and termination status "У" only
+  - Blocked statuses О, Б, НН for contract workers section
 - **Bulk Operations**:
   - "Clear All" button removes all data from current reporting period (except future dates)
   - Right-click context menu with streamlined operations
@@ -29,18 +33,29 @@ This is a work time management system for tracking employee hours, generating re
   - Analyzes last working entries and applies employee's work schedule
   - Respects locked cells and termination dates
   - Fills only empty cells according to schedule pattern
-- **Section-based Layout** (New):
+- **Section-based Layout** (Updated):
   - Divided timesheet into "Active Employees" and "Contract Work" sections
   - Color-coded headers (blue for active, orange for contract work)
   - Intermediate subtotals for each employee category
   - Overall total row at bottom with comprehensive summary
-- **Planned Hours Column** (New):
+  - Fired employees remain in their original sections with "(уволен)" label and opacity styling
+- **Planned Hours Column**:
   - Added "План час" column showing expected working hours
   - Calculates 8 hours × working days (Monday-Friday, excluding weekends)
   - Accounts for termination dates for fired employees
   - Shows planned hours totals for each section and overall
+- **Fired Employee Management** (Updated):
+  - Fired employees appear in all periods up to and including termination month
+  - Stay in original subsections (Active/Contract) instead of separate bottom section
+  - Visual indicators: "(уволен)" label and semi-transparent styling
+  - "У" status automatically fills from termination date inclusive
 - **Color-coded Interface**: Quality-based cell coloring and status-specific highlighting
 - **Responsive Design**: Compact single-screen layout without scrollbars
+
+### Technical Improvements (Latest)
+- **Input Validation Logic**: Added isPartTime parameter to TimesheetCell component for status restrictions
+- **Employee Filtering**: Updated visibility logic to show fired employees in historical periods
+- **Termination Date Logic**: Fixed "У" status to start from termination date (not day after)
 
 # User Preferences
 
