@@ -17,9 +17,7 @@ interface TimesheetCellProps {
   date?: string;
   onChange: (value: string | number, qualityScore?: number) => void;
   onClearRow?: () => void;
-  onFillToEnd?: () => void;
-  onFill5_2?: () => void;
-  onFill2_2?: () => void;
+  onFillBySchedule?: () => void;
 }
 
 export function TimesheetCell({ 
@@ -31,9 +29,7 @@ export function TimesheetCell({
   date,
   onChange, 
   onClearRow,
-  onFillToEnd,
-  onFill5_2,
-  onFill2_2
+  onFillBySchedule
 }: TimesheetCellProps) {
   const [localValue, setLocalValue] = useState<string>("");
   const [editing, setEditing] = useState(false);
@@ -202,18 +198,8 @@ export function TimesheetCell({
             Очистить строку
           </ContextMenuItem>
           
-          <ContextMenuItem onClick={onFillToEnd} data-testid="context-fill-to-end">
-            Заполнить до конца периода
-          </ContextMenuItem>
-          
-          <ContextMenuSeparator />
-          
-          <ContextMenuItem onClick={onFill5_2} data-testid="context-fill-5-2">
-            Заполнить по графику 5/2
-          </ContextMenuItem>
-          
-          <ContextMenuItem onClick={onFill2_2} data-testid="context-fill-2-2">
-            Заполнить по графику 2/2
+          <ContextMenuItem onClick={onFillBySchedule} data-testid="context-fill-by-schedule">
+            Заполнить по графику сотрудника
           </ContextMenuItem>
         </ContextMenuContent>
       )}

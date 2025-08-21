@@ -217,19 +217,21 @@ export default function Timesheet() {
     }
   };
 
-  // Fill with 5/2 schedule (work weekdays, weekend off)
-  const handleFill5_2Schedule = (employeeId: string, sourceValue?: string | number, sourceQuality?: number) => {
+  // Fill by employee schedule
+  const handleFillBySchedule = (employeeId: string, sourceValue?: string | number, sourceQuality?: number) => {
     const employee = employees.find(emp => emp.id === employeeId);
     if (!employee || !sourceValue) return;
 
+    const workSchedule = employee.workSchedule || "5/2";
     const entriesToCreate = [];
-    for (const day of days) {
-      if (isCellLocked(day.date) || isCellTerminated(employee, day.date)) continue;
-      
-      const existingEntry = getTimeEntry(employeeId, day.date);
-      if (!existingEntry) {
-        // 5/2: work on weekdays only
-        if (!day.isWeekend) {
+
+    if (workSchedule === "5/2") {
+      // Fill weekdays only
+      for (const day of days) {
+        if (isCellLocked(day.date) || isCellTerminated(employee, day.date) || day.isWeekend) continue;
+        
+        const existingEntry = getTimeEntry(employeeId, day.date);
+        if (!existingEntry) {
           entriesToCreate.push({
             employeeId,
             date: day.date,
@@ -239,30 +241,86 @@ export default function Timesheet() {
           });
         }
       }
-    }
+    } else if (workSchedule === "2/2") {
+      // 2/2 pattern: 2 work days, then 2 rest days
+      let isWorkDay = true;
+      let dayCount = 0;
 
-    if (entriesToCreate.length > 0) {
-      bulkCreateMutation.mutate(entriesToCreate);
-    }
-  };
+      for (const day of days) {
+        if (isCellLocked(day.date) || isCellTerminated(employee, day.date)) continue;
 
-  // Fill with 2/2 schedule (alternating work/rest)
-  const handleFill2_2Schedule = (employeeId: string, sourceValue?: string | number, sourceQuality?: number) => {
-    const employee = employees.find(emp => emp.id === employeeId);
-    if (!employee || !sourceValue) return;
-
-    const entriesToCreate = [];
-    for (let i = 0; i < days.length; i++) {
-      const day = days[i];
-      if (isCellLocked(day.date) || isCellTerminated(employee, day.date)) continue;
-      
-      const existingEntry = getTimeEntry(employeeId, day.date);
-      if (!existingEntry) {
-        // 2/2 schedule: work 2 days, rest 2 days
-        const cycle = Math.floor(i / 2) % 2;
-        const isWorkDay = cycle === 0;
+        const existingEntry = getTimeEntry(employeeId, day.date);
+        if (!existingEntry && dayCount < 2 && isWorkDay) {
+          entriesToCreate.push({
+            employeeId,
+            date: day.date,
+            hours: typeof sourceValue === "number" ? sourceValue : null,
+            dayType: typeof sourceValue === "string" ? sourceValue.toUpperCase() : "work",
+            qualityScore: sourceQuality || 3,
+          });
+        }
         
-        if (isWorkDay) {
+        dayCount++;
+        if (dayCount === 2) {
+          dayCount = 0;
+          isWorkDay = !isWorkDay;
+        }
+      }
+    } else if (workSchedule === "3/3") {
+      // 3/3 pattern: 3 work days, then 3 rest days
+      let isWorkDay = true;
+      let dayCount = 0;
+
+      for (const day of days) {
+        if (isCellLocked(day.date) || isCellTerminated(employee, day.date)) continue;
+
+        const existingEntry = getTimeEntry(employeeId, day.date);
+        if (!existingEntry && dayCount < 3 && isWorkDay) {
+          entriesToCreate.push({
+            employeeId,
+            date: day.date,
+            hours: typeof sourceValue === "number" ? sourceValue : null,
+            dayType: typeof sourceValue === "string" ? sourceValue.toUpperCase() : "work",
+            qualityScore: sourceQuality || 3,
+          });
+        }
+        
+        dayCount++;
+        if (dayCount === 3) {
+          dayCount = 0;
+          isWorkDay = !isWorkDay;
+        }
+      }
+    } else if (workSchedule === "6/1") {
+      // 6/1 pattern: 6 work days, then 1 rest day
+      let dayCount = 0;
+
+      for (const day of days) {
+        if (isCellLocked(day.date) || isCellTerminated(employee, day.date)) continue;
+
+        const existingEntry = getTimeEntry(employeeId, day.date);
+        if (!existingEntry && dayCount < 6) {
+          entriesToCreate.push({
+            employeeId,
+            date: day.date,
+            hours: typeof sourceValue === "number" ? sourceValue : null,
+            dayType: typeof sourceValue === "string" ? sourceValue.toUpperCase() : "work",
+            qualityScore: sourceQuality || 3,
+          });
+        }
+        
+        dayCount++;
+        if (dayCount === 7) {
+          dayCount = 0;
+        }
+      }
+    } else if (workSchedule === "вахта (7/0)") {
+      // Вахта: все дни рабочие
+      for (const day of days) {
+        if (isCellLocked(day.date) || isCellTerminated(employee, day.date)) continue;
+        
+        const existingEntry = getTimeEntry(employeeId, day.date);
+        if (!existingEntry) {
           entriesToCreate.push({
             employeeId,
             date: day.date,
@@ -390,9 +448,7 @@ export default function Timesheet() {
                               handleCellChange(employee.id, day.date, value, qualityScore)
                             }
                             onClearRow={() => handleClearRow(employee.id)}
-                            onFillToEnd={() => handleFillToEnd(employee.id, day.date, entry?.hours !== null ? entry?.hours : entry?.dayType, entry?.qualityScore || undefined)}
-                            onFill5_2={() => handleFill5_2Schedule(employee.id, entry?.hours !== null ? entry?.hours : entry?.dayType, entry?.qualityScore || undefined)}
-                            onFill2_2={() => handleFill2_2Schedule(employee.id, entry?.hours !== null ? entry?.hours : entry?.dayType, entry?.qualityScore || undefined)}
+                            onFillBySchedule={() => handleFillBySchedule(employee.id, entry?.hours !== null ? entry?.hours : entry?.dayType, entry?.qualityScore || undefined)}
                           />
                         </td>
                       );
