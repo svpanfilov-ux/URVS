@@ -56,6 +56,29 @@ This is a work time management system for tracking employee hours, generating re
 - **Input Validation Logic**: Added isPartTime parameter to TimesheetCell component for status restrictions
 - **Employee Filtering**: Updated visibility logic to show fired employees in historical periods
 - **Termination Date Logic**: Fixed "У" status to start from termination date (not day after)
+- **Dashboard Calculations**: Replaced mock data with real-time calculations based on current date and timesheet data
+- **Employee Management Simplification**: Removed section grouping in employees page for unified single-table view
+
+### Dashboard Module (Updated August 21, 2025)
+- **Real-time Deadline Calculations**:
+  - Advance deadline: Days until 15th of current month
+  - Salary deadline: Days until 5th of next month
+  - Proper Russian pluralization for day counts (день/дня/дней)
+- **Dynamic Statistics**:
+  - Monthly norm hours: Calculated as workdays × 8 hours (excluding weekends)
+  - Actual hours: Sum from current month's timesheet entries
+  - Deviation: Real difference between actual and planned hours
+- **Data Integration**: Dashboard pulls live data from employees and time entries APIs
+
+### Employee Management Module (Updated August 21, 2025)
+- **Unified Interface**: Single table displaying all employees without status-based grouping
+- **Clean Layout**: Removed "Total hours by group" summaries that were using mock data
+- **Preserved Functionality**:
+  - Status filtering via dropdown (All, Active, Contract, Fired)
+  - Search by employee name
+  - Status badges with color coding
+  - Edit/delete actions per employee row
+  - CSV import/export capabilities
 
 # User Preferences
 
