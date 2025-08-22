@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertEmployeeSchema, insertTimeEntrySchema, insertReportSchema, insertSettingSchema } from "@shared/schema";
+import { insertEmployeeSchema, insertTimeEntrySchema, insertReportSchema, insertSettingSchema, insertObjectSchema } from "@shared/schema";
 import { z } from "zod";
 
 const loginSchema = z.object({
@@ -244,6 +244,74 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ results });
     } catch (error) {
       res.status(400).json({ message: "Ошибка импорта данных" });
+    }
+  });
+
+  // Objects routes
+  app.get("/api/objects", async (req, res) => {
+    try {
+      const objects = await storage.getObjects();
+      res.json(objects);
+    } catch (error) {
+      console.error("Error fetching objects:", error);
+      res.status(500).json({ message: "Ошибка при загрузке объектов" });
+    }
+  });
+
+  app.get("/api/objects/:id", async (req, res) => {
+    try {
+      const object = await storage.getObject(req.params.id);
+      if (!object) {
+        return res.status(404).json({ message: "Объект не найден" });
+      }
+      res.json(object);
+    } catch (error) {
+      console.error("Error fetching object:", error);
+      res.status(500).json({ message: "Ошибка при загрузке объекта" });
+    }
+  });
+
+  app.post("/api/objects", async (req, res) => {
+    try {
+      const validatedData = insertObjectSchema.parse(req.body);
+      const object = await storage.createObject(validatedData);
+      res.status(201).json(object);
+    } catch (error) {
+      console.error("Error creating object:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Ошибка валидации данных", errors: error.errors });
+      }
+      res.status(500).json({ message: "Ошибка при создании объекта" });
+    }
+  });
+
+  app.put("/api/objects/:id", async (req, res) => {
+    try {
+      const validatedData = insertObjectSchema.partial().parse(req.body);
+      const object = await storage.updateObject(req.params.id, validatedData);
+      if (!object) {
+        return res.status(404).json({ message: "Объект не найден" });
+      }
+      res.json(object);
+    } catch (error) {
+      console.error("Error updating object:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Ошибка валидации данных", errors: error.errors });
+      }
+      res.status(500).json({ message: "Ошибка при обновлении объекта" });
+    }
+  });
+
+  app.delete("/api/objects/:id", async (req, res) => {
+    try {
+      const success = await storage.deleteObject(req.params.id);
+      if (!success) {
+        return res.status(404).json({ message: "Объект не найден" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting object:", error);
+      res.status(500).json({ message: "Ошибка при удалении объекта" });
     }
   });
 

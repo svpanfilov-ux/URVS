@@ -8,7 +8,9 @@ import {
   type Report,
   type InsertReport,
   type Setting,
-  type InsertSetting
+  type InsertSetting,
+  type Object,
+  type InsertObject
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 
@@ -41,6 +43,13 @@ export interface IStorage {
   getSettings(): Promise<Setting[]>;
   getSetting(key: string): Promise<Setting | undefined>;
   setSetting(setting: InsertSetting): Promise<Setting>;
+
+  // Objects
+  getObjects(): Promise<Object[]>;
+  getObject(id: string): Promise<Object | undefined>;
+  createObject(object: InsertObject): Promise<Object>;
+  updateObject(id: string, object: Partial<InsertObject>): Promise<Object | undefined>;
+  deleteObject(id: string): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -49,6 +58,7 @@ export class MemStorage implements IStorage {
   private timeEntries: Map<string, TimeEntry>;
   private reports: Map<string, Report>;
   private settings: Map<string, Setting>;
+  private objects: Map<string, Object>;
 
   constructor() {
     this.users = new Map();
@@ -56,6 +66,7 @@ export class MemStorage implements IStorage {
     this.timeEntries = new Map();
     this.reports = new Map();
     this.settings = new Map();
+    this.objects = new Map();
 
     // Initialize with demo data
     this.initializeDemoData();
@@ -87,6 +98,22 @@ export class MemStorage implements IStorage {
         createdAt: new Date()
       };
       this.employees.set(employee.id, employee);
+    });
+
+    // Create sample objects
+    const sampleObjects = [
+      { name: "Торговый центр Мега", code: "TC_MEGA", description: "Основной торговый объект", isActive: true },
+      { name: "Магазин на Ленинском", code: "MAG_LENIN", description: "Филиал на проспекте Ленинском", isActive: true },
+      { name: "Склад центральный", code: "SKLAD_01", description: "Центральный склад компании", isActive: false },
+    ];
+
+    sampleObjects.forEach(obj => {
+      const object: Object = {
+        id: randomUUID(),
+        ...obj,
+        createdAt: new Date()
+      };
+      this.objects.set(object.id, object);
     });
 
     // Add sample time entries for July 2025 (previous month) for autofill demonstration
@@ -330,6 +357,41 @@ export class MemStorage implements IStorage {
       this.settings.set(id, setting);
       return setting;
     }
+  }
+
+  // Objects
+  async getObjects(): Promise<Object[]> {
+    return Array.from(this.objects.values());
+  }
+
+  async getObject(id: string): Promise<Object | undefined> {
+    return this.objects.get(id);
+  }
+
+  async createObject(insertObject: InsertObject): Promise<Object> {
+    const id = randomUUID();
+    const object: Object = { 
+      ...insertObject, 
+      id,
+      description: insertObject.description || null,
+      isActive: insertObject.isActive ?? true,
+      createdAt: new Date()
+    };
+    this.objects.set(id, object);
+    return object;
+  }
+
+  async updateObject(id: string, updateData: Partial<InsertObject>): Promise<Object | undefined> {
+    const object = this.objects.get(id);
+    if (!object) return undefined;
+
+    const updatedObject = { ...object, ...updateData };
+    this.objects.set(id, updatedObject);
+    return updatedObject;
+  }
+
+  async deleteObject(id: string): Promise<boolean> {
+    return this.objects.delete(id);
   }
 }
 

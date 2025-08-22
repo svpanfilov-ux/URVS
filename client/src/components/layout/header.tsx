@@ -1,10 +1,21 @@
-import { Clock, LogOut } from "lucide-react";
+import { Clock, LogOut, Building } from "lucide-react";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useQuery } from "@tanstack/react-query";
+import { Object } from "@shared/schema";
+import { useState } from "react";
 
 export function Header() {
   const { user, logout } = useAuth();
+  const [selectedObject, setSelectedObject] = useState<string>("");
+
+  const { data: objects = [] } = useQuery<Object[]>({
+    queryKey: ["/api/objects"],
+  });
+
+  const activeObjects = objects.filter(obj => obj.isActive);
 
   return (
     <header className="bg-card shadow-lg">
@@ -18,6 +29,23 @@ export function Header() {
           </div>
           
           <div className="flex items-center space-x-4">
+            {/* Object Selector */}
+            <div className="flex items-center space-x-2">
+              <Building className="text-muted-foreground h-4 w-4" />
+              <Select value={selectedObject} onValueChange={setSelectedObject}>
+                <SelectTrigger className="w-48" data-testid="object-selector">
+                  <SelectValue placeholder="Выберите объект" />
+                </SelectTrigger>
+                <SelectContent>
+                  {activeObjects.map((object) => (
+                    <SelectItem key={object.id} value={object.id}>
+                      {object.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
             <ThemeToggle />
             
             <div className="flex items-center space-x-2">
