@@ -30,21 +30,18 @@ export function Header() {
           
           <div className="flex items-center space-x-4">
             {/* Object Selector */}
-            <div className="flex items-center space-x-2">
-              <Building className="text-muted-foreground h-4 w-4" />
-              <Select value={selectedObjectId || ""} onValueChange={(value) => setSelectedObjectId(value || null)}>
-                <SelectTrigger className="w-64" data-testid="object-selector">
-                  <SelectValue placeholder="Выберите объект" />
-                </SelectTrigger>
-                <SelectContent className="w-64">
-                  {activeObjects.map((object) => (
-                    <SelectItem key={object.id} value={object.id}>
-                      {object.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <Select value={selectedObjectId || ""} onValueChange={(value) => setSelectedObjectId(value || null)}>
+              <SelectTrigger className="w-64" data-testid="object-selector">
+                <SelectValue placeholder="Выберите объект" />
+              </SelectTrigger>
+              <SelectContent className="w-64">
+                {activeObjects.map((object) => (
+                  <SelectItem key={object.id} value={object.id}>
+                    {object.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             
             <ThemeToggle />
             
