@@ -83,30 +83,14 @@ export class MemStorage implements IStorage {
     };
     this.users.set(adminUser.id, adminUser);
 
-    // Create sample employees
-    const sampleEmployees = [
-      { name: "Иванов Иван Иванович", position: "Менеджер по продажам", status: "active", workSchedule: "5/2" },
-      { name: "Петров Пётр Петрович", position: "Кассир", status: "active", workSchedule: "2/2" },
-      { name: "Сидоров Семён Семёнович", position: "Помощник", status: "not_registered", workSchedule: "6/1" },
-    ];
-
-    sampleEmployees.forEach(emp => {
-      const employee: Employee = {
-        id: randomUUID(),
-        ...emp,
-        terminationDate: null,
-        createdAt: new Date()
-      };
-      this.employees.set(employee.id, employee);
-    });
-
-    // Create sample objects
+    // Create sample objects first
     const sampleObjects = [
       { name: "Торговый центр Мега", code: "TC_MEGA", description: "Основной торговый объект", isActive: true },
       { name: "Магазин на Ленинском", code: "MAG_LENIN", description: "Филиал на проспекте Ленинском", isActive: true },
       { name: "Склад центральный", code: "SKLAD_01", description: "Центральный склад компании", isActive: false },
     ];
 
+    const objectIds: string[] = [];
     sampleObjects.forEach(obj => {
       const object: Object = {
         id: randomUUID(),
@@ -114,6 +98,34 @@ export class MemStorage implements IStorage {
         createdAt: new Date()
       };
       this.objects.set(object.id, object);
+      objectIds.push(object.id);
+    });
+
+    // Create sample employees and assign to objects
+    const sampleEmployees = [
+      // Торговый центр Мега
+      { name: "Иванов Иван Иванович", position: "Менеджер по продажам", status: "active", workSchedule: "5/2", objectId: objectIds[0] },
+      { name: "Петров Пётр Петрович", position: "Кассир", status: "active", workSchedule: "2/2", objectId: objectIds[0] },
+      { name: "Смирнов Алексей Николаевич", position: "Охранник", status: "active", workSchedule: "2/2", objectId: objectIds[0] },
+      
+      // Магазин на Ленинском  
+      { name: "Сидоров Семён Семёнович", position: "Продавец-консультант", status: "active", workSchedule: "6/1", objectId: objectIds[1] },
+      { name: "Козлова Мария Петровна", position: "Кассир", status: "not_registered", workSchedule: "5/2", objectId: objectIds[1] },
+      
+      // Склад центральный
+      { name: "Николаев Дмитрий Игоревич", position: "Кладовщик", status: "active", workSchedule: "5/2", objectId: objectIds[2] },
+      { name: "Федорова Анна Сергеевна", position: "Грузчик", status: "fired", workSchedule: "2/2", objectId: objectIds[2], terminationDate: "2025-08-15" },
+    ];
+
+    sampleEmployees.forEach(emp => {
+      const employee: Employee = {
+        id: randomUUID(),
+        ...emp,
+        objectId: emp.objectId || null,
+        terminationDate: emp.terminationDate || null,
+        createdAt: new Date()
+      };
+      this.employees.set(employee.id, employee);
     });
 
     // Add sample time entries for July 2025 (previous month) for autofill demonstration
@@ -230,6 +242,7 @@ export class MemStorage implements IStorage {
       id,
       status: insertEmployee.status || "active",
       workSchedule: insertEmployee.workSchedule || "5/2",
+      objectId: insertEmployee.objectId || null,
       terminationDate: insertEmployee.terminationDate ?? null,
       createdAt: new Date()
     };

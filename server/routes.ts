@@ -36,7 +36,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Employees
   app.get("/api/employees", async (req, res) => {
     try {
-      const employees = await storage.getEmployees();
+      const { objectId } = req.query;
+      let employees = await storage.getEmployees();
+      
+      // Filter by object if objectId is provided
+      if (objectId && typeof objectId === 'string') {
+        employees = employees.filter(employee => employee.objectId === objectId);
+      }
+      
       res.json(employees);
     } catch (error) {
       res.status(500).json({ message: "Ошибка получения списка сотрудников" });

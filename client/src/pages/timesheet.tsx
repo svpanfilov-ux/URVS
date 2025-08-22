@@ -9,15 +9,21 @@ import { format, getDaysInMonth, parseISO, isAfter } from "date-fns";
 import { ru } from "date-fns/locale";
 import { Wand2, Calendar } from "lucide-react";
 import { Employee, TimeEntry } from "@shared/schema";
+import { useObjectStore } from "@/lib/object-store";
 
 export default function Timesheet() {
   const [selectedMonth, setSelectedMonth] = useState("2025-08");
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { selectedObjectId } = useObjectStore();
 
   const { data: employees = [] } = useQuery<Employee[]>({
-    queryKey: ["/api/employees"],
+    queryKey: ["/api/employees", selectedObjectId],
+    queryFn: () => {
+      const url = selectedObjectId ? `/api/employees?objectId=${selectedObjectId}` : '/api/employees';
+      return fetch(url).then(res => res.json());
+    },
   });
 
   const { data: timeEntries = [] } = useQuery<TimeEntry[]>({

@@ -9,6 +9,7 @@ import { EmployeeModal } from "@/components/modals/employee-modal";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { Employee } from "@shared/schema";
+import { useObjectStore } from "@/lib/object-store";
 import { Plus, Upload, Download, Edit, Trash2, Search } from "lucide-react";
 
 export default function Employees() {
@@ -19,9 +20,14 @@ export default function Employees() {
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { selectedObjectId } = useObjectStore();
 
   const { data: employees = [], isLoading } = useQuery<Employee[]>({
-    queryKey: ["/api/employees"],
+    queryKey: ["/api/employees", selectedObjectId],
+    queryFn: () => {
+      const url = selectedObjectId ? `/api/employees?objectId=${selectedObjectId}` : '/api/employees';
+      return fetch(url).then(res => res.json());
+    },
   });
 
   const createEmployeeMutation = useMutation({

@@ -5,11 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useQuery } from "@tanstack/react-query";
 import { Object } from "@shared/schema";
-import { useState } from "react";
+import { useObjectStore } from "@/lib/object-store";
 
 export function Header() {
   const { user, logout } = useAuth();
-  const [selectedObject, setSelectedObject] = useState<string>("");
+  const { selectedObjectId, setSelectedObjectId } = useObjectStore();
 
   const { data: objects = [] } = useQuery<Object[]>({
     queryKey: ["/api/objects"],
@@ -32,7 +32,7 @@ export function Header() {
             {/* Object Selector */}
             <div className="flex items-center space-x-2">
               <Building className="text-muted-foreground h-4 w-4" />
-              <Select value={selectedObject} onValueChange={setSelectedObject}>
+              <Select value={selectedObjectId || ""} onValueChange={(value) => setSelectedObjectId(value || null)}>
                 <SelectTrigger className="w-48" data-testid="object-selector">
                   <SelectValue placeholder="Выберите объект" />
                 </SelectTrigger>
