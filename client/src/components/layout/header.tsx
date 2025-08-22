@@ -33,10 +33,10 @@ export function Header() {
             <div className="flex items-center space-x-2">
               <Building className="text-muted-foreground h-4 w-4" />
               <Select value={selectedObjectId || ""} onValueChange={(value) => setSelectedObjectId(value || null)}>
-                <SelectTrigger className="w-48" data-testid="object-selector">
+                <SelectTrigger className="w-64" data-testid="object-selector">
                   <SelectValue placeholder="Выберите объект" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="w-64">
                   {activeObjects.map((object) => (
                     <SelectItem key={object.id} value={object.id}>
                       {object.name}
