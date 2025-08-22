@@ -11,6 +11,7 @@ import { useAuth } from "@/lib/auth";
 import Login from "@/pages/login";
 import Dashboard from "@/pages/dashboard";
 import Employees from "@/pages/employees";
+import Staffing from "@/pages/staffing";
 import Timesheet from "@/pages/timesheet";
 import Reports from "@/pages/reports";
 import Settings from "@/pages/settings";
@@ -25,6 +26,7 @@ function AuthenticatedApp() {
         <Switch>
           <Route path="/" component={Dashboard} />
           <Route path="/employees" component={Employees} />
+          <Route path="/staffing" component={Staffing} />
           <Route path="/timesheet" component={Timesheet} />
           <Route path="/reports" component={Reports} />
           <Route path="/settings" component={Settings} />

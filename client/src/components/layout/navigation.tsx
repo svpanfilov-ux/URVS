@@ -1,6 +1,7 @@
 import { 
   Home, 
   Users, 
+  UserCheck,
   Calendar, 
   FileText, 
   Settings 
@@ -11,6 +12,7 @@ import { cn } from "@/lib/utils";
 const navItems = [
   { id: "dashboard", label: "Главное", icon: Home, path: "/" },
   { id: "employees", label: "Сотрудники", icon: Users, path: "/employees" },
+  { id: "staffing", label: "Штатное расписание", icon: UserCheck, path: "/staffing" },
   { id: "timesheet", label: "Табель", icon: Calendar, path: "/timesheet" },
   { id: "reports", label: "Отчёты", icon: FileText, path: "/reports" },
   { id: "settings", label: "Настройки", icon: Settings, path: "/settings" },
