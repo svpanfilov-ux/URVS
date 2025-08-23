@@ -11,7 +11,7 @@ import { Users, Building2, UserCheck, UserX, Clock } from "lucide-react";
 
 export default function Staffing() {
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
   const { selectedObjectId } = useObjectStore();
 
   const { data: objects = [] } = useQuery<ObjectType[]>({
@@ -32,7 +32,7 @@ export default function Staffing() {
   const filteredEmployees = employees.filter(emp => {
     const matchesSearch = emp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          emp.position.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = !statusFilter || emp.status === statusFilter;
+    const matchesStatus = !statusFilter || statusFilter === "all" || emp.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
@@ -118,7 +118,7 @@ export default function Staffing() {
               <SelectValue placeholder="Все статусы" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Все статусы</SelectItem>
+              <SelectItem value="all">Все статусы</SelectItem>
               <SelectItem value="active">Активные</SelectItem>
               <SelectItem value="not_registered">Не оформленные</SelectItem>
               <SelectItem value="fired">Уволенные</SelectItem>
