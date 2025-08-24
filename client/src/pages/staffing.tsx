@@ -96,7 +96,7 @@ export default function Staffing() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Всего должностей</CardTitle>
@@ -104,6 +104,18 @@ export default function Staffing() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{filteredPositions.length}</div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Всего позиций</CardTitle>
+            <Users className="h-4 w-4 text-purple-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-purple-600">
+              {filteredPositions.reduce((sum, pos) => sum + pos.positionsCount, 0)}
+            </div>
           </CardContent>
         </Card>
 
@@ -149,6 +161,7 @@ export default function Staffing() {
                   <TableHead>График работы</TableHead>
                   <TableHead>Тип оплаты</TableHead>
                   <TableHead>Тариф</TableHead>
+                  <TableHead className="text-center">Кол-во</TableHead>
                   <TableHead className="text-right">Действия</TableHead>
                 </TableRow>
               </TableHeader>
@@ -173,6 +186,11 @@ export default function Staffing() {
                       <span className="font-medium">
                         {formatSalary(position)}
                       </span>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Badge variant="outline" className="font-medium">
+                        {position.positionsCount}
+                      </Badge>
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">

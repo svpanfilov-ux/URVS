@@ -115,20 +115,20 @@ export class MemStorage implements IStorage {
     // Create sample positions for each object
     const samplePositions = [
       // Торговый центр Мега
-      { objectId: objectIds[0], title: "Менеджер по продажам", workSchedule: "5/2", paymentType: "salary", monthlySalary: 45000 },
-      { objectId: objectIds[0], title: "Кассир", workSchedule: "2/2", paymentType: "hourly", hourlyRate: 250 },
-      { objectId: objectIds[0], title: "Охранник", workSchedule: "2/2", paymentType: "hourly", hourlyRate: 200 },
-      { objectId: objectIds[0], title: "Уборщица", workSchedule: "5/2", paymentType: "hourly", hourlyRate: 180 },
+      { objectId: objectIds[0], title: "Менеджер по продажам", workSchedule: "5/2", paymentType: "salary", monthlySalary: 45000, positionsCount: 2 },
+      { objectId: objectIds[0], title: "Кассир", workSchedule: "2/2", paymentType: "hourly", hourlyRate: 250, positionsCount: 4 },
+      { objectId: objectIds[0], title: "Охранник", workSchedule: "2/2", paymentType: "hourly", hourlyRate: 200, positionsCount: 3 },
+      { objectId: objectIds[0], title: "Уборщица", workSchedule: "5/2", paymentType: "hourly", hourlyRate: 180, positionsCount: 2 },
       
       // Магазин на Ленинском
-      { objectId: objectIds[1], title: "Продавец-консультант", workSchedule: "6/1", paymentType: "salary", monthlySalary: 35000 },
-      { objectId: objectIds[1], title: "Кассир", workSchedule: "5/2", paymentType: "hourly", hourlyRate: 220 },
-      { objectId: objectIds[1], title: "Администратор", workSchedule: "5/2", paymentType: "salary", monthlySalary: 40000 },
+      { objectId: objectIds[1], title: "Продавец-консультант", workSchedule: "6/1", paymentType: "salary", monthlySalary: 35000, positionsCount: 3 },
+      { objectId: objectIds[1], title: "Кассир", workSchedule: "5/2", paymentType: "hourly", hourlyRate: 220, positionsCount: 2 },
+      { objectId: objectIds[1], title: "Администратор", workSchedule: "5/2", paymentType: "salary", monthlySalary: 40000, positionsCount: 1 },
       
       // Склад центральный
-      { objectId: objectIds[2], title: "Кладовщик", workSchedule: "5/2", paymentType: "salary", monthlySalary: 38000 },
-      { objectId: objectIds[2], title: "Грузчик", workSchedule: "2/2", paymentType: "hourly", hourlyRate: 300 },
-      { objectId: objectIds[2], title: "Водитель", workSchedule: "5/2", paymentType: "hourly", hourlyRate: 280 },
+      { objectId: objectIds[2], title: "Кладовщик", workSchedule: "5/2", paymentType: "salary", monthlySalary: 38000, positionsCount: 2 },
+      { objectId: objectIds[2], title: "Грузчик", workSchedule: "2/2", paymentType: "hourly", hourlyRate: 300, positionsCount: 6 },
+      { objectId: objectIds[2], title: "Водитель", workSchedule: "5/2", paymentType: "hourly", hourlyRate: 280, positionsCount: 3 },
     ];
 
     samplePositions.forEach(pos => {
@@ -137,6 +137,7 @@ export class MemStorage implements IStorage {
         ...pos,
         hourlyRate: pos.hourlyRate || null,
         monthlySalary: pos.monthlySalary || null,
+        positionsCount: pos.positionsCount || 1,
         isActive: true,
         createdAt: new Date()
       };

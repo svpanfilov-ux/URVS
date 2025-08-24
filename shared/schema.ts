@@ -67,6 +67,7 @@ export const positions = pgTable("positions", {
   paymentType: text("payment_type").notNull().default("hourly"), // hourly, salary
   hourlyRate: integer("hourly_rate"), // rate per hour in rubles
   monthlySalary: integer("monthly_salary"), // monthly salary in rubles
+  positionsCount: integer("positions_count").notNull().default(1), // number of positions per shift
   isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at").defaultNow(),
 });
@@ -113,6 +114,7 @@ export const insertPositionSchema = createInsertSchema(positions).omit({
   paymentType: z.enum(["hourly", "salary"]).default("hourly"),
   hourlyRate: z.number().positive().optional(),
   monthlySalary: z.number().positive().optional(),
+  positionsCount: z.number().positive().default(1),
 });
 
 // Types
