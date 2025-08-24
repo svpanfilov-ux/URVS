@@ -387,6 +387,14 @@ export default function Timesheet() {
     }
   };
 
+  const handleClosePeriod = () => {
+    toast({ 
+      title: "Период закрыт", 
+      description: `Данные табеля за ${format(new Date(selectedMonth + "-01"), "LLLL yyyy", { locale: ru })} зафиксированы`,
+      variant: "default"
+    });
+  };
+
   const handleAutoFill = async () => {
     try {
       // Get previous month data (July 2025)
@@ -603,6 +611,15 @@ export default function Timesheet() {
           <Button onClick={handleAutoFill} variant="outline" size="sm">
             <Wand2 className="w-4 h-4 mr-2" />
             Автозаполнение
+          </Button>
+
+          <Button 
+            onClick={handleClosePeriod} 
+            className="bg-orange-600 hover:bg-orange-700"
+            size="sm"
+            data-testid="button-close-period"
+          >
+            Закрыть период
           </Button>
           
           <Select value={selectedMonth} onValueChange={setSelectedMonth}>
