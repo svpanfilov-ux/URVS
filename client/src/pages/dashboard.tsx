@@ -26,6 +26,8 @@ export default function Dashboard() {
   });
 
   const activeEmployees = employees.filter((emp) => emp.status === "active");
+  const firedEmployees = employees.filter((emp) => emp.status === "fired");
+  const contractEmployees = employees.filter((emp) => emp.status === "not_registered");
   const totalEmployees = employees.length;
 
   // Calculate real deadline days
@@ -93,6 +95,44 @@ export default function Dashboard() {
             </div>
             <p className="text-xs text-muted-foreground mt-2">
               Всего: <span data-testid="total-employees">{totalEmployees}</span>
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Уволенных сотрудников</p>
+                <p className="text-2xl font-semibold text-red-600 mt-1" data-testid="fired-employees">
+                  {firedEmployees.length}
+                </p>
+              </div>
+              <div className="bg-red-100 dark:bg-red-900/20 p-3 rounded-full">
+                <Users className="text-red-600 h-6 w-6" />
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">
+              За период
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">На подработке</p>
+                <p className="text-2xl font-semibold text-orange-600 mt-1" data-testid="contract-employees">
+                  {contractEmployees.length}
+                </p>
+              </div>
+              <div className="bg-orange-100 dark:bg-orange-900/20 p-3 rounded-full">
+                <Users className="text-orange-600 h-6 w-6" />
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">
+              Подработчики
             </p>
           </CardContent>
         </Card>
