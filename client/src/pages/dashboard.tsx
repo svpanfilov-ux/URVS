@@ -99,7 +99,7 @@ export default function Dashboard() {
       </div>
 
       {/* Statistics */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 gap-8">
         <Card>
           <CardHeader>
             <CardTitle>Месячная статистика</CardTitle>
@@ -126,39 +126,7 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Быстрые действия</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <Button 
-              onClick={() => navigate("/timesheet")}
-              className="w-full bg-green-600 hover:bg-green-700"
-              data-testid="action-timesheet"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Заполнить табель
-            </Button>
-            <Button 
-              onClick={() => navigate("/employees")}
-              variant="outline"
-              className="w-full"
-              data-testid="action-employees"
-            >
-              <Users className="h-4 w-4 mr-2" />
-              Управление сотрудниками
-            </Button>
-            <Button 
-              onClick={() => navigate("/reports")}
-              variant="outline"
-              className="w-full"
-              data-testid="action-reports"
-            >
-              <FileText className="h-4 w-4 mr-2" />
-              Сформировать отчёт
-            </Button>
-          </CardContent>
-        </Card>
+
       </div>
     </div>
   );
