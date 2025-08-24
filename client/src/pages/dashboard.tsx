@@ -76,24 +76,7 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
 
 
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">До закрытия зарплаты</p>
-                <p className="text-2xl font-semibold text-green-600 mt-1" data-testid="days-to-salary">
-                  {daysToSalaryDeadline} {getDayWord(daysToSalaryDeadline)}
-                </p>
-              </div>
-              <div className="bg-green-100 dark:bg-green-900/20 p-3 rounded-full">
-                <CheckCircle className="text-green-600 h-6 w-6" />
-              </div>
-            </div>
-            <div className="mt-4">
-              <Progress value={75} className="h-2" />
-            </div>
-          </CardContent>
-        </Card>
+
 
         <Card>
           <CardContent className="pt-6">
