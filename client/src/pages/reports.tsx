@@ -210,55 +210,47 @@ export default function Reports() {
             <table className="w-full">
               <thead className="bg-muted/50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Период</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Объект</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Менеджер</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Месяц</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Тип</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Сотрудников</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Часов</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Вакансий</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Статус</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Дата отправки</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Действия</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Дата и время отправки</th>
                 </tr>
               </thead>
               <tbody className="bg-background divide-y divide-border">
                 {/* Mock historical data */}
                 <tr data-testid="report-history-1">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">1-15 февраля 2024</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">Магазин "Продукты №1"</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">Иванов И.И.</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">Февраль 2024</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">Аванс</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">28</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">1,920 ч</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">2</td>
                   <td className="px-6 py-4 whitespace-nowrap">{getStatusBadge("sent")}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">16.02.2024 14:32</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <Button variant="ghost" size="sm">
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                  </td>
                 </tr>
                 <tr data-testid="report-history-2">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">1-31 января 2024</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">Склад "Центральный"</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">Петров П.П.</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">Январь 2024</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">Зарплата</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">26</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">4,160 ч</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">1</td>
                   <td className="px-6 py-4 whitespace-nowrap">{getStatusBadge("sent")}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">01.02.2024 16:45</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <Button variant="ghost" size="sm">
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                  </td>
                 </tr>
                 <tr data-testid="report-history-3">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">1-15 января 2024</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">Офис "Администрация"</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">Сидоров С.С.</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">Январь 2024</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">Аванс</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">26</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">2,080 ч</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">12</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">0</td>
                   <td className="px-6 py-4 whitespace-nowrap">{getStatusBadge("sent")}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">16.01.2024 15:20</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <Button variant="ghost" size="sm">
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                  </td>
                 </tr>
               </tbody>
             </table>
