@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useObjectStore } from "@/lib/object-store";
 import { Position, Object as ObjectType } from "@shared/schema";
 import { Users, Building2, Clock, Briefcase, CalendarDays, Plus, Edit, Trash2 } from "lucide-react";
@@ -131,7 +132,7 @@ export default function Staffing() {
         </Card>
       </div>
 
-      {/* Positions List */}
+      {/* Positions Table */}
       {filteredPositions.length > 0 ? (
         <Card>
           <CardHeader>
@@ -141,46 +142,52 @@ export default function Staffing() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredPositions.map((position) => (
-                <div key={position.id} className="p-4 border rounded-lg bg-card hover:shadow-md transition-shadow">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex-1">
-                      <h3 className="font-medium text-base text-foreground mb-2">
-                        {position.title}
-                      </h3>
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2">
-                          <CalendarDays className="h-4 w-4 text-muted-foreground" />
-                          {getWorkScheduleBadge(position.workSchedule)}
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium text-foreground">
-                            {formatSalary(position)}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <Badge 
-                            variant={position.paymentType === "hourly" ? "secondary" : "default"} 
-                            className="text-xs"
-                          >
-                            {position.paymentType === "hourly" ? "Почасовая" : "Оклад"}
-                          </Badge>
-                        </div>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Должность</TableHead>
+                  <TableHead>График работы</TableHead>
+                  <TableHead>Тип оплаты</TableHead>
+                  <TableHead>Тариф</TableHead>
+                  <TableHead className="text-right">Действия</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredPositions.map((position) => (
+                  <TableRow key={position.id} className="hover:bg-muted/50">
+                    <TableCell className="font-medium">
+                      {position.title}
+                    </TableCell>
+                    <TableCell>
+                      {getWorkScheduleBadge(position.workSchedule)}
+                    </TableCell>
+                    <TableCell>
+                      <Badge 
+                        variant={position.paymentType === "hourly" ? "secondary" : "default"} 
+                        className="text-xs"
+                      >
+                        {position.paymentType === "hourly" ? "Почасовая" : "Оклад"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <span className="font-medium">
+                        {formatSalary(position)}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-1">
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-red-600 hover:text-red-700">
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       </div>
-                    </div>
-                    <div className="flex flex-col gap-1">
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-red-600 hover:text-red-700">
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           </CardContent>
         </Card>
       ) : (
