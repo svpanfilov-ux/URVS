@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { StaffingSkeleton } from "@/components/skeletons/staffing-skeleton";
+import { useDelayedLoading } from "@/hooks/useDelayedLoading";
 import { useObjectStore } from "@/lib/object-store";
 import { useAuth } from "@/hooks/useAuth";
 import { Position, Object as ObjectType } from "@shared/schema";
@@ -33,6 +34,7 @@ export default function Staffing() {
   });
 
   const isLoading = objectsLoading || positionsLoading;
+  const showSkeleton = useDelayedLoading(isLoading, 200);
 
   const selectedObject = objects.find(obj => obj.id === selectedObjectId);
 
@@ -62,7 +64,7 @@ export default function Staffing() {
     return "Не указано";
   };
 
-  if (isLoading) {
+  if (showSkeleton) {
     return <StaffingSkeleton />;
   }
 

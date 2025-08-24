@@ -1,6 +1,7 @@
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AnalyticsSkeleton } from "@/components/skeletons/analytics-skeleton";
+import { useDelayedLoading } from "@/hooks/useDelayedLoading";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { BarChart3, Eye, TrendingUp, Building, Users, Clock, DollarSign } from "lucide-react";
@@ -33,6 +34,7 @@ export default function Analytics() {
   });
 
   const isLoading = objectsLoading || employeesLoading;
+  const showSkeleton = useDelayedLoading(isLoading, 200);
 
   // Фиктивная аналитика для демонстрации - в реальной системе это бы приходило с API
   const generateAnalytics = (): ObjectAnalytics[] => {
@@ -92,7 +94,7 @@ export default function Analytics() {
     }).format(amount);
   };
 
-  if (isLoading) {
+  if (showSkeleton) {
     return <AnalyticsSkeleton />;
   }
 

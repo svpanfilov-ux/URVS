@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { useLocation } from "wouter";
 import { DashboardSkeleton } from "@/components/skeletons/dashboard-skeleton";
+import { useDelayedLoading } from "@/hooks/useDelayedLoading";
 import { Employee, TimeEntry } from "@shared/schema";
 import { format, getDaysInMonth, differenceInDays, parseISO } from "date-fns";
 
@@ -27,6 +28,7 @@ export default function Dashboard() {
   });
 
   const isLoading = employeesLoading || timeEntriesLoading;
+  const showSkeleton = useDelayedLoading(isLoading, 200);
 
   const activeEmployees = employees.filter((emp) => emp.status === "active");
   const firedEmployees = employees.filter((emp) => emp.status === "fired");
@@ -84,7 +86,7 @@ export default function Dashboard() {
     return "дней";
   };
 
-  if (isLoading) {
+  if (showSkeleton) {
     return <DashboardSkeleton />;
   }
 

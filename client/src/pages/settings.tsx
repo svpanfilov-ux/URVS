@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useTheme } from "@/components/ui/theme-provider";
 import { SettingsSkeleton } from "@/components/skeletons/settings-skeleton";
+import { useDelayedLoading } from "@/hooks/useDelayedLoading";
 import { Download, Upload, Trash2, RefreshCw, CheckCircle } from "lucide-react";
 import { Setting } from "@shared/schema";
 
@@ -21,6 +22,8 @@ export default function Settings() {
   const { data: settings = [], isLoading } = useQuery<Setting[]>({
     queryKey: ["/api/settings"],
   });
+
+  const showSkeleton = useDelayedLoading(isLoading, 200);
 
   const updateSettingMutation = useMutation({
     mutationFn: async (data: { key: string; value: string }) => {
@@ -66,7 +69,7 @@ export default function Settings() {
     toast({ title: "Синхронизация данных выполнена" });
   };
 
-  if (isLoading) {
+  if (showSkeleton) {
     return <SettingsSkeleton />;
   }
 

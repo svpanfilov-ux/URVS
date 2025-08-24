@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { ReportsSkeleton } from "@/components/skeletons/reports-skeleton";
+import { useDelayedLoading } from "@/hooks/useDelayedLoading";
 import { apiRequest } from "@/lib/queryClient";
 import { format } from "date-fns";
 import { ru } from "date-fns/locale";
@@ -19,6 +20,8 @@ export default function Reports() {
   const { data: reports = [], isLoading } = useQuery({
     queryKey: ["/api/reports"],
   });
+
+  const showSkeleton = useDelayedLoading(isLoading, 200);
 
   const sendReportMutation = useMutation({
     mutationFn: async (reportId: string) => {
@@ -97,7 +100,7 @@ export default function Reports() {
     );
   };
 
-  if (isLoading) {
+  if (showSkeleton) {
     return <ReportsSkeleton />;
   }
 

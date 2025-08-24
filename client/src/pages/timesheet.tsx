@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { TimesheetCell } from "@/components/timesheet/timesheet-cell";
 import { TimesheetSkeleton } from "@/components/skeletons/timesheet-skeleton";
+import { useDelayedLoading } from "@/hooks/useDelayedLoading";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { format, getDaysInMonth, parseISO, isAfter } from "date-fns";
@@ -38,6 +39,7 @@ export default function Timesheet() {
   });
 
   const isLoading = employeesLoading || timeEntriesLoading;
+  const showSkeleton = useDelayedLoading(isLoading, 200);
 
   const updateTimeEntryMutation = useMutation({
     mutationFn: async (data: any) => {
@@ -588,7 +590,7 @@ export default function Timesheet() {
     }
   };
 
-  if (isLoading) {
+  if (showSkeleton) {
     return <TimesheetSkeleton />;
   }
 
