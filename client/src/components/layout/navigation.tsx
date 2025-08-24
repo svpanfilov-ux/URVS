@@ -22,10 +22,10 @@ interface NavItem {
 
 const allNavItems: NavItem[] = [
   { id: "dashboard", label: "Главное", icon: Home, path: "/", roles: ["object_manager", "hr_economist", "director", "group_manager"] },
-  { id: "employees", label: "Сотрудники", icon: Users, path: "/employees", roles: ["object_manager", "hr_economist", "group_manager"] },
   { id: "staffing", label: "Штатное расписание", icon: UserCheck, path: "/staffing", roles: ["object_manager", "hr_economist", "group_manager"] },
+  { id: "employees", label: "Сотрудники", icon: Users, path: "/employees", roles: ["object_manager", "hr_economist", "group_manager"] },
   { id: "timesheet", label: "Табель", icon: Calendar, path: "/timesheet", roles: ["object_manager", "hr_economist", "group_manager"] },
-  { id: "reports", label: "Отчёты", icon: FileText, path: "/reports", roles: ["hr_economist", "director", "group_manager"] },
+  { id: "reports", label: "Отчёты", icon: FileText, path: "/reports", roles: ["object_manager", "hr_economist", "director", "group_manager"] },
   { id: "analytics", label: "Аналитика", icon: BarChart3, path: "/analytics", roles: ["director", "hr_economist"] },
   { id: "settings", label: "Настройки", icon: Settings, path: "/settings", roles: ["hr_economist"] },
 ];

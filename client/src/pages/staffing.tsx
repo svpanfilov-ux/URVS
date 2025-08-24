@@ -7,12 +7,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useObjectStore } from "@/lib/object-store";
+import { useAuth } from "@/hooks/useAuth";
 import { Position, Object as ObjectType } from "@shared/schema";
 import { Users, Building2, Clock, Briefcase, CalendarDays, Plus, Edit, Trash2 } from "lucide-react";
 
 export default function Staffing() {
   const [searchTerm, setSearchTerm] = useState("");
   const { selectedObjectId } = useObjectStore();
+  const { user } = useAuth();
+  
+  // Check if user can edit staffing (only HR economist can edit)
+  const canEdit = user?.role === "hr_economist";
 
   const { data: objects = [] } = useQuery<ObjectType[]>({
     queryKey: ["/api/objects"],
@@ -88,10 +93,12 @@ export default function Staffing() {
               data-testid="search-input"
             />
           </div>
-          <Button variant="default" className="flex items-center gap-2">
-            <Plus className="h-4 w-4" />
-            Добавить должность
-          </Button>
+          {canEdit && (
+            <Button variant="default" className="flex items-center gap-2">
+              <Plus className="h-4 w-4" />
+              Добавить должность
+            </Button>
+          )}
         </div>
       </div>
 
@@ -162,7 +169,11 @@ export default function Staffing() {
                   <TableHead>Тип оплаты</TableHead>
                   <TableHead>Тариф</TableHead>
                   <TableHead className="text-center">Кол-во</TableHead>
-                  <TableHead className="text-right">Действия</TableHead>
+                  {canEdit ? (
+                    <TableHead className="text-right">Действия</TableHead>
+                  ) : (
+                    <TableHead className="text-right">Доступ</TableHead>
+                  )}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -193,14 +204,18 @@ export default function Staffing() {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
-                      <div className="flex justify-end gap-1">
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-red-600 hover:text-red-700">
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
+                      {canEdit ? (
+                        <div className="flex justify-end gap-1">
+                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-red-600 hover:text-red-700">
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">Только просмотр</span>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -218,12 +233,14 @@ export default function Staffing() {
             <p className="text-sm text-muted-foreground mb-4">
               {searchTerm
                 ? "Попробуйте изменить поисковый запрос"
-                : "Добавьте должности для этого объекта"}
+                : "Штатное расписание еще не создано"}
             </p>
-            <Button variant="default" className="flex items-center gap-2">
-              <Plus className="h-4 w-4" />
-              Добавить первую должность
-            </Button>
+            {canEdit && (
+              <Button variant="default" className="flex items-center gap-2">
+                <Plus className="h-4 w-4" />
+                Добавить первую должность
+              </Button>
+            )}
           </CardContent>
         </Card>
       )}
