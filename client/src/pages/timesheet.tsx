@@ -40,7 +40,7 @@ export default function Timesheet() {
 
   const isLoading = employeesLoading || timeEntriesLoading;
   const hasData = employees.length > 0 || timeEntries.length > 0;
-  const showSkeleton = useDelayedLoading(isLoading, hasData);
+  const showSkeleton = useDelayedLoading(isLoading, hasData, 10);
 
   const updateTimeEntryMutation = useMutation({
     mutationFn: async (data: any) => {

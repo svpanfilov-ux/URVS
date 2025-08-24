@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 
-export function useDelayedLoading(isLoading: boolean, hasData: boolean = false, delay: number = 500) {
+export function useDelayedLoading(isLoading: boolean, hasData: boolean = false, delay: number = 10) {
   const [showSkeleton, setShowSkeleton] = useState(false);
 
   useEffect(() => {
