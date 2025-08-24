@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertEmployeeSchema, insertTimeEntrySchema, insertReportSchema, insertSettingSchema, insertObjectSchema } from "@shared/schema";
+import { insertEmployeeSchema, insertTimeEntrySchema, insertReportSchema, insertSettingSchema, insertObjectSchema, insertPositionSchema } from "@shared/schema";
 import { z } from "zod";
 
 const loginSchema = z.object({
@@ -319,6 +319,75 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error deleting object:", error);
       res.status(500).json({ message: "Ошибка при удалении объекта" });
+    }
+  });
+
+  // Positions routes
+  app.get("/api/positions", async (req, res) => {
+    try {
+      const { objectId } = req.query;
+      const positions = await storage.getPositions(objectId as string);
+      res.json(positions);
+    } catch (error) {
+      console.error("Error fetching positions:", error);
+      res.status(500).json({ message: "Ошибка при загрузке должностей" });
+    }
+  });
+
+  app.get("/api/positions/:id", async (req, res) => {
+    try {
+      const position = await storage.getPosition(req.params.id);
+      if (!position) {
+        return res.status(404).json({ message: "Должность не найдена" });
+      }
+      res.json(position);
+    } catch (error) {
+      console.error("Error fetching position:", error);
+      res.status(500).json({ message: "Ошибка при загрузке должности" });
+    }
+  });
+
+  app.post("/api/positions", async (req, res) => {
+    try {
+      const validatedData = insertPositionSchema.parse(req.body);
+      const position = await storage.createPosition(validatedData);
+      res.status(201).json(position);
+    } catch (error) {
+      console.error("Error creating position:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Ошибка валидации данных", errors: error.errors });
+      }
+      res.status(500).json({ message: "Ошибка при создании должности" });
+    }
+  });
+
+  app.put("/api/positions/:id", async (req, res) => {
+    try {
+      const validatedData = insertPositionSchema.partial().parse(req.body);
+      const position = await storage.updatePosition(req.params.id, validatedData);
+      if (!position) {
+        return res.status(404).json({ message: "Должность не найдена" });
+      }
+      res.json(position);
+    } catch (error) {
+      console.error("Error updating position:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Ошибка валидации данных", errors: error.errors });
+      }
+      res.status(500).json({ message: "Ошибка при обновлении должности" });
+    }
+  });
+
+  app.delete("/api/positions/:id", async (req, res) => {
+    try {
+      const success = await storage.deletePosition(req.params.id);
+      if (!success) {
+        return res.status(404).json({ message: "Должность не найдена" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting position:", error);
+      res.status(500).json({ message: "Ошибка при удалении должности" });
     }
   });
 

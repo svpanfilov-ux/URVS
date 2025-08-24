@@ -10,7 +10,9 @@ import {
   type Setting,
   type InsertSetting,
   type Object,
-  type InsertObject
+  type InsertObject,
+  type Position,
+  type InsertPosition
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 
@@ -50,6 +52,13 @@ export interface IStorage {
   createObject(object: InsertObject): Promise<Object>;
   updateObject(id: string, object: Partial<InsertObject>): Promise<Object | undefined>;
   deleteObject(id: string): Promise<boolean>;
+
+  // Positions
+  getPositions(objectId?: string): Promise<Position[]>;
+  getPosition(id: string): Promise<Position | undefined>;
+  createPosition(position: InsertPosition): Promise<Position>;
+  updatePosition(id: string, position: Partial<InsertPosition>): Promise<Position | undefined>;
+  deletePosition(id: string): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -59,6 +68,7 @@ export class MemStorage implements IStorage {
   private reports: Map<string, Report>;
   private settings: Map<string, Setting>;
   private objects: Map<string, Object>;
+  private positions: Map<string, Position>;
 
   constructor() {
     this.users = new Map();
@@ -67,6 +77,7 @@ export class MemStorage implements IStorage {
     this.reports = new Map();
     this.settings = new Map();
     this.objects = new Map();
+    this.positions = new Map();
 
     // Initialize with demo data
     this.initializeDemoData();
@@ -99,6 +110,37 @@ export class MemStorage implements IStorage {
       };
       this.objects.set(object.id, object);
       objectIds.push(object.id);
+    });
+
+    // Create sample positions for each object
+    const samplePositions = [
+      // Торговый центр Мега
+      { objectId: objectIds[0], title: "Менеджер по продажам", workSchedule: "5/2", paymentType: "salary", monthlySalary: 45000 },
+      { objectId: objectIds[0], title: "Кассир", workSchedule: "2/2", paymentType: "hourly", hourlyRate: 250 },
+      { objectId: objectIds[0], title: "Охранник", workSchedule: "2/2", paymentType: "hourly", hourlyRate: 200 },
+      { objectId: objectIds[0], title: "Уборщица", workSchedule: "5/2", paymentType: "hourly", hourlyRate: 180 },
+      
+      // Магазин на Ленинском
+      { objectId: objectIds[1], title: "Продавец-консультант", workSchedule: "6/1", paymentType: "salary", monthlySalary: 35000 },
+      { objectId: objectIds[1], title: "Кассир", workSchedule: "5/2", paymentType: "hourly", hourlyRate: 220 },
+      { objectId: objectIds[1], title: "Администратор", workSchedule: "5/2", paymentType: "salary", monthlySalary: 40000 },
+      
+      // Склад центральный
+      { objectId: objectIds[2], title: "Кладовщик", workSchedule: "5/2", paymentType: "salary", monthlySalary: 38000 },
+      { objectId: objectIds[2], title: "Грузчик", workSchedule: "2/2", paymentType: "hourly", hourlyRate: 300 },
+      { objectId: objectIds[2], title: "Водитель", workSchedule: "5/2", paymentType: "hourly", hourlyRate: 280 },
+    ];
+
+    samplePositions.forEach(pos => {
+      const position: Position = {
+        id: randomUUID(),
+        ...pos,
+        hourlyRate: pos.hourlyRate || null,
+        monthlySalary: pos.monthlySalary || null,
+        isActive: true,
+        createdAt: new Date()
+      };
+      this.positions.set(position.id, position);
     });
 
     // Create sample employees and assign to objects
@@ -405,6 +447,46 @@ export class MemStorage implements IStorage {
 
   async deleteObject(id: string): Promise<boolean> {
     return this.objects.delete(id);
+  }
+
+  // Positions
+  async getPositions(objectId?: string): Promise<Position[]> {
+    let positions = Array.from(this.positions.values());
+    if (objectId) {
+      positions = positions.filter(pos => pos.objectId === objectId);
+    }
+    return positions.sort((a, b) => a.title.localeCompare(b.title));
+  }
+
+  async getPosition(id: string): Promise<Position | undefined> {
+    return this.positions.get(id);
+  }
+
+  async createPosition(insertPosition: InsertPosition): Promise<Position> {
+    const id = randomUUID();
+    const position: Position = { 
+      ...insertPosition, 
+      id,
+      hourlyRate: insertPosition.hourlyRate || null,
+      monthlySalary: insertPosition.monthlySalary || null,
+      isActive: insertPosition.isActive ?? true,
+      createdAt: new Date()
+    };
+    this.positions.set(id, position);
+    return position;
+  }
+
+  async updatePosition(id: string, updateData: Partial<InsertPosition>): Promise<Position | undefined> {
+    const position = this.positions.get(id);
+    if (!position) return undefined;
+
+    const updatedPosition = { ...position, ...updateData };
+    this.positions.set(id, updatedPosition);
+    return updatedPosition;
+  }
+
+  async deletePosition(id: string): Promise<boolean> {
+    return this.positions.delete(id);
   }
 }
 

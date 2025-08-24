@@ -59,6 +59,18 @@ export const objects = pgTable("objects", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const positions = pgTable("positions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  objectId: varchar("object_id").notNull().references(() => objects.id),
+  title: text("title").notNull(),
+  workSchedule: text("work_schedule").notNull().default("5/2"),
+  paymentType: text("payment_type").notNull().default("hourly"), // hourly, salary
+  hourlyRate: integer("hourly_rate"), // rate per hour in rubles
+  monthlySalary: integer("monthly_salary"), // monthly salary in rubles
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -93,6 +105,16 @@ export const insertObjectSchema = createInsertSchema(objects).omit({
   createdAt: true,
 });
 
+export const insertPositionSchema = createInsertSchema(positions).omit({
+  id: true,
+  createdAt: true,
+}).extend({
+  workSchedule: z.enum(["5/2", "2/2", "3/3", "6/1", "вахта"]).default("5/2"),
+  paymentType: z.enum(["hourly", "salary"]).default("hourly"),
+  hourlyRate: z.number().positive().optional(),
+  monthlySalary: z.number().positive().optional(),
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -111,6 +133,9 @@ export type InsertSetting = z.infer<typeof insertSettingSchema>;
 
 export type Object = typeof objects.$inferSelect;
 export type InsertObject = z.infer<typeof insertObjectSchema>;
+
+export type Position = typeof positions.$inferSelect;
+export type InsertPosition = z.infer<typeof insertPositionSchema>;
 
 // Additional types for frontend
 export interface DashboardStats {
