@@ -32,7 +32,8 @@ export default function Employees() {
     },
   });
 
-  const showSkeleton = useDelayedLoading(isLoading, 200);
+  const hasData = employees.length > 0;
+  const showSkeleton = useDelayedLoading(isLoading, hasData);
 
   const createEmployeeMutation = useMutation({
     mutationFn: async (data: any) => {

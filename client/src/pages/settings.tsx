@@ -23,7 +23,8 @@ export default function Settings() {
     queryKey: ["/api/settings"],
   });
 
-  const showSkeleton = useDelayedLoading(isLoading, 200);
+  const hasData = settings.length > 0;
+  const showSkeleton = useDelayedLoading(isLoading, hasData);
 
   const updateSettingMutation = useMutation({
     mutationFn: async (data: { key: string; value: string }) => {

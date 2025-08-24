@@ -21,7 +21,8 @@ export default function Reports() {
     queryKey: ["/api/reports"],
   });
 
-  const showSkeleton = useDelayedLoading(isLoading, 200);
+  const hasData = Array.isArray(reports) && reports.length > 0;
+  const showSkeleton = useDelayedLoading(isLoading, hasData);
 
   const sendReportMutation = useMutation({
     mutationFn: async (reportId: string) => {

@@ -34,7 +34,8 @@ export default function Analytics() {
   });
 
   const isLoading = objectsLoading || employeesLoading;
-  const showSkeleton = useDelayedLoading(isLoading, 200);
+  const hasData = objects.length > 0 || employees.length > 0;
+  const showSkeleton = useDelayedLoading(isLoading, hasData);
 
   // Фиктивная аналитика для демонстрации - в реальной системе это бы приходило с API
   const generateAnalytics = (): ObjectAnalytics[] => {

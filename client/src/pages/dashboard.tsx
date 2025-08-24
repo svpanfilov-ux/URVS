@@ -28,7 +28,8 @@ export default function Dashboard() {
   });
 
   const isLoading = employeesLoading || timeEntriesLoading;
-  const showSkeleton = useDelayedLoading(isLoading, 200);
+  const hasData = employees.length > 0 || timeEntries.length > 0;
+  const showSkeleton = useDelayedLoading(isLoading, hasData);
 
   const activeEmployees = employees.filter((emp) => emp.status === "active");
   const firedEmployees = employees.filter((emp) => emp.status === "fired");
