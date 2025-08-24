@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { useObjectStore } from "@/lib/object-store";
 import { Position, Object as ObjectType } from "@shared/schema";
-import { Users, Building2, Clock, Briefcase, DollarSign, CalendarDays, Plus, Edit, Trash2 } from "lucide-react";
+import { Users, Building2, Clock, Briefcase, CalendarDays, Plus, Edit, Trash2 } from "lucide-react";
 
 export default function Staffing() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -121,7 +121,7 @@ export default function Staffing() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Оклад</CardTitle>
-            <DollarSign className="h-4 w-4 text-green-600" />
+            <Briefcase className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">
@@ -155,7 +155,6 @@ export default function Staffing() {
                           {getWorkScheduleBadge(position.workSchedule)}
                         </div>
                         <div className="flex items-center gap-2">
-                          <DollarSign className="h-4 w-4 text-muted-foreground" />
                           <span className="text-sm font-medium text-foreground">
                             {formatSalary(position)}
                           </span>
