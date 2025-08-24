@@ -1,122 +1,202 @@
 import { useState } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { useAuth } from "@/lib/auth";
+import { useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Clock } from "lucide-react";
+import { User, Lock, Building, Users, Shield, Eye } from "lucide-react";
+import { apiRequest } from "@/lib/queryClient";
+import { useAuth } from "@/hooks/useAuth";
 
-const loginSchema = z.object({
-  username: z.string().min(1, "Введите логин"),
-  password: z.string().min(1, "Введите пароль"),
-});
+interface DemoAccount {
+  username: string;
+  password: string;
+  role: string;
+  name: string;
+  description: string;
+  icon: React.ReactNode;
+  variant: "default" | "secondary" | "destructive" | "outline";
+}
 
-type LoginFormData = z.infer<typeof loginSchema>;
+const demoAccounts: DemoAccount[] = [
+  {
+    username: "admin",
+    password: "admin", 
+    role: "hr_economist",
+    name: "Экономист по з/п",
+    description: "Администратор системы, управление пользователями, бюджетами, отчетами",
+    icon: <Shield className="h-4 w-4" />,
+    variant: "default"
+  },
+  {
+    username: "director",
+    password: "director",
+    role: "director", 
+    name: "Директор",
+    description: "Просмотр дашборда по всем объектам, финансовая аналитика",
+    icon: <Eye className="h-4 w-4" />,
+    variant: "destructive"
+  },
+  {
+    username: "manager1",
+    password: "manager1",
+    role: "object_manager",
+    name: "Менеджер объекта",
+    description: "Управление сотрудниками, табелем, штатным расписанием объекта",
+    icon: <Building className="h-4 w-4" />,
+    variant: "secondary"
+  },
+  {
+    username: "groupmgr", 
+    password: "groupmgr",
+    role: "group_manager",
+    name: "Руководитель группы",
+    description: "Контроль объектов подчиненных менеджеров",
+    icon: <Users className="h-4 w-4" />,
+    variant: "outline"
+  }
+];
 
 export default function Login() {
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
 
-  const form = useForm<LoginFormData>({
-    resolver: zodResolver(loginSchema),
-    defaultValues: {
-      username: "",
-      password: "",
+  const loginMutation = useMutation({
+    mutationFn: async (credentials: { username: string; password: string }) => {
+      return await apiRequest("/api/auth/login", {
+        method: "POST",
+        body: JSON.stringify(credentials),
+        headers: { "Content-Type": "application/json" }
+      });
     },
+    onSuccess: (data) => {
+      login(data.user, data.token);
+      window.location.href = "/";
+    },
+    onError: (error: Error) => {
+      setError(error.message || "Ошибка входа в систему");
+    }
   });
 
-  const onSubmit = async (data: LoginFormData) => {
-    setIsLoading(true);
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
     setError("");
-    
-    try {
-      const success = await login(data.username, data.password);
-      if (!success) {
-        setError("Неверный логин или пароль");
-      }
-    } catch (err) {
-      setError("Ошибка подключения к серверу");
-    } finally {
-      setIsLoading(false);
-    }
+    loginMutation.mutate({ username, password });
+  };
+
+  const handleDemoLogin = (account: DemoAccount) => {
+    setUsername(account.username);
+    setPassword(account.password);
+    setError("");
+    loginMutation.mutate({ username: account.username, password: account.password });
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <div className="flex justify-center mb-4">
-            <Clock className="h-12 w-12 text-green-600" />
-          </div>
-          <CardTitle className="text-2xl">Система управления рабочим временем</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+      <div className="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-2 gap-8">
+        
+        {/* Login Form */}
+        <Card className="w-full max-w-md mx-auto">
+          <CardHeader className="text-center">
+            <CardTitle className="text-2xl font-bold flex items-center justify-center gap-2">
+              <User className="h-6 w-6 text-blue-600" />
+              Вход в УРВС
+            </CardTitle>
+            <p className="text-muted-foreground">Система управления рабочим временем</p>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="username">Логин</Label>
+                <Input
+                  id="username"
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  placeholder="Введите логин"
+                  required
+                  data-testid="input-username"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="password">Пароль</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Введите пароль"
+                  required
+                  data-testid="input-password"
+                />
+              </div>
+
               {error && (
-                <Alert variant="destructive" data-testid="login-error">
+                <Alert variant="destructive">
                   <AlertDescription>{error}</AlertDescription>
                 </Alert>
               )}
 
-              <FormField
-                control={form.control}
-                name="username"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Логин</FormLabel>
-                    <FormControl>
-                      <Input 
-                        placeholder="Введите логин" 
-                        data-testid="input-username"
-                        {...field} 
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Пароль</FormLabel>
-                    <FormControl>
-                      <Input 
-                        type="password"
-                        placeholder="Введите пароль" 
-                        data-testid="input-password"
-                        {...field} 
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
               <Button 
                 type="submit" 
-                className="w-full bg-green-600 hover:bg-green-700" 
-                disabled={isLoading}
+                className="w-full" 
+                disabled={loginMutation.isPending}
                 data-testid="button-login"
               >
-                {isLoading ? "Вход..." : "Войти"}
+                {loginMutation.isPending ? (
+                  <div className="flex items-center gap-2">
+                    <Lock className="h-4 w-4 animate-spin" />
+                    Вход...
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <Lock className="h-4 w-4" />
+                    Войти
+                  </div>
+                )}
               </Button>
             </form>
-          </Form>
+          </CardContent>
+        </Card>
 
-          <div className="mt-6 text-center text-sm text-muted-foreground">
-            <p>Демо-доступ: admin / admin</p>
-          </div>
-        </CardContent>
-      </Card>
+        {/* Demo Accounts */}
+        <Card className="w-full">
+          <CardHeader>
+            <CardTitle className="text-xl">Демо-аккаунты</CardTitle>
+            <p className="text-muted-foreground">Выберите роль для быстрого входа</p>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {demoAccounts.map((account) => (
+              <div 
+                key={account.username}
+                className="p-4 border rounded-lg hover:bg-muted/50 transition-colors cursor-pointer"
+                onClick={() => handleDemoLogin(account)}
+                data-testid={`demo-${account.role}`}
+              >
+                <div className="flex items-start justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    {account.icon}
+                    <h3 className="font-medium">{account.name}</h3>
+                  </div>
+                  <Badge variant={account.variant} className="text-xs">
+                    {account.role}
+                  </Badge>
+                </div>
+                <p className="text-sm text-muted-foreground mb-2">{account.description}</p>
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <span>Логин: <code className="bg-muted px-1 rounded">{account.username}</code></span>
+                  <span>Пароль: <code className="bg-muted px-1 rounded">{account.password}</code></span>
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

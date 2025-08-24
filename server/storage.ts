@@ -84,21 +84,72 @@ export class MemStorage implements IStorage {
   }
 
   private initializeDemoData() {
-    // Create admin user
-    const adminUser: User = {
-      id: randomUUID(),
-      username: "admin",
-      password: "admin", // In production, this should be hashed
-      role: "manager",
-      name: "Иванов И.И."
-    };
-    this.users.set(adminUser.id, adminUser);
+    // Create demo users for different roles
+    const demoUsers = [
+      {
+        username: "admin",
+        password: "admin",
+        role: "hr_economist" as const,
+        name: "Экономист по з/п"
+      },
+      {
+        username: "director",
+        password: "director", 
+        role: "director" as const,
+        name: "Директор компании"
+      },
+      {
+        username: "manager1",
+        password: "manager1",
+        role: "object_manager" as const, 
+        name: "Менеджер объекта 1"
+      },
+      {
+        username: "groupmgr",
+        password: "groupmgr",
+        role: "group_manager" as const,
+        name: "Руководитель группы"
+      }
+    ];
 
-    // Create sample objects first
+    const userIds: Record<string, string> = {};
+    demoUsers.forEach(userData => {
+      const user: User = {
+        id: randomUUID(),
+        ...userData,
+        isActive: true,
+        createdAt: new Date()
+      };
+      this.users.set(user.id, user);
+      userIds[userData.username] = user.id;
+    });
+
+    // Create sample objects with manager assignments
     const sampleObjects = [
-      { name: "Торговый центр Мега", code: "TC_MEGA", description: "Основной торговый объект", isActive: true },
-      { name: "Магазин на Ленинском", code: "MAG_LENIN", description: "Филиал на проспекте Ленинском", isActive: true },
-      { name: "Склад центральный", code: "SKLAD_01", description: "Центральный склад компании", isActive: false },
+      { 
+        name: "Торговый центр Мега", 
+        code: "TC_MEGA", 
+        description: "Основной торговый объект", 
+        managerId: userIds.manager1,
+        groupManagerId: userIds.groupmgr,
+        isActive: true 
+      },
+      { 
+        name: "Магазин на Ленинском", 
+        code: "MAG_LENIN", 
+        description: "Филиал на проспекте Ленинском", 
+        managerId: userIds.manager1,
+        groupManagerId: userIds.groupmgr,
+        isActive: true 
+      },
+      { 
+        name: "Склад центральный", 
+        code: "SKLAD_01", 
+        description: "Центральный склад компании", 
+        managerId: null,
+        groupManagerId: null,
+        isActive: false 
+      },
     ];
 
     const objectIds: string[] = [];
@@ -491,6 +542,6 @@ export class MemStorage implements IStorage {
   }
 }
 
-import { DatabaseStorage } from "./database-storage";
-
-export const storage = new DatabaseStorage();
+// Temporarily use MemStorage with role support until database migration is complete
+// export const storage = new DatabaseStorage();
+export const storage = new MemStorage();

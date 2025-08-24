@@ -6,7 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/ui/theme-provider";
 import { Header } from "@/components/layout/header";
 import { Navigation } from "@/components/layout/navigation";
-import { useAuth } from "@/lib/auth";
+import { useAuth } from "@/hooks/useAuth";
 
 import Login from "@/pages/login";
 import Dashboard from "@/pages/dashboard";
@@ -14,6 +14,7 @@ import Employees from "@/pages/employees";
 import Staffing from "@/pages/staffing";
 import Timesheet from "@/pages/timesheet";
 import Reports from "@/pages/reports";
+import Analytics from "@/pages/analytics";
 import Settings from "@/pages/settings";
 import NotFound from "@/pages/not-found";
 
@@ -29,6 +30,7 @@ function AuthenticatedApp() {
           <Route path="/staffing" component={Staffing} />
           <Route path="/timesheet" component={Timesheet} />
           <Route path="/reports" component={Reports} />
+          <Route path="/analytics" component={Analytics} />
           <Route path="/settings" component={Settings} />
           <Route component={NotFound} />
         </Switch>

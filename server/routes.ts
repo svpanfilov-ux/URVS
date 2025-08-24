@@ -20,15 +20,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Неверный логин или пароль" });
       }
 
+      if (!user.isActive) {
+        return res.status(401).json({ message: "Пользователь заблокирован" });
+      }
+
       res.json({ 
         user: { 
           id: user.id, 
           username: user.username, 
           name: user.name, 
-          role: user.role 
-        } 
+          role: user.role,
+          isActive: user.isActive
+        },
+        token: `session-${user.id}`
       });
     } catch (error) {
+      console.error("Login error:", error);
       res.status(400).json({ message: "Ошибка валидации данных" });
     }
   });
