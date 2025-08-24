@@ -8,7 +8,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
 import { format } from "date-fns";
 import { ru } from "date-fns/locale";
-import { Eye, Send, FileText } from "lucide-react";
+import { Eye, Send, FileText, AlertTriangle } from "lucide-react";
 
 export default function Reports() {
   const { toast } = useToast();
@@ -164,6 +164,19 @@ export default function Reports() {
     );
   }
 
+  // Object Manager specific actions
+  const handleGenerateReport = () => {
+    toast({ title: "Отчёт сформирован", description: "Отчёт готов к предпросмотру и отправке" });
+  };
+
+  const handleSendForApproval = () => {
+    toast({ title: "Отчёт отправлен на утверждение", description: "Отчёт передан руководству для проверки" });
+  };
+
+  const handleRequestChanges = () => {
+    toast({ title: "Запрошены изменения", description: "Отправлен запрос на корректировку данных", variant: "destructive" });
+  };
+
   // HR Economist, Object Manager, Group Manager view - full reports functionality
   return (
     <div className="space-y-6">
@@ -171,6 +184,52 @@ export default function Reports() {
         <h2 className="text-2xl font-semibold text-foreground mb-2">Формирование отчётов</h2>
         <p className="text-muted-foreground">Создание и отправка отчётов за отчётные периоды</p>
       </div>
+
+      {/* Object Manager Action Buttons */}
+      {user?.role === "object_manager" && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Управление отчётами</CardTitle>
+            <p className="text-sm text-muted-foreground">Действия с отчётами объекта</p>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <Button 
+                onClick={handleGenerateReport}
+                className="bg-blue-600 hover:bg-blue-700"
+                data-testid="generate-report-button"
+              >
+                <FileText className="h-4 w-4 mr-2" />
+                Сформировать отчёт
+              </Button>
+              <Button 
+                variant="outline"
+                onClick={() => handlePreviewReport("current")}
+                data-testid="preview-report-button"
+              >
+                <Eye className="h-4 w-4 mr-2" />
+                Предпросмотр
+              </Button>
+              <Button 
+                onClick={handleSendForApproval}
+                className="bg-green-600 hover:bg-green-700"
+                data-testid="send-approval-button"
+              >
+                <Send className="h-4 w-4 mr-2" />
+                На утверждение
+              </Button>
+              <Button 
+                variant="destructive"
+                onClick={handleRequestChanges}
+                data-testid="request-changes-button"
+              >
+                <AlertTriangle className="h-4 w-4 mr-2" />
+                Запросить изменения
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Report Periods - only for non-directors */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
