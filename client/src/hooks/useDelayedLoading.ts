@@ -1,33 +1,22 @@
 import { useState, useEffect } from 'react';
 
-export function useDelayedLoading(isLoading: boolean, hasData: boolean = false, delay: number = 10) {
+export function useDelayedLoading(isLoading: boolean, hasData: boolean = false) {
   const [showSkeleton, setShowSkeleton] = useState(false);
 
   useEffect(() => {
-    let timeoutId: NodeJS.Timeout;
-
-    if (isLoading) {
-      // Если у нас уже есть данные (кэшированные), не показываем скелет совсем
-      if (hasData) {
-        setShowSkeleton(false);
-        return;
-      }
-      
-      // Показываем скелет только для первоначальной загрузки после задержки
-      timeoutId = setTimeout(() => {
-        setShowSkeleton(true);
-      }, delay);
+    // Никогда не показываем скелет если у нас уже есть кэшированные данные
+    if (hasData) {
+      setShowSkeleton(false);
+      return;
+    }
+    
+    // Показываем скелет мгновенно только для первоначальной загрузки без данных
+    if (isLoading && !hasData) {
+      setShowSkeleton(true);
     } else {
-      // Сразу скрываем скелет когда загрузка завершена
       setShowSkeleton(false);
     }
-
-    return () => {
-      if (timeoutId) {
-        clearTimeout(timeoutId);
-      }
-    };
-  }, [isLoading, hasData, delay]);
+  }, [isLoading, hasData]);
 
   return showSkeleton;
 }

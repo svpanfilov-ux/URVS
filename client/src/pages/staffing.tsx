@@ -35,7 +35,7 @@ export default function Staffing() {
 
   const isLoading = objectsLoading || positionsLoading;
   const hasData = objects.length > 0 || positions.length > 0;
-  const showSkeleton = useDelayedLoading(isLoading, hasData, 10);
+  const showSkeleton = useDelayedLoading(isLoading, hasData);
 
   const selectedObject = objects.find(obj => obj.id === selectedObjectId);
 

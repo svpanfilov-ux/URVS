@@ -22,7 +22,7 @@ export default function Reports() {
   });
 
   const hasData = Array.isArray(reports) && reports.length > 0;
-  const showSkeleton = useDelayedLoading(isLoading, hasData, 10);
+  const showSkeleton = useDelayedLoading(isLoading, hasData);
 
   const sendReportMutation = useMutation({
     mutationFn: async (reportId: string) => {
