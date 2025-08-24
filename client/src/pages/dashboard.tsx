@@ -28,12 +28,26 @@ export default function Dashboard() {
   const activeEmployees = employees.filter((emp) => emp.status === "active");
   const firedEmployees = employees.filter((emp) => emp.status === "fired");
   const contractEmployees = employees.filter((emp) => emp.status === "not_registered");
+  
   const totalEmployees = employees.length;
-
+  
   // Calculate real deadline days
   const today = new Date();
   const currentMonth = today.getMonth();
   const currentYear = today.getFullYear();
+  
+  // Calculate hired employees this month (for demo purposes, we'll consider those with recent creation)
+  const hiredThisMonth = employees.filter((emp) => {
+    if (!emp.createdAt) return false;
+    const createdDate = new Date(emp.createdAt);
+    return createdDate.getMonth() === currentMonth && createdDate.getFullYear() === currentYear;
+  });
+
+  // Calculate percentages
+  const activePercentage = totalEmployees > 0 ? Math.round((activeEmployees.length / totalEmployees) * 100) : 0;
+  const firedPercentage = totalEmployees > 0 ? Math.round((firedEmployees.length / totalEmployees) * 100) : 0;
+  const contractPercentage = totalEmployees > 0 ? Math.round((contractEmployees.length / totalEmployees) * 100) : 0;
+  const hiredPercentage = totalEmployees > 0 ? Math.round((hiredThisMonth.length / totalEmployees) * 100) : 0;
   
   // Авансовый период: до 15 числа
   const advanceDeadline = new Date(currentYear, currentMonth, 15);
@@ -94,7 +108,7 @@ export default function Dashboard() {
               </div>
             </div>
             <p className="text-xs text-muted-foreground mt-2">
-              Всего: <span data-testid="total-employees">{totalEmployees}</span>
+              Всего: <span data-testid="total-employees">{totalEmployees}</span> • {activePercentage}%
             </p>
           </CardContent>
         </Card>
@@ -113,7 +127,7 @@ export default function Dashboard() {
               </div>
             </div>
             <p className="text-xs text-muted-foreground mt-2">
-              За период
+              За период • {firedPercentage}%
             </p>
           </CardContent>
         </Card>
@@ -132,7 +146,26 @@ export default function Dashboard() {
               </div>
             </div>
             <p className="text-xs text-muted-foreground mt-2">
-              Подработчики
+              Подработчики • {contractPercentage}%
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Принято в месяце</p>
+                <p className="text-2xl font-semibold text-blue-600 mt-1" data-testid="hired-employees">
+                  {hiredThisMonth.length}
+                </p>
+              </div>
+              <div className="bg-blue-100 dark:bg-blue-900/20 p-3 rounded-full">
+                <Users className="text-blue-600 h-6 w-6" />
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">
+              Новые сотрудники • {hiredPercentage}%
             </p>
           </CardContent>
         </Card>
