@@ -1,228 +1,53 @@
 # Overview
 
-This is a comprehensive workforce management system (УРВС - Управление Рабочим Временем Сотрудников) with multi-role architecture designed for enterprise-level payroll and time tracking. The application supports four distinct user roles with role-based access control and data segregation.
-
-## Recent Changes (August 24, 2025)
-
-### Authentication System with Role-Based Access Control (COMPLETED - Final Version)
-- **Login Interface**: Interactive login page with visual role cards for quick authentication
-  - Clean two-column layout: login form + demo accounts showcase
-  - Click-to-login demo cards with role descriptions and credentials
-  - Real-time form validation and error handling
-- **Four User Roles Fully Implemented**:
-  - **HR Economist** (admin/admin): Full system access - employees, staffing, timesheet, reports, settings, analytics
-  - **Director** (director/director): Executive view - dashboard, analytics with budget comparisons, reports (read-only)
-  - **Object Manager** (manager1/manager1): Single object focus - employees, staffing, timesheet for assigned object
-  - **Group Manager** (groupmgr/groupmgr): Multi-object supervision - same as object manager but for multiple objects
-- **Role-Based Navigation**: Dynamic menu filtering based on user permissions
-  - Navigation items filtered by role arrays
-  - Different sections visible to different roles
-  - Consistent UI with role-specific access control
-- **Analytics Dashboard**: Financial metrics page for executives (director + HR economist)
-  - Object performance comparison with budget vs actual
-  - Employee efficiency tracking across all objects
-  - Real-time calculations from demo data
-- **Authentication State Management**: 
-  - Zustand store with localStorage persistence
-  - Role-based permission helpers (canManageObjects, canViewAllObjects)
-  - Automatic logout and redirect functionality
-- **Technical Implementation**:
-  - Role-based data filtering in backend storage
-  - Object assignments (managerId, groupManagerId) in database schema
-  - Session-based authentication with role validation
-
-### Multi-Role Architecture Implementation (Previous)
-- **Four User Roles Defined**:
-  1. **Object Manager** (object_manager): Current interface - manages single object's employees, timesheet, positions
-  2. **HR Economist** (hr_economist): Admin role - creates/manages objects, reviews reports, loads 1C data, manages budgets
-  3. **Director** (director): Executive dashboard - sees all objects with budget vs actual comparisons, financial metrics
-  4. **Group Manager** (group_manager): Supervises multiple managers and their objects
-
-- **Database Migration to PostgreSQL**:
-  - Moved from in-memory storage to Neon PostgreSQL database
-  - Enhanced schema with role-based access control
-  - Added tables: budgets, additionalPayments, timesheetStatus
-  - Updated users table with role field and user management capabilities
-
-- **Role-Based Data Access**:
-  - Object Manager: Limited to assigned object only
-  - Group Manager: Access to objects under supervision
-  - HR Economist: Full system access + administrative functions
-  - Director: Read-only access to all objects with financial focus
-
-- **Enhanced Object Management**:
-  - Objects now have managerId (object manager) and groupManagerId assignments
-  - Reports include approval workflow (draft → sent → approved/rejected)
-  - Timesheet status tracking (open → submitted → approved → locked)
-
-### Position Management Module (Latest)
-- **Staffing Schedule Implementation**: Added positionsCount field showing number of positions per shift
-- **Tabular Display**: Converted position cards to structured table format with columns: Position, Schedule, Payment Type, Rate, Count, Actions
-- **Enhanced Statistics**: Four summary cards including total positions count across all shifts
-- **Removed Dollar Symbols**: Clean ruble-only display throughout interface
-
-## Previous Changes (August 21, 2025)
-
-### Completed Timesheet Module Features
-- **Full CRUD Operations**: Create, read, update, and delete time entries with proper validation
-- **Smart Cell Management**: 
-  - Future dates are automatically locked (non-editable)
-  - Terminated employees show "У" status from termination date (inclusive)
-  - Cells are clickable for editing with real-time validation
-- **Data Entry Validation**: 
-  - Accepts 1-24 hours or status letters (О, Б, НН, У)
-  - Automatic uppercase conversion for status letters
-  - Default quality score of 3 for numeric entries
-- **Employee Status-Based Input Restrictions** (New):
-  - Active employees: Can input all statuses (hours, О, Б, НН, У)
-  - Contract workers (подработчики): Restricted to hours (1-24) and termination status "У" only
-  - Blocked statuses О, Б, НН for contract workers section
-- **Bulk Operations**:
-  - "Clear All" button removes all data from current reporting period (except future dates)
-  - Right-click context menu with streamlined operations
-- **Context Menu Functions** (Updated):
-  - Clear entire employee row
-  - Fill by employee schedule (replaces multiple schedule options)
-  - Quality score adjustment for numeric values (1-4 scale)
-- **Employee Work Schedules**:
-  - Added work schedule field in employee management (5/2, 2/2, 3/3, 6/1, вахта)
-  - Context menu "Fill by employee schedule" uses assigned schedule automatically
-- **Autofill Feature**:
-  - Button extends patterns from previous month (July 2025)
-  - Analyzes last working entries and applies employee's work schedule
-  - Respects locked cells and termination dates
-  - Fills only empty cells according to schedule pattern
-- **Section-based Layout** (Updated):
-  - Divided timesheet into "Active Employees" and "Contract Work" sections
-  - Color-coded headers (blue for active, orange for contract work)
-  - Intermediate subtotals for each employee category
-  - Overall total row at bottom with comprehensive summary
-  - Fired employees remain in their original sections with "(уволен)" label and opacity styling
-- **Planned Hours Column**:
-  - Added "План час" column showing expected working hours
-  - Calculates 8 hours × working days (Monday-Friday, excluding weekends)
-  - Accounts for termination dates for fired employees
-  - Shows planned hours totals for each section and overall
-- **Fired Employee Management** (Updated):
-  - Fired employees appear in all periods up to and including termination month
-  - Stay in original subsections (Active/Contract) instead of separate bottom section
-  - Visual indicators: "(уволен)" label and semi-transparent styling
-  - "У" status automatically fills from termination date inclusive
-- **Color-coded Interface**: Quality-based cell coloring and status-specific highlighting
-- **Responsive Design**: Compact single-screen layout without scrollbars
-
-### Technical Improvements (Latest)
-- **Input Validation Logic**: Added isPartTime parameter to TimesheetCell component for status restrictions
-- **Employee Filtering**: Updated visibility logic to show fired employees in historical periods
-- **Termination Date Logic**: Fixed "У" status to start from termination date (not day after)
-- **Dashboard Calculations**: Replaced mock data with real-time calculations based on current date and timesheet data
-- **Employee Management Simplification**: Removed section grouping in employees page for unified single-table view
-
-### Dashboard Module (Updated August 21, 2025)
-- **Real-time Deadline Calculations**:
-  - Advance deadline: Days until 15th of current month
-  - Salary deadline: Days until 5th of next month
-  - Proper Russian pluralization for day counts (день/дня/дней)
-- **Dynamic Statistics**:
-  - Monthly norm hours: Calculated as workdays × 8 hours (excluding weekends)
-  - Actual hours: Sum from current month's timesheet entries
-  - Deviation: Real difference between actual and planned hours
-- **Data Integration**: Dashboard pulls live data from employees and time entries APIs
-
-### Employee Management Module (Updated August 21, 2025)
-- **Unified Interface**: Single table displaying all employees without status-based grouping
-- **Clean Layout**: Removed "Total hours by group" summaries that were using mock data
-- **Preserved Functionality**:
-  - Status filtering via dropdown (All, Active, Contract, Fired)
-  - Search by employee name
-  - Status badges with color coding
-  - Edit/delete actions per employee row
-  - CSV import/export capabilities
+This project is a comprehensive workforce management system (УРВС - Управление Рабочим Временем Сотрудников) designed for enterprise-level payroll and time tracking, featuring a multi-role architecture. It supports four distinct user roles with role-based access control and data segregation, aiming to streamline workforce management, improve payroll accuracy, and provide robust analytics for financial oversight. The system's vision is to offer an integrated solution for managing employees, staffing, timesheets, and reports efficiently across various organizational levels.
 
 # User Preferences
 
 Preferred communication style: Simple, everyday language.
 
-# System Status (August 24, 2025 Backup)
-
-## Working Demo Accounts
-- admin/admin - HR Economist (full access)
-- director/director - Director (analytics + reports)
-- manager1/manager1 - Object Manager (single object)
-- groupmgr/groupmgr - Group Manager (multiple objects)
-
-## Verified Functionality (Final Backup - August 24, 2025)
-- ✅ Login system with role switching and visual demo cards
-- ✅ Role-based navigation menus (different for each role)
-- ✅ Object filtering by user permissions
-- ✅ Analytics dashboard with financial metrics for executives
-- ✅ Complete modules: Dashboard, Employees, Staffing, Timesheet, Reports
-- ✅ Role-specific UI permissions (read-only staffing for object managers)
-- ✅ Enhanced timesheet with quality score color legend
-- ✅ Memory storage with comprehensive demo data
-- ✅ Responsive UI with shadcn/ui components and dark theme support
-
-## Role-Specific UI Features (Latest Updates)
-- **Object Manager**: Reordered navigation (Staffing → Employees), restored Reports access, read-only staffing view
-- **HR Economist**: Full editing capabilities across all modules
-- **Director**: Analytics-focused dashboard with executive metrics
-- **Group Manager**: Multi-object supervision capabilities
-
-## Technical Enhancements (Latest)
-- Interactive timesheet quality score legend with matching colors
-- Role-based button visibility and editing restrictions
-- Comprehensive demo data across all user roles and objects
-
 # System Architecture
 
 ## Frontend Architecture
-- **Framework**: React 18 with TypeScript using Vite for build tooling
-- **Routing**: Wouter for lightweight client-side routing
-- **State Management**: Zustand for authentication state with persistence
-- **Data Fetching**: TanStack Query (React Query) for server state management
+- **Framework**: React 18 with TypeScript using Vite
+- **Routing**: Wouter for client-side routing
+- **State Management**: Zustand for authentication state with persistence, TanStack Query for server state
 - **UI Components**: shadcn/ui components built on Radix UI primitives
-- **Styling**: Tailwind CSS with CSS variables for theming
+- **Styling**: Tailwind CSS with CSS variables
 - **Form Handling**: React Hook Form with Zod validation
 
 ## Backend Architecture
-- **Runtime**: Node.js with Express.js framework
+- **Runtime**: Node.js with Express.js
 - **Language**: TypeScript with ES modules
 - **API Design**: RESTful API with JSON responses
-- **Data Storage**: In-memory storage implementation with interface for future database integration
-- **Authentication**: Session-based authentication without external dependencies
+- **Data Storage**: In-memory storage with an interface for future database integration
 
 ## Database Layer
 - **ORM**: Drizzle ORM configured for PostgreSQL
 - **Database**: Neon Database (serverless PostgreSQL)
-- **Schema Management**: Drizzle Kit for migrations and schema management
+- **Schema Management**: Drizzle Kit for migrations
 - **Connection**: Connection pooling via @neondatabase/serverless
 
 ## Key Design Patterns
 - **Shared Schema**: Common TypeScript types and validation schemas between client and server
-- **Repository Pattern**: Storage interface abstraction allowing for different implementations
-- **Component Composition**: Reusable UI components with consistent styling
-- **Form Validation**: Zod schemas for both client and server-side validation
+- **Repository Pattern**: Storage interface abstraction
+- **Component Composition**: Reusable UI components
+- **Form Validation**: Zod schemas for client and server-side validation
 - **Error Boundaries**: Comprehensive error handling with toast notifications
 
-## Data Models
-- **Users**: Authentication and role-based access (admin/admin login)
-- **Employees**: Staff records with status tracking (active, not_registered, fired) and termination dates
-- **Time Entries**: Daily work hours with quality ratings (1-4 scale) and day types (work, О, Б, НН, У)
-- **Reports**: Generated payroll reports with advance/salary distinction
-- **Settings**: Application configuration storage
-
-## Key Business Logic
-- **Timesheet Rules**:
-  - Current reporting period: August 2025 (editable)
-  - Future dates automatically locked for data entry
-  - Terminated employees show automatic "У" status after termination
-  - Quality scoring: 1=Poor, 2=Satisfactory, 3=Good (default), 4=Excellent
-  - Status codes: О=Vacation, Б=Sick leave, НН=Non-working day, У=Terminated
-- **Bulk Fill Operations**:
-  - All operations use source cell value (not hardcoded values)
-  - 5/2 schedule fills weekdays only
-  - 2/2 schedule alternates 2 work days / 2 rest days
-  - Fill to end applies from selected date to month end
+## Core Features and System Design
+- **Multi-Role Architecture**: Supports HR Economist, Director, Object Manager, and Group Manager roles with distinct access levels and views.
+- **Role-Based Access Control**: Dynamic navigation filtering and data segregation based on user permissions (e.g., Object Manager limited to assigned object, HR Economist with full system access).
+- **Authentication System**: Interactive login interface with visual role cards, real-time validation, and Zustand for state management with localStorage persistence.
+- **Timesheet Module**: Full CRUD operations for time entries, smart cell management (future date locking, terminated employee status), data entry validation (hours or status letters), bulk operations, and context menus. Includes section-based layout (Active Employees, Contract Work) with subtotals, planned hours calculation, and management of fired employees with visual indicators.
+- **Employee Management Module**: Unified table view for all employees, status filtering, search, status badges, and CSV import/export.
+- **Staffing Schedule Module**: Tabular display of positions per shift, enhanced statistics, and position management.
+- **Analytics Dashboard**: Financial metrics for executives (Director, HR Economist) including object performance, budget vs. actual comparisons, employee efficiency tracking, real-time deadline calculations, and dynamic statistics (monthly norm hours, actual hours, deviation). Features detailed employee statistics (Active, Fired, Contract Workers, Newly Hired) with percentages.
+- **UI/UX Decisions**: Responsive design, dark theme support, color-coded interfaces (e.g., timesheet cell quality, employee status badges), and consistent styling using shadcn/ui.
+- **Data Models**: Users (authentication, roles), Employees (records, status, termination dates), Time Entries (daily hours, quality ratings, day types), Reports (payroll reports), Settings (application configuration).
+- **Business Logic Highlights**:
+    - Timesheet rules: current reporting period editable, future dates locked, automatic "У" status post-termination, quality scoring (1-4), status codes (О, Б, НН, У).
+    - Bulk fill operations based on source cell values and employee work schedules (e.g., 5/2, 2/2).
 
 # External Dependencies
 
@@ -231,14 +56,14 @@ Preferred communication style: Simple, everyday language.
 - **Drizzle ORM**: Type-safe database queries and migrations
 
 ## UI Libraries
-- **Radix UI**: Headless component primitives for accessibility
+- **Radix UI**: Headless component primitives
 - **Tailwind CSS**: Utility-first CSS framework
 - **Lucide React**: Icon library
 
 ## Development Tools
 - **Vite**: Frontend build tool and development server
 - **TypeScript**: Static type checking
-- **ESBuild**: Server-side bundling for production
+- **ESBuild**: Server-side bundling
 
 ## Utility Libraries
 - **TanStack Query**: Server state synchronization
