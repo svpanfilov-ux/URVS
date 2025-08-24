@@ -846,11 +846,33 @@ export default function Timesheet() {
             <span>Уволен</span>
           </div>
         </div>
-        <div className="mt-3 text-xs text-muted-foreground">
-          • Числа от 1 до 24 — количество рабочих часов<br/>
-          • Правый клик на числовой ячейке — изменение оценки качества работы<br/>
-          • Цвета ячеек: красный (оценка 1), оранжевый (2), жёлтый (3), зелёный (4)<br/>
-          • Клик на ячейку для редактирования, Enter для сохранения, Escape для отмены
+        <div className="mt-4 space-y-3">
+          <div>
+            <h4 className="font-medium text-sm mb-2">Оценки качества работы:</h4>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+              <div className="flex items-center space-x-2">
+                <div className="w-6 h-6 bg-red-500 border rounded text-center text-white text-xs font-bold flex items-center justify-center">1</div>
+                <span className="text-xs">Плохо</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <div className="w-6 h-6 bg-orange-500 border rounded text-center text-white text-xs font-bold flex items-center justify-center">2</div>
+                <span className="text-xs">Удовлетв.</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <div className="w-6 h-6 bg-yellow-500 border rounded text-center text-white text-xs font-bold flex items-center justify-center">3</div>
+                <span className="text-xs">Хорошо</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <div className="w-6 h-6 bg-green-500 border rounded text-center text-white text-xs font-bold flex items-center justify-center">4</div>
+                <span className="text-xs">Отлично</span>
+              </div>
+            </div>
+          </div>
+          <div className="text-xs text-muted-foreground">
+            • Числа от 1 до 24 — количество рабочих часов<br/>
+            • Правый клик на числовой ячейке — изменение оценки качества работы<br/>
+            • Клик на ячейку для редактирования, Enter для сохранения, Escape для отмены
+          </div>
         </div>
       </div>
     </div>
