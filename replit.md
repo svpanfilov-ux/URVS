@@ -4,7 +4,18 @@ This is a comprehensive workforce management system (УРВС - Управлен
 
 ## Recent Changes (August 24, 2025)
 
-### Multi-Role Architecture Implementation (New)
+### Authentication System with Role-Based Access Control (Latest)
+- **Login Interface**: Created interactive login page with demo account cards for quick role switching
+- **Four User Roles Implemented**:
+  - **HR Economist** (admin/admin): Full system access, user management, settings, reports approval
+  - **Director** (director/director): Executive analytics dashboard with budget vs actual comparisons across all objects
+  - **Object Manager** (manager1/manager1): Limited to assigned object - employees, timesheet, staffing management
+  - **Group Manager** (groupmgr/groupmgr): Supervises multiple object managers and their objects
+- **Role-Based Navigation**: Dynamic menu system showing different sections based on user role
+- **Analytics Dashboard**: New analytics page for director and HR economist with financial metrics
+- **Authentication State Management**: Zustand-based auth with persistent login sessions
+
+### Multi-Role Architecture Implementation (Previous)
 - **Four User Roles Defined**:
   1. **Object Manager** (object_manager): Current interface - manages single object's employees, timesheet, positions
   2. **HR Economist** (hr_economist): Admin role - creates/manages objects, reviews reports, loads 1C data, manages budgets
