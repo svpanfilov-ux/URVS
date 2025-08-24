@@ -9,6 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useTheme } from "@/components/ui/theme-provider";
+import { SettingsSkeleton } from "@/components/skeletons/settings-skeleton";
 import { Download, Upload, Trash2, RefreshCw, CheckCircle } from "lucide-react";
 import { Setting } from "@shared/schema";
 
@@ -17,7 +18,7 @@ export default function Settings() {
   const { theme, setTheme } = useTheme();
   const queryClient = useQueryClient();
 
-  const { data: settings = [] } = useQuery<Setting[]>({
+  const { data: settings = [], isLoading } = useQuery<Setting[]>({
     queryKey: ["/api/settings"],
   });
 
@@ -64,6 +65,10 @@ export default function Settings() {
     // TODO: Implement data synchronization
     toast({ title: "Синхронизация данных выполнена" });
   };
+
+  if (isLoading) {
+    return <SettingsSkeleton />;
+  }
 
   return (
     <div className="space-y-6">

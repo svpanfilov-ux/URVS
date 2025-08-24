@@ -11,19 +11,22 @@ import {
   Calendar
 } from "lucide-react";
 import { useLocation } from "wouter";
+import { DashboardSkeleton } from "@/components/skeletons/dashboard-skeleton";
 import { Employee, TimeEntry } from "@shared/schema";
 import { format, getDaysInMonth, differenceInDays, parseISO } from "date-fns";
 
 export default function Dashboard() {
   const [, navigate] = useLocation();
 
-  const { data: employees = [] } = useQuery<Employee[]>({
+  const { data: employees = [], isLoading: employeesLoading } = useQuery<Employee[]>({
     queryKey: ["/api/employees"],
   });
 
-  const { data: timeEntries = [] } = useQuery<TimeEntry[]>({
+  const { data: timeEntries = [], isLoading: timeEntriesLoading } = useQuery<TimeEntry[]>({
     queryKey: ["/api/time-entries", format(new Date(), "yyyy-MM")],
   });
+
+  const isLoading = employeesLoading || timeEntriesLoading;
 
   const activeEmployees = employees.filter((emp) => emp.status === "active");
   const firedEmployees = employees.filter((emp) => emp.status === "fired");
@@ -80,6 +83,10 @@ export default function Dashboard() {
     if ([2, 3, 4].includes(days % 10) && ![12, 13, 14].includes(days % 100)) return "дня";
     return "дней";
   };
+
+  if (isLoading) {
+    return <DashboardSkeleton />;
+  }
 
   return (
     <div className="space-y-6">

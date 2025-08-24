@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { StaffingSkeleton } from "@/components/skeletons/staffing-skeleton";
 import { useObjectStore } from "@/lib/object-store";
 import { useAuth } from "@/hooks/useAuth";
 import { Position, Object as ObjectType } from "@shared/schema";
@@ -19,17 +20,19 @@ export default function Staffing() {
   // Check if user can edit staffing (only HR economist can edit)
   const canEdit = user?.role === "hr_economist";
 
-  const { data: objects = [] } = useQuery<ObjectType[]>({
+  const { data: objects = [], isLoading: objectsLoading } = useQuery<ObjectType[]>({
     queryKey: ["/api/objects"],
   });
 
-  const { data: positions = [] } = useQuery<Position[]>({
+  const { data: positions = [], isLoading: positionsLoading } = useQuery<Position[]>({
     queryKey: ["/api/positions", selectedObjectId],
     queryFn: () => {
       const url = selectedObjectId ? `/api/positions?objectId=${selectedObjectId}` : '/api/positions';
       return fetch(url).then(res => res.json());
     },
   });
+
+  const isLoading = objectsLoading || positionsLoading;
 
   const selectedObject = objects.find(obj => obj.id === selectedObjectId);
 
@@ -58,6 +61,10 @@ export default function Staffing() {
     }
     return "Не указано";
   };
+
+  if (isLoading) {
+    return <StaffingSkeleton />;
+  }
 
   if (!selectedObjectId) {
     return (

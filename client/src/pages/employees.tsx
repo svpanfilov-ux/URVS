@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { EmployeeModal } from "@/components/modals/employee-modal";
+import { EmployeesSkeleton } from "@/components/skeletons/employees-skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { Employee } from "@shared/schema";
@@ -191,6 +192,10 @@ export default function Employees() {
       </CardContent>
     </Card>
   );
+
+  if (isLoading) {
+    return <EmployeesSkeleton />;
+  }
 
   return (
     <div className="space-y-6">
