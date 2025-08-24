@@ -143,6 +143,12 @@ export default function Timesheet() {
     }
   };
 
+  // Check if employee has insufficient hours (less than planned)
+  const hasInsufficientHours = (employee: Employee, actualHours: number) => {
+    const plannedHours = calculatePlannedHours(employee);
+    return actualHours < plannedHours;
+  };
+
   const handleCellChange = (employeeId: string, date: string, value: string | number, qualityScore?: number) => {
     const existingEntry = getTimeEntry(employeeId, date);
     
@@ -663,14 +669,25 @@ export default function Timesheet() {
                 const totalHours = timeEntries
                   .filter((entry: TimeEntry) => entry.employeeId === employee.id && typeof entry.hours === 'number')
                   .reduce((sum: number, entry: TimeEntry) => sum + (entry.hours || 0), 0);
+                
+                const insufficientHours = hasInsufficientHours(employee, totalHours);
 
                 return (
-                  <tr key={employee.id} className={`hover:bg-muted/30 ${employee.status === "fired" ? "opacity-75" : ""}`}>
+                  <tr 
+                    key={employee.id} 
+                    className={`hover:bg-muted/30 ${employee.status === "fired" ? "opacity-75" : ""} ${
+                      insufficientHours ? "border-b-2 border-red-500" : ""
+                    }`}
+                  >
                     <td className="sticky left-0 z-10 bg-background border-r p-1 font-medium">
-                      <div className="text-[10px] truncate max-w-28" title={employee.name}>
+                      <div className={`text-[10px] truncate max-w-28 ${
+                        insufficientHours ? "text-red-600 font-bold" : ""
+                      }`} title={employee.name}>
                         {employee.name}{employee.status === "fired" ? " (уволен)" : ""}
                       </div>
-                      <div className="text-[8px] text-muted-foreground truncate">
+                      <div className={`text-[8px] truncate ${
+                        insufficientHours ? "text-red-500 font-semibold" : "text-muted-foreground"
+                      }`}>
                         {employee.position}
                       </div>
                     </td>
@@ -740,14 +757,25 @@ export default function Timesheet() {
                 const totalHours = timeEntries
                   .filter((entry: TimeEntry) => entry.employeeId === employee.id && typeof entry.hours === 'number')
                   .reduce((sum: number, entry: TimeEntry) => sum + (entry.hours || 0), 0);
+                
+                const insufficientHours = hasInsufficientHours(employee, totalHours);
 
                 return (
-                  <tr key={employee.id} className={`hover:bg-muted/30 ${employee.status === "fired" ? "opacity-75" : ""}`}>
+                  <tr 
+                    key={employee.id} 
+                    className={`hover:bg-muted/30 ${employee.status === "fired" ? "opacity-75" : ""} ${
+                      insufficientHours ? "border-b-2 border-red-500" : ""
+                    }`}
+                  >
                     <td className="sticky left-0 z-10 bg-background border-r p-1 font-medium">
-                      <div className="text-[10px] truncate max-w-28" title={employee.name}>
+                      <div className={`text-[10px] truncate max-w-28 ${
+                        insufficientHours ? "text-red-600 font-bold" : ""
+                      }`} title={employee.name}>
                         {employee.name}{employee.status === "fired" ? " (уволен)" : ""}
                       </div>
-                      <div className="text-[8px] text-muted-foreground truncate">
+                      <div className={`text-[8px] truncate ${
+                        insufficientHours ? "text-red-500 font-semibold" : "text-muted-foreground"
+                      }`}>
                         {employee.position}
                       </div>
                     </td>
