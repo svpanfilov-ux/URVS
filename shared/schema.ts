@@ -7,8 +7,10 @@ export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
-  role: text("role").notNull().default("manager"),
   name: text("name").notNull(),
+  role: text("role", { enum: ["object_manager", "hr_economist", "director", "group_manager"] }).notNull().default("object_manager"),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow(),
 });
 
 export const employees = pgTable("employees", {
@@ -35,11 +37,52 @@ export const timeEntries = pgTable("time_entries", {
 
 export const reports = pgTable("reports", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  objectId: varchar("object_id").notNull().references(() => objects.id),
   period: text("period").notNull(), // YYYY-MM format
   type: text("type").notNull(), // advance, salary
-  status: text("status").notNull().default("draft"), // draft, sent
+  status: text("status").notNull().default("draft"), // draft, sent, approved, rejected
+  submittedBy: varchar("submitted_by").references(() => users.id), // менеджер объекта
+  reviewedBy: varchar("reviewed_by").references(() => users.id), // экономист
   data: text("data").notNull(), // JSON stringified report data
+  comments: text("comments"), // комментарии экономиста
   sentAt: timestamp("sent_at"),
+  reviewedAt: timestamp("reviewed_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Бюджеты ФОТ по объектам
+export const budgets = pgTable("budgets", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  objectId: varchar("object_id").notNull().references(() => objects.id),
+  year: integer("year").notNull(),
+  month: integer("month").notNull(), // 1-12
+  budgetAmount: integer("budget_amount").notNull(), // бюджет ФОТ в копейках
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Дополнительные выплаты (больничные, отпускные, премии и др.)
+export const additionalPayments = pgTable("additional_payments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  employeeId: varchar("employee_id").notNull().references(() => employees.id),
+  objectId: varchar("object_id").notNull().references(() => objects.id),
+  period: text("period").notNull(), // YYYY-MM format
+  type: text("type", { enum: ["sick_leave", "vacation", "bonus", "other"] }).notNull(),
+  amount: integer("amount").notNull(), // сумма в копейках
+  description: text("description"),
+  createdBy: varchar("created_by").references(() => users.id), // кто создал запись
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Статусы табелей для контроля доступа
+export const timesheetStatus = pgTable("timesheet_status", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  objectId: varchar("object_id").notNull().references(() => objects.id),
+  period: text("period").notNull(), // YYYY-MM format
+  status: text("status").notNull().default("open"), // open, submitted, approved, locked
+  submittedBy: varchar("submitted_by").references(() => users.id),
+  approvedBy: varchar("approved_by").references(() => users.id),
+  submittedAt: timestamp("submitted_at"),
+  approvedAt: timestamp("approved_at"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -55,6 +98,8 @@ export const objects = pgTable("objects", {
   name: text("name").notNull(),
   code: text("code").notNull().unique(),
   description: text("description"),
+  managerId: varchar("manager_id").references(() => users.id), // менеджер объекта
+  groupManagerId: varchar("group_manager_id").references(() => users.id), // руководитель группы
   isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at").defaultNow(),
 });
@@ -75,6 +120,9 @@ export const positions = pgTable("positions", {
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
+  createdAt: true,
+}).extend({
+  role: z.enum(["object_manager", "hr_economist", "director", "group_manager"]).default("object_manager"),
 });
 
 export const insertEmployeeSchema = createInsertSchema(employees).omit({
@@ -117,6 +165,25 @@ export const insertPositionSchema = createInsertSchema(positions).omit({
   positionsCount: z.number().positive().default(1),
 });
 
+export const insertBudgetSchema = createInsertSchema(budgets).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertAdditionalPaymentSchema = createInsertSchema(additionalPayments).omit({
+  id: true,
+  createdAt: true,
+}).extend({
+  type: z.enum(["sick_leave", "vacation", "bonus", "other"]),
+});
+
+export const insertTimesheetStatusSchema = createInsertSchema(timesheetStatus).omit({
+  id: true,
+  createdAt: true,
+}).extend({
+  status: z.enum(["open", "submitted", "approved", "locked"]).default("open"),
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -138,6 +205,15 @@ export type InsertObject = z.infer<typeof insertObjectSchema>;
 
 export type Position = typeof positions.$inferSelect;
 export type InsertPosition = z.infer<typeof insertPositionSchema>;
+
+export type Budget = typeof budgets.$inferSelect;
+export type InsertBudget = z.infer<typeof insertBudgetSchema>;
+
+export type AdditionalPayment = typeof additionalPayments.$inferSelect;
+export type InsertAdditionalPayment = z.infer<typeof insertAdditionalPaymentSchema>;
+
+export type TimesheetStatus = typeof timesheetStatus.$inferSelect;
+export type InsertTimesheetStatus = z.infer<typeof insertTimesheetStatusSchema>;
 
 // Additional types for frontend
 export interface DashboardStats {

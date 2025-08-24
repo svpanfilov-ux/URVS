@@ -1,8 +1,40 @@
 # Overview
 
-This is a work time management system for tracking employee hours, generating reports, and managing payroll. The application is built as a full-stack web application with a React frontend and Express.js backend, designed for managers to track employee attendance, work hours, and quality ratings across different time periods.
+This is a comprehensive workforce management system (УРВС - Управление Рабочим Временем Сотрудников) with multi-role architecture designed for enterprise-level payroll and time tracking. The application supports four distinct user roles with role-based access control and data segregation.
 
-## Recent Changes (August 21, 2025)
+## Recent Changes (August 24, 2025)
+
+### Multi-Role Architecture Implementation (New)
+- **Four User Roles Defined**:
+  1. **Object Manager** (object_manager): Current interface - manages single object's employees, timesheet, positions
+  2. **HR Economist** (hr_economist): Admin role - creates/manages objects, reviews reports, loads 1C data, manages budgets
+  3. **Director** (director): Executive dashboard - sees all objects with budget vs actual comparisons, financial metrics
+  4. **Group Manager** (group_manager): Supervises multiple managers and their objects
+
+- **Database Migration to PostgreSQL**:
+  - Moved from in-memory storage to Neon PostgreSQL database
+  - Enhanced schema with role-based access control
+  - Added tables: budgets, additionalPayments, timesheetStatus
+  - Updated users table with role field and user management capabilities
+
+- **Role-Based Data Access**:
+  - Object Manager: Limited to assigned object only
+  - Group Manager: Access to objects under supervision
+  - HR Economist: Full system access + administrative functions
+  - Director: Read-only access to all objects with financial focus
+
+- **Enhanced Object Management**:
+  - Objects now have managerId (object manager) and groupManagerId assignments
+  - Reports include approval workflow (draft → sent → approved/rejected)
+  - Timesheet status tracking (open → submitted → approved → locked)
+
+### Position Management Module (Latest)
+- **Staffing Schedule Implementation**: Added positionsCount field showing number of positions per shift
+- **Tabular Display**: Converted position cards to structured table format with columns: Position, Schedule, Payment Type, Rate, Count, Actions
+- **Enhanced Statistics**: Four summary cards including total positions count across all shifts
+- **Removed Dollar Symbols**: Clean ruble-only display throughout interface
+
+## Previous Changes (August 21, 2025)
 
 ### Completed Timesheet Module Features
 - **Full CRUD Operations**: Create, read, update, and delete time entries with proper validation
