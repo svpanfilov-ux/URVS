@@ -851,19 +851,19 @@ export default function Timesheet() {
             <h4 className="font-medium text-sm mb-2">Оценки качества работы:</h4>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
               <div className="flex items-center space-x-2">
-                <div className="w-6 h-6 bg-red-500 border rounded text-center text-white text-xs font-bold flex items-center justify-center">1</div>
+                <div className="w-6 h-6 bg-red-100 dark:bg-red-900/30 border rounded text-center text-red-800 dark:text-red-200 text-xs font-bold flex items-center justify-center">1</div>
                 <span className="text-xs">Плохо</span>
               </div>
               <div className="flex items-center space-x-2">
-                <div className="w-6 h-6 bg-orange-500 border rounded text-center text-white text-xs font-bold flex items-center justify-center">2</div>
+                <div className="w-6 h-6 bg-orange-100 dark:bg-orange-900/30 border rounded text-center text-orange-800 dark:text-orange-200 text-xs font-bold flex items-center justify-center">2</div>
                 <span className="text-xs">Удовлетв.</span>
               </div>
               <div className="flex items-center space-x-2">
-                <div className="w-6 h-6 bg-yellow-500 border rounded text-center text-white text-xs font-bold flex items-center justify-center">3</div>
+                <div className="w-6 h-6 bg-yellow-100 dark:bg-yellow-900/30 border rounded text-center text-yellow-800 dark:text-yellow-200 text-xs font-bold flex items-center justify-center">3</div>
                 <span className="text-xs">Хорошо</span>
               </div>
               <div className="flex items-center space-x-2">
-                <div className="w-6 h-6 bg-green-500 border rounded text-center text-white text-xs font-bold flex items-center justify-center">4</div>
+                <div className="w-6 h-6 bg-green-100 dark:bg-green-900/30 border rounded text-center text-green-800 dark:text-green-200 text-xs font-bold flex items-center justify-center">4</div>
                 <span className="text-xs">Отлично</span>
               </div>
             </div>
