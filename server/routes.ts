@@ -3,11 +3,48 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertEmployeeSchema, insertTimeEntrySchema, insertReportSchema, insertSettingSchema, insertObjectSchema, insertPositionSchema } from "@shared/schema";
 import { z } from "zod";
+import multer from "multer";
+import { randomUUID } from "crypto";
 
 const loginSchema = z.object({
   username: z.string(),
   password: z.string(),
 });
+
+// Multer configuration for file upload
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB
+  },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype === 'text/csv' || file.originalname.endsWith('.csv')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only CSV files are allowed'));
+    }
+  },
+});
+
+// CSV parsing function
+function parseCSV(csvContent: string): { objects: string; manager: string; groupManager: string }[] {
+  const lines = csvContent.trim().split('\n');
+  const data: { objects: string; manager: string; groupManager: string }[] = [];
+  
+  // Skip header line and process data lines
+  for (let i = 1; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line) continue;
+    
+    const [objects, manager, groupManager] = line.split(';').map(s => s.trim());
+    
+    if (objects && manager && groupManager) {
+      data.push({ objects, manager, groupManager });
+    }
+  }
+  
+  return data;
+}
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Authentication
@@ -395,6 +432,101 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error deleting position:", error);
       res.status(500).json({ message: "Ошибка при удалении должности" });
+    }
+  });
+
+  // Import objects from CSV
+  app.post("/api/import/objects", upload.single('file'), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "Файл не найден" });
+      }
+
+      const csvContent = req.file.buffer.toString('utf-8');
+      const parsedData = parseCSV(csvContent);
+
+      if (parsedData.length === 0) {
+        return res.status(400).json({ message: "CSV файл пуст или имеет неверный формат" });
+      }
+
+      let objectsCount = 0;
+      let usersCount = 0;
+
+      for (const row of parsedData) {
+        // Function to create username from name
+        const createUsername = (name: string): string => {
+          return name.toLowerCase()
+            .replace(/\s+/g, '_')
+            .replace(/[^a-zA-Z0-9_а-яё]/gi, '')
+            .substring(0, 20);
+        };
+
+        // Find or create manager
+        let manager = await storage.getUserByUsername(createUsername(row.manager));
+        if (!manager) {
+          manager = await storage.createUser({
+            username: createUsername(row.manager),
+            password: "temp123", // Default password, should be changed on first login
+            name: row.manager,
+            role: "object_manager",
+            isActive: true
+          });
+          usersCount++;
+        }
+
+        // Find or create group manager
+        let groupManager = await storage.getUserByUsername(createUsername(row.groupManager));
+        if (!groupManager) {
+          groupManager = await storage.createUser({
+            username: createUsername(row.groupManager),
+            password: "temp123", // Default password, should be changed on first login
+            name: row.groupManager,
+            role: "group_manager",
+            isActive: true
+          });
+          usersCount++;
+        }
+
+        // Create or update object
+        const objectCode = row.objects.toUpperCase().replace(/\s+/g, '_').substring(0, 20);
+        
+        try {
+          await storage.createObject({
+            name: row.objects,
+            code: objectCode,
+            description: `Импортировано из CSV`,
+            managerId: manager.id,
+            groupManagerId: groupManager.id,
+            isActive: true
+          });
+          objectsCount++;
+        } catch (error) {
+          // Object might already exist, try to update it
+          const existingObjects = await storage.getObjects();
+          const existingObject = existingObjects.find(obj => obj.name === row.objects || obj.code === objectCode);
+          
+          if (existingObject) {
+            await storage.updateObject(existingObject.id, {
+              managerId: manager.id,
+              groupManagerId: groupManager.id,
+              isActive: true
+            });
+          }
+        }
+      }
+
+      res.json({
+        message: "Импорт завершён успешно",
+        objectsCount,
+        usersCount
+      });
+
+    } catch (error) {
+      console.error("Import error:", error);
+      res.status(500).json({ 
+        message: "Ошибка при импорте", 
+        error: error instanceof Error ? error.message : "Неизвестная ошибка" 
+      });
     }
   });
 

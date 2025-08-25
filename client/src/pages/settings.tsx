@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,13 +9,17 @@ import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useTheme } from "@/components/ui/theme-provider";
-import { Download, Upload, Trash2, RefreshCw, CheckCircle } from "lucide-react";
+import { Download, Upload, Trash2, RefreshCw, CheckCircle, FileSpreadsheet } from "lucide-react";
 import { Setting } from "@shared/schema";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function Settings() {
   const { toast } = useToast();
   const { theme, setTheme } = useTheme();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isImporting, setIsImporting] = useState(false);
 
   const { data: settings = [] } = useQuery<Setting[]>({
     queryKey: ["/api/settings"],
@@ -63,6 +67,63 @@ export default function Settings() {
   const handleSyncData = () => {
     // TODO: Implement data synchronization
     toast({ title: "Синхронизация данных выполнена" });
+  };
+
+  const handleImportObjects = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (file.type !== 'text/csv' && !file.name.endsWith('.csv')) {
+      toast({ 
+        title: "Ошибка", 
+        description: "Пожалуйста, выберите CSV файл",
+        variant: "destructive" 
+      });
+      return;
+    }
+
+    setIsImporting(true);
+    
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch('/api/import/objects', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.message || 'Ошибка импорта');
+      }
+
+      toast({ 
+        title: "Импорт завершён", 
+        description: `Импортировано объектов: ${result.objectsCount}, пользователей: ${result.usersCount}` 
+      });
+
+      // Обновляем кэш объектов
+      queryClient.invalidateQueries({ queryKey: ["/api/objects"] });
+      
+    } catch (error) {
+      console.error('Import error:', error);
+      toast({ 
+        title: "Ошибка импорта", 
+        description: error instanceof Error ? error.message : "Неизвестная ошибка",
+        variant: "destructive" 
+      });
+    } finally {
+      setIsImporting(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const handleImportClick = () => {
+    fileInputRef.current?.click();
   };
 
   return (
@@ -262,6 +323,52 @@ export default function Settings() {
         </Card>
 
         {/* About */}
+        {/* Object Import for HR Economist */}
+        {user?.role === "hr_economist" && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Управление справочниками</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <Label htmlFor="import-objects">Импорт справочника объектов</Label>
+                <p className="text-xs text-muted-foreground mb-3">
+                  Загрузите CSV файл с объектами и их менеджерами (формат: Объект;Менеджер объекта;Руководитель Группы Менеджеров)
+                </p>
+                <div className="space-y-2">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".csv"
+                    onChange={handleImportObjects}
+                    className="hidden"
+                    data-testid="file-input-objects"
+                  />
+                  <Button 
+                    onClick={handleImportClick}
+                    disabled={isImporting}
+                    className="w-full"
+                    data-testid="button-import-objects"
+                  >
+                    <FileSpreadsheet className="h-4 w-4 mr-2" />
+                    {isImporting ? "Импорт..." : "Выбрать CSV файл"}
+                  </Button>
+                </div>
+              </div>
+              
+              <div className="pt-4 border-t border-border">
+                <h4 className="text-sm font-medium mb-2">Формат CSV файла:</h4>
+                <div className="text-xs text-muted-foreground space-y-1">
+                  <p>• Первая строка - заголовки: Объект;Менеджер объекта;Руководитель Группы Менеджеров</p>
+                  <p>• Кодировка: UTF-8</p>
+                  <p>• Разделитель: точка с запятой (;)</p>
+                  <p>• Пользователи будут созданы автоматически с соответствующими ролями</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         <Card>
           <CardHeader>
             <CardTitle>О приложении</CardTitle>
