@@ -20,6 +20,7 @@ export default function Settings() {
   const { user } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const employeeFileInputRef = useRef<HTMLInputElement>(null);
+  const staffingFileInputRef = useRef<HTMLInputElement>(null);
   const [isImporting, setIsImporting] = useState(false);
 
   const { data: settings = [] } = useQuery<Setting[]>({
@@ -131,6 +132,10 @@ export default function Settings() {
     employeeFileInputRef.current?.click();
   };
 
+  const handleStaffingImportClick = () => {
+    staffingFileInputRef.current?.click();
+  };
+
   const handleImportEmployees = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -180,6 +185,59 @@ export default function Settings() {
       setIsImporting(false);
       if (employeeFileInputRef.current) {
         employeeFileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const handleImportStaffing = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (file.type !== 'text/csv' && !file.name.endsWith('.csv')) {
+      toast({ 
+        title: "Ошибка", 
+        description: "Пожалуйста, выберите CSV файл",
+        variant: "destructive" 
+      });
+      return;
+    }
+
+    setIsImporting(true);
+    
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch('/api/import/staffing', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.message || 'Ошибка импорта');
+      }
+
+      toast({ 
+        title: "Импорт завершён", 
+        description: `Создано должностей: ${result.createdPositions}, обработано строк: ${result.processedRows}` 
+      });
+
+      // Обновляем кэш должностей
+      queryClient.invalidateQueries({ queryKey: ["/api/positions"] });
+      
+    } catch (error) {
+      console.error('Import error:', error);
+      toast({ 
+        title: "Ошибка импорта", 
+        description: error instanceof Error ? error.message : "Неизвестная ошибка",
+        variant: "destructive" 
+      });
+    } finally {
+      setIsImporting(false);
+      if (staffingFileInputRef.current) {
+        staffingFileInputRef.current.value = '';
       }
     }
   };
@@ -415,6 +473,33 @@ export default function Settings() {
               </div>
 
               <div className="pt-4 border-t border-border">
+                <Label htmlFor="import-staffing">Импорт штатного расписания</Label>
+                <p className="text-xs text-muted-foreground mb-3">
+                  Загрузите CSV файл с должностями и окладами (формат: Объект;Должность;График работы;Оклад (тариф))
+                </p>
+                <div className="space-y-2">
+                  <input
+                    ref={staffingFileInputRef}
+                    type="file"
+                    accept=".csv"
+                    onChange={handleImportStaffing}
+                    className="hidden"
+                    data-testid="file-input-staffing"
+                  />
+                  <Button 
+                    onClick={handleStaffingImportClick}
+                    disabled={isImporting}
+                    className="w-full"
+                    variant="outline"
+                    data-testid="button-import-staffing"
+                  >
+                    <FileSpreadsheet className="h-4 w-4 mr-2" />
+                    {isImporting ? "Импорт штатного расписания..." : "Импорт штатного расписания"}
+                  </Button>
+                </div>
+              </div>
+
+              <div className="pt-4 border-t border-border">
                 <Label htmlFor="import-employees">Импорт справочника сотрудников</Label>
                 <p className="text-xs text-muted-foreground mb-3">
                   Загрузите CSV файл со сотрудниками (формат: Объект;Сотрудник;Должность;статус)
@@ -448,6 +533,11 @@ export default function Settings() {
                     <p className="font-medium">Объекты:</p>
                     <p>• Заголовки: Объект;Менеджер объекта;Руководитель Группы Менеджеров</p>
                     <p>• Пользователи создаются автоматически</p>
+                  </div>
+                  <div>
+                    <p className="font-medium">Штатное расписание:</p>
+                    <p>• Заголовки: Объект;Должность;График работы;Оклад (тариф)</p>
+                    <p>• Оклады до 1000 считаются почасовыми ставками</p>
                   </div>
                   <div>
                     <p className="font-medium">Сотрудники:</p>

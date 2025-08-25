@@ -550,6 +550,132 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Import staffing schedule from CSV
+  app.post("/api/import/staffing", upload.single("file"), async (req, res) => {
+    if (!req.file) {
+      return res.status(400).json({ message: "Файл не найден" });
+    }
+
+    try {
+      const fileContent = req.file.buffer.toString('utf-8');
+      const lines = fileContent.split('\n').filter(line => line.trim());
+      
+      if (lines.length === 0) {
+        return res.status(400).json({ message: "Файл пуст" });
+      }
+
+      // Remove BOM if present and parse header
+      const header = lines[0].replace(/^\uFEFF/, '').split(';');
+      const dataLines = lines.slice(1);
+
+      // Expected columns: Объект;Должность;График работы;Оклад (тариф)
+      const expectedColumns = ['Объект', 'Должность', 'График работы', 'Оклад (тариф)'];
+      if (header.length < 4) {
+        return res.status(400).json({ 
+          message: `Неправильный формат файла. Ожидается: ${expectedColumns.join(';')}` 
+        });
+      }
+
+      const objects = await storage.getObjects();
+      const objectMap = new Map();
+      objects.forEach(obj => {
+        objectMap.set(obj.name, obj.id);
+      });
+
+      const staffingData = new Map(); // objectId -> position -> { workSchedule, salary, count }
+      let processedRows = 0;
+      let skippedRows = 0;
+
+      for (const line of dataLines) {
+        const columns = line.split(';');
+        if (columns.length < 4) continue;
+
+        const [objectName, position, workSchedule, salaryStr] = columns.map(col => col.trim());
+        
+        if (!objectName || !position || !salaryStr) continue;
+
+        const objectId = objectMap.get(objectName);
+        if (!objectId) {
+          console.warn(`Object not found: ${objectName}`);
+          skippedRows++;
+          continue;
+        }
+
+        // Parse salary (remove spaces and convert to number)
+        const salary = parseInt(salaryStr.replace(/\s/g, '').replace(',', ''));
+        if (isNaN(salary)) {
+          console.warn(`Invalid salary: ${salaryStr}`);
+          skippedRows++;
+          continue;
+        }
+
+        // Group positions by object and title
+        if (!staffingData.has(objectId)) {
+          staffingData.set(objectId, new Map());
+        }
+        
+        const objectPositions = staffingData.get(objectId);
+        const positionKey = `${position}_${workSchedule}`;
+        
+        if (!objectPositions.has(positionKey)) {
+          objectPositions.set(positionKey, {
+            title: position,
+            workSchedule: workSchedule || "Основной",
+            salary: salary,
+            count: 0
+          });
+        }
+        
+        objectPositions.get(positionKey).count++;
+        processedRows++;
+      }
+
+      // Create positions in database
+      let createdPositions = 0;
+      for (const [objectId, positions] of staffingData) {
+        for (const [, positionData] of positions) {
+          try {
+            // Determine payment type based on salary value
+            let paymentType = "salary";
+            let monthlySalary = positionData.salary;
+            let hourlyRate = null;
+
+            // If salary is less than 1000, assume it's hourly rate
+            if (positionData.salary < 1000) {
+              paymentType = "hourly";
+              hourlyRate = Math.round(positionData.salary * 100); // Convert to kopecks
+              monthlySalary = null;
+            }
+
+            await storage.createPosition({
+              objectId,
+              title: positionData.title,
+              workSchedule: positionData.workSchedule,
+              paymentType,
+              hourlyRate,
+              monthlySalary,
+              positionsCount: positionData.count,
+              isActive: true
+            });
+            createdPositions++;
+          } catch (error) {
+            console.error("Error creating position:", error);
+          }
+        }
+      }
+
+      res.json({ 
+        message: "Импорт штатного расписания завершён успешно",
+        processedRows,
+        skippedRows,
+        createdPositions
+      });
+    } catch (error) {
+      console.error("Error importing staffing:", error);
+      res.status(500).json({ message: "Ошибка при импорте файла" });
+    }
+  });
+
   // Import employees from CSV
   app.post("/api/import/employees", upload.single('file'), async (req, res) => {
     try {
