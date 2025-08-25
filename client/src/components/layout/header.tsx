@@ -31,18 +31,23 @@ export function Header() {
           <div className="flex items-center space-x-4">
             {/* Object Selector - только если пользователь может работать с объектами */}
             {(user?.role === "object_manager" || user?.role === "group_manager" || user?.role === "hr_economist") && (
-              <Select value={selectedObjectId || ""} onValueChange={(value) => setSelectedObjectId(value || null)}>
-                <SelectTrigger className="w-64" data-testid="object-selector">
-                  <SelectValue placeholder="Выберите объект" />
-                </SelectTrigger>
-                <SelectContent className="w-64">
-                  {activeObjects.map((object) => (
-                    <SelectItem key={object.id} value={object.id}>
-                      {object.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="flex items-center space-x-2">
+                <span className="text-sm font-medium text-foreground whitespace-nowrap">
+                  Выбор объекта:
+                </span>
+                <Select value={selectedObjectId || ""} onValueChange={(value) => setSelectedObjectId(value || null)}>
+                  <SelectTrigger className="w-64" data-testid="object-selector">
+                    <SelectValue placeholder="Выберите объект" />
+                  </SelectTrigger>
+                  <SelectContent className="w-64">
+                    {activeObjects.map((object) => (
+                      <SelectItem key={object.id} value={object.id}>
+                        {object.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             )}
             
             <ThemeToggle />
