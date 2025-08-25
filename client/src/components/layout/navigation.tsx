@@ -8,7 +8,7 @@ import {
   Eye,
   BarChart3
 } from "lucide-react";
-import { useLocation } from "wouter";
+import { useLocation, Link } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 
@@ -47,12 +47,12 @@ export function Navigation() {
             const isActive = location === item.path;
             
             return (
-              <a
+              <Link
                 key={item.id}
                 href={item.path}
                 data-testid={`nav-${item.id}`}
                 className={cn(
-                  "py-4 px-1 border-b-2 font-medium text-sm transition-colors flex items-center",
+                  "py-4 px-1 border-b-2 font-medium text-sm flex items-center cursor-pointer",
                   isActive
                     ? "border-green-600 text-green-600"
                     : "border-transparent text-muted-foreground hover:text-foreground hover:border-gray-300"
@@ -60,7 +60,7 @@ export function Navigation() {
               >
                 <Icon className="h-4 w-4 mr-2" />
                 {item.label}
-              </a>
+              </Link>
             );
           })}
         </div>
