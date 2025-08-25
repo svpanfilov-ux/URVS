@@ -18,6 +18,8 @@ interface ObjectAnalytics {
   budgetPlanned: number;
   budgetActual: number;
   budgetStatus: "under" | "over" | "on_track";
+  ftePlanned: number;
+  fteActual: number;
 }
 
 export default function Analytics() {
@@ -49,6 +51,10 @@ export default function Analytics() {
       if (budgetActual < budgetPlanned * 0.95) budgetStatus = "under";
       if (budgetActual > budgetPlanned * 1.05) budgetStatus = "over";
 
+      // Расчет FTE (Full Time Equivalent)
+      const ftePlanned = Number((plannedHours / 160).toFixed(1)); // 160 часов = 1 FTE
+      const fteActual = Number((actualHours / 160).toFixed(1));
+
       return {
         id: object.id,
         name: object.name,
@@ -60,7 +66,9 @@ export default function Analytics() {
         efficiency,
         budgetPlanned,
         budgetActual,
-        budgetStatus
+        budgetStatus,
+        ftePlanned,
+        fteActual
       };
     });
   };
@@ -195,7 +203,7 @@ export default function Analytics() {
                   </Badge>
                 </div>
 
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
                   <div>
                     <p className="text-muted-foreground">Сотрудники</p>
                     <p className="font-medium">{obj.activeEmployees} активных</p>
@@ -207,6 +215,10 @@ export default function Analytics() {
                   <div>
                     <p className="text-muted-foreground">Часы план/факт</p>
                     <p className="font-medium">{obj.actualHours}/{obj.plannedHours}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">FTE план/факт</p>
+                    <p className="font-medium">{obj.fteActual}/{obj.ftePlanned}</p>
                   </div>
                   <div>
                     <p className="text-muted-foreground">Бюджет</p>
