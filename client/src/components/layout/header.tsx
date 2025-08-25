@@ -33,7 +33,7 @@ export function Header() {
             {(user?.role === "object_manager" || user?.role === "group_manager" || user?.role === "hr_economist") && (
               <Select value={selectedObjectId || ""} onValueChange={(value) => setSelectedObjectId(value || null)}>
                 <SelectTrigger className="w-64" data-testid="object-selector">
-                  <SelectValue placeholder="Выберите объект" />
+                  <SelectValue placeholder="выберите объект перед" />
                 </SelectTrigger>
                 <SelectContent className="w-64">
                   {activeObjects.map((object) => (
