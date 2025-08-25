@@ -455,6 +455,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Normalize work schedule from detailed description to basic enum value
+  function normalizeWorkSchedule(schedule: string): string {
+    if (!schedule) return "5/2";
+    
+    const normalized = schedule.toLowerCase().trim();
+    
+    if (normalized.includes("5/2")) return "5/2";
+    if (normalized.includes("2/2")) return "2/2";
+    if (normalized.includes("3/3")) return "3/3";
+    if (normalized.includes("6/1")) return "6/1";
+    if (normalized.includes("вахта") || normalized.includes("7/0")) return "вахта";
+    
+    // Default fallback
+    return "5/2";
+  }
+
   // Get work schedules for object
   app.get("/api/objects/:objectId/work-schedules", async (req, res) => {
     try {
@@ -469,17 +485,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const schedules = new Set<string>();
       
-      // Add schedules from existing employees
+      // Add normalized schedules from existing employees
       objectEmployees.forEach(emp => {
         if (emp.workSchedule) {
-          schedules.add(emp.workSchedule);
+          schedules.add(normalizeWorkSchedule(emp.workSchedule));
         }
       });
       
-      // Add schedules from existing positions
+      // Add normalized schedules from existing positions
       objectPositions.forEach(pos => {
         if (pos.workSchedule) {
-          schedules.add(pos.workSchedule);
+          schedules.add(normalizeWorkSchedule(pos.workSchedule));
         }
       });
       
@@ -695,7 +711,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             await storage.createPosition({
               objectId,
               title: positionData.title,
-              workSchedule: positionData.workSchedule,
+              workSchedule: normalizeWorkSchedule(positionData.workSchedule),
               paymentType,
               hourlyRate,
               monthlySalary,
