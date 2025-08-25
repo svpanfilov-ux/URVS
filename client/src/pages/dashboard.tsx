@@ -8,17 +8,31 @@ import {
   Users, 
   Plus, 
   FileText,
-  Calendar
+  Calendar,
+  Briefcase,
+  UserX
 } from "lucide-react";
 import { useLocation } from "wouter";
-import { Employee, TimeEntry } from "@shared/schema";
+import { Employee, TimeEntry, Position } from "@shared/schema";
 import { format, getDaysInMonth, differenceInDays, parseISO } from "date-fns";
+import { useObjectStore } from "@/lib/object-store";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function Dashboard() {
   const [, navigate] = useLocation();
+  const { selectedObjectId } = useObjectStore();
+  const { user } = useAuth();
 
   const { data: employees = [] } = useQuery<Employee[]>({
     queryKey: ["/api/employees"],
+  });
+
+  const { data: positions = [] } = useQuery<Position[]>({
+    queryKey: ["/api/positions", selectedObjectId],
+    queryFn: () => {
+      const url = selectedObjectId ? `/api/positions?objectId=${selectedObjectId}` : '/api/positions';
+      return fetch(url).then(res => res.json());
+    },
   });
 
   const { data: timeEntries = [] } = useQuery<TimeEntry[]>({
@@ -48,6 +62,13 @@ export default function Dashboard() {
   const firedPercentage = totalEmployees > 0 ? Math.round((firedEmployees.length / totalEmployees) * 100) : 0;
   const contractPercentage = totalEmployees > 0 ? Math.round((contractEmployees.length / totalEmployees) * 100) : 0;
   const hiredPercentage = totalEmployees > 0 ? Math.round((hiredThisMonth.length / totalEmployees) * 100) : 0;
+
+  // Calculate staffing and vacancies (for object manager role)
+  const totalStaffPositions = positions.reduce((sum, pos) => sum + (pos.positionsCount || 0), 0);
+  const objectEmployees = selectedObjectId 
+    ? employees.filter(emp => emp.objectId === selectedObjectId && emp.status === "active")
+    : [];
+  const openVacancies = Math.max(0, totalStaffPositions - objectEmployees.length);
   
   // Авансовый период: до 15 числа
   const advanceDeadline = new Date(currentYear, currentMonth, 15);
@@ -169,6 +190,49 @@ export default function Dashboard() {
             </p>
           </CardContent>
         </Card>
+
+        {/* Object Manager specific cards */}
+        {user?.role === "object_manager" && selectedObjectId && (
+          <>
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Штатных должностей</p>
+                    <p className="text-2xl font-semibold text-purple-600 mt-1" data-testid="staff-positions">
+                      {totalStaffPositions}
+                    </p>
+                  </div>
+                  <div className="bg-purple-100 dark:bg-purple-900/20 p-3 rounded-full">
+                    <Briefcase className="text-purple-600 h-6 w-6" />
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Всего позиций на объекте
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Незакрытых вакансий</p>
+                    <p className="text-2xl font-semibold text-red-600 mt-1" data-testid="open-vacancies">
+                      {openVacancies}
+                    </p>
+                  </div>
+                  <div className="bg-red-100 dark:bg-red-900/20 p-3 rounded-full">
+                    <UserX className="text-red-600 h-6 w-6" />
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Требуется найм сотрудников
+                </p>
+              </CardContent>
+            </Card>
+          </>
+        )}
       </div>
 
       {/* Statistics */}
