@@ -25,8 +25,8 @@ export default function Directory() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedObject, setSelectedObject] = useState<string>("");
-  const [selectedStatus, setSelectedStatus] = useState<string>("");
+  const [selectedObject, setSelectedObject] = useState<string>("all");
+  const [selectedStatus, setSelectedStatus] = useState<string>("all");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
 
@@ -99,8 +99,8 @@ export default function Directory() {
   const filteredEmployees = employees.filter(employee => {
     const matchesSearch = employee.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          employee.position.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesObject = !selectedObject || employee.objectId === selectedObject;
-    const matchesStatus = !selectedStatus || employee.status === selectedStatus;
+    const matchesObject = selectedObject === "all" || employee.objectId === selectedObject;
+    const matchesStatus = selectedStatus === "all" || employee.status === selectedStatus;
     
     return matchesSearch && matchesObject && matchesStatus;
   });
@@ -341,7 +341,7 @@ export default function Directory() {
                   <SelectValue placeholder="Все объекты" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Все объекты</SelectItem>
+                  <SelectItem value="all">Все объекты</SelectItem>
                   {objects.map((object) => (
                     <SelectItem key={object.id} value={object.id}>
                       {object.name}
@@ -358,7 +358,7 @@ export default function Directory() {
                   <SelectValue placeholder="Все статусы" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Все статусы</SelectItem>
+                  <SelectItem value="all">Все статусы</SelectItem>
                   <SelectItem value="active">Активный</SelectItem>
                   <SelectItem value="not_registered">Не оформлен</SelectItem>
                   <SelectItem value="fired">Уволен</SelectItem>
@@ -371,8 +371,8 @@ export default function Directory() {
                 variant="outline" 
                 onClick={() => {
                   setSearchTerm("");
-                  setSelectedObject("");
-                  setSelectedStatus("");
+                  setSelectedObject("all");
+                  setSelectedStatus("all");
                 }}
                 data-testid="button-clear-filters"
               >
