@@ -124,31 +124,39 @@ export class MemStorage implements IStorage {
       userIds[userData.username] = user.id;
     });
 
-    // Create sample objects with manager assignments
+    // Create sample objects with manager assignments - based on imported data
     const sampleObjects = [
       { 
-        name: "Торговый центр Мега", 
-        code: "TC_MEGA", 
-        description: "Основной торговый объект", 
+        name: "ОП Соликамск СКРУ-1", 
+        code: "SOLK_SKRU_1", 
+        description: "Производственный объект в Соликамске", 
         managerId: userIds.manager1,
         groupManagerId: userIds.groupmgr,
         isActive: true 
       },
       { 
-        name: "Магазин на Ленинском", 
-        code: "MAG_LENIN", 
-        description: "Филиал на проспекте Ленинском", 
+        name: "ОП Соликамск СКРУ-3", 
+        code: "SOLK_SKRU_3", 
+        description: "Производственный объект в Соликамске", 
         managerId: userIds.manager1,
         groupManagerId: userIds.groupmgr,
         isActive: true 
       },
       { 
-        name: "Склад центральный", 
-        code: "SKLAD_01", 
-        description: "Центральный склад компании", 
+        name: "УПГП Урай", 
+        code: "UPGP_URAY", 
+        description: "Газоперерабатывающее предприятие в Урае", 
         managerId: null,
-        groupManagerId: null,
-        isActive: false 
+        groupManagerId: userIds.groupmgr,
+        isActive: true 
+      },
+      { 
+        name: "УПГП Белозерное", 
+        code: "UPGP_BELOZ", 
+        description: "Газоперерабатывающее предприятие Белозерное", 
+        managerId: null,
+        groupManagerId: userIds.groupmgr,
+        isActive: true 
       },
     ];
 
@@ -163,23 +171,28 @@ export class MemStorage implements IStorage {
       objectIds.push(object.id);
     });
 
-    // Create sample positions for each object
+    // Create sample positions for each object - based on imported data
     const samplePositions = [
-      // Торговый центр Мега
-      { objectId: objectIds[0], title: "Менеджер по продажам", workSchedule: "5/2", paymentType: "salary", monthlySalary: 45000, positionsCount: 2 },
-      { objectId: objectIds[0], title: "Кассир", workSchedule: "2/2", paymentType: "hourly", hourlyRate: 250, positionsCount: 4 },
-      { objectId: objectIds[0], title: "Охранник", workSchedule: "2/2", paymentType: "hourly", hourlyRate: 200, positionsCount: 3 },
-      { objectId: objectIds[0], title: "Уборщица", workSchedule: "5/2", paymentType: "hourly", hourlyRate: 180, positionsCount: 2 },
+      // ОП Соликамск СКРУ-1
+      { objectId: objectIds[0], title: "Менеджер", workSchedule: "5/2", paymentType: "salary", monthlySalary: 55000, positionsCount: 2 },
+      { objectId: objectIds[0], title: "Уборщик производственных и служебных помещений", workSchedule: "5/2", paymentType: "hourly", hourlyRate: 250, positionsCount: 4 },
+      { objectId: objectIds[0], title: "Оператор", workSchedule: "2/2", paymentType: "hourly", hourlyRate: 400, positionsCount: 6 },
+      { objectId: objectIds[0], title: "Слесарь", workSchedule: "5/2", paymentType: "hourly", hourlyRate: 350, positionsCount: 3 },
       
-      // Магазин на Ленинском
-      { objectId: objectIds[1], title: "Продавец-консультант", workSchedule: "6/1", paymentType: "salary", monthlySalary: 35000, positionsCount: 3 },
-      { objectId: objectIds[1], title: "Кассир", workSchedule: "5/2", paymentType: "hourly", hourlyRate: 220, positionsCount: 2 },
-      { objectId: objectIds[1], title: "Администратор", workSchedule: "5/2", paymentType: "salary", monthlySalary: 40000, positionsCount: 1 },
+      // ОП Соликамск СКРУ-3
+      { objectId: objectIds[1], title: "Менеджер", workSchedule: "5/2", paymentType: "salary", monthlySalary: 55000, positionsCount: 2 },
+      { objectId: objectIds[1], title: "Уборщик производственных и служебных помещений", workSchedule: "5/2", paymentType: "hourly", hourlyRate: 250, positionsCount: 3 },
+      { objectId: objectIds[1], title: "Оператор", workSchedule: "2/2", paymentType: "hourly", hourlyRate: 400, positionsCount: 8 },
       
-      // Склад центральный
-      { objectId: objectIds[2], title: "Кладовщик", workSchedule: "5/2", paymentType: "salary", monthlySalary: 38000, positionsCount: 2 },
-      { objectId: objectIds[2], title: "Грузчик", workSchedule: "2/2", paymentType: "hourly", hourlyRate: 300, positionsCount: 6 },
-      { objectId: objectIds[2], title: "Водитель", workSchedule: "5/2", paymentType: "hourly", hourlyRate: 280, positionsCount: 3 },
+      // УПГП Урай
+      { objectId: objectIds[2], title: "Инженер", workSchedule: "5/2", paymentType: "salary", monthlySalary: 75000, positionsCount: 3 },
+      { objectId: objectIds[2], title: "Оператор установки", workSchedule: "2/2", paymentType: "hourly", hourlyRate: 450, positionsCount: 12 },
+      { objectId: objectIds[2], title: "Слесарь-ремонтник", workSchedule: "5/2", paymentType: "hourly", hourlyRate: 380, positionsCount: 4 },
+      
+      // УПГП Белозерное
+      { objectId: objectIds[3], title: "Инженер", workSchedule: "5/2", paymentType: "salary", monthlySalary: 75000, positionsCount: 2 },
+      { objectId: objectIds[3], title: "Оператор установки", workSchedule: "2/2", paymentType: "hourly", hourlyRate: 450, positionsCount: 8 },
+      { objectId: objectIds[3], title: "Электромонтер", workSchedule: "5/2", paymentType: "hourly", hourlyRate: 400, positionsCount: 3 },
     ];
 
     samplePositions.forEach(pos => {
@@ -195,20 +208,24 @@ export class MemStorage implements IStorage {
       this.positions.set(position.id, position);
     });
 
-    // Create sample employees and assign to objects
+    // Create sample employees and assign to objects - based on imported data
     const sampleEmployees = [
-      // Торговый центр Мега
-      { name: "Иванов Иван Иванович", position: "Менеджер по продажам", status: "active", workSchedule: "5/2", objectId: objectIds[0] },
-      { name: "Петров Пётр Петрович", position: "Кассир", status: "active", workSchedule: "2/2", objectId: objectIds[0] },
-      { name: "Смирнов Алексей Николаевич", position: "Охранник", status: "active", workSchedule: "2/2", objectId: objectIds[0] },
+      // ОП Соликамск СКРУ-1
+      { name: "Иванова Ольга Анатольевна", position: "Менеджер", status: "active", workSchedule: "5/2", objectId: objectIds[0] },
+      { name: "Хамиджанова Мукаддам", position: "Уборщик производственных и служебных помещений", status: "active", workSchedule: "5/2", objectId: objectIds[0] },
+      { name: "Артемова Марина Владимировна", position: "Оператор", status: "active", workSchedule: "2/2", objectId: objectIds[0] },
       
-      // Магазин на Ленинском  
-      { name: "Сидоров Семён Семёнович", position: "Продавец-консультант", status: "active", workSchedule: "6/1", objectId: objectIds[1] },
-      { name: "Козлова Мария Петровна", position: "Кассир", status: "not_registered", workSchedule: "5/2", objectId: objectIds[1] },
+      // ОП Соликамск СКРУ-3
+      { name: "Баранова Наталья Павловна (Внеш.совм.)", position: "Менеджер", status: "active", workSchedule: "5/2", objectId: objectIds[1] },
+      { name: "Исахонова Иродахон Хасанбой Кизи", position: "Уборщик производственных и служебных помещений", status: "not_registered", workSchedule: "5/2", objectId: objectIds[1] },
       
-      // Склад центральный
-      { name: "Николаев Дмитрий Игоревич", position: "Кладовщик", status: "active", workSchedule: "5/2", objectId: objectIds[2] },
-      { name: "Федорова Анна Сергеевна", position: "Грузчик", status: "fired", workSchedule: "2/2", objectId: objectIds[2], terminationDate: "2025-08-15" },
+      // УПГП Урай
+      { name: "Вардзар Лариса Федоровна", position: "Инженер", status: "active", workSchedule: "5/2", objectId: objectIds[2] },
+      { name: "Коншин Михаил Викторович", position: "Оператор установки", status: "active", workSchedule: "2/2", objectId: objectIds[2] },
+      
+      // УПГП Белозерное
+      { name: "Петрова Елена Сергеевна", position: "Инженер", status: "active", workSchedule: "5/2", objectId: objectIds[3] },
+      { name: "Сидоров Максим Александрович", position: "Электромонтер", status: "fired", workSchedule: "5/2", objectId: objectIds[3], terminationDate: "2025-08-10" },
     ];
 
     sampleEmployees.forEach(emp => {
