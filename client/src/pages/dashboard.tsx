@@ -11,25 +11,19 @@ import {
   Calendar
 } from "lucide-react";
 import { useLocation } from "wouter";
-import { DashboardSkeleton } from "@/components/skeletons/dashboard-skeleton";
-import { useDelayedLoading } from "@/hooks/useDelayedLoading";
 import { Employee, TimeEntry } from "@shared/schema";
 import { format, getDaysInMonth, differenceInDays, parseISO } from "date-fns";
 
 export default function Dashboard() {
   const [, navigate] = useLocation();
 
-  const { data: employees = [], isLoading: employeesLoading } = useQuery<Employee[]>({
+  const { data: employees = [] } = useQuery<Employee[]>({
     queryKey: ["/api/employees"],
   });
 
-  const { data: timeEntries = [], isLoading: timeEntriesLoading } = useQuery<TimeEntry[]>({
+  const { data: timeEntries = [] } = useQuery<TimeEntry[]>({
     queryKey: ["/api/time-entries", format(new Date(), "yyyy-MM")],
   });
-
-  const isLoading = employeesLoading || timeEntriesLoading;
-  const hasData = employees.length > 0 || timeEntries.length > 0;
-  const showSkeleton = useDelayedLoading(isLoading, hasData);
 
   const activeEmployees = employees.filter((emp) => emp.status === "active");
   const firedEmployees = employees.filter((emp) => emp.status === "fired");
@@ -86,10 +80,6 @@ export default function Dashboard() {
     if ([2, 3, 4].includes(days % 10) && ![12, 13, 14].includes(days % 100)) return "дня";
     return "дней";
   };
-
-  if (showSkeleton) {
-    return <DashboardSkeleton />;
-  }
 
   return (
     <div className="space-y-6">

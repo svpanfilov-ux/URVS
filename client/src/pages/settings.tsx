@@ -9,8 +9,6 @@ import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useTheme } from "@/components/ui/theme-provider";
-import { SettingsSkeleton } from "@/components/skeletons/settings-skeleton";
-import { useDelayedLoading } from "@/hooks/useDelayedLoading";
 import { Download, Upload, Trash2, RefreshCw, CheckCircle } from "lucide-react";
 import { Setting } from "@shared/schema";
 
@@ -19,12 +17,9 @@ export default function Settings() {
   const { theme, setTheme } = useTheme();
   const queryClient = useQueryClient();
 
-  const { data: settings = [], isLoading } = useQuery<Setting[]>({
+  const { data: settings = [] } = useQuery<Setting[]>({
     queryKey: ["/api/settings"],
   });
-
-  const hasData = settings.length > 0;
-  const showSkeleton = useDelayedLoading(isLoading, hasData);
 
   const updateSettingMutation = useMutation({
     mutationFn: async (data: { key: string; value: string }) => {
@@ -69,10 +64,6 @@ export default function Settings() {
     // TODO: Implement data synchronization
     toast({ title: "Синхронизация данных выполнена" });
   };
-
-  if (showSkeleton) {
-    return <SettingsSkeleton />;
-  }
 
   return (
     <div className="space-y-6">

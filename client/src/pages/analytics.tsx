@@ -1,7 +1,5 @@
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { AnalyticsSkeleton } from "@/components/skeletons/analytics-skeleton";
-import { useDelayedLoading } from "@/hooks/useDelayedLoading";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { BarChart3, Eye, TrendingUp, Building, Users, Clock, DollarSign } from "lucide-react";
@@ -25,17 +23,13 @@ interface ObjectAnalytics {
 export default function Analytics() {
   const { user } = useAuth();
 
-  const { data: objects = [], isLoading: objectsLoading } = useQuery<Object[]>({
+  const { data: objects = [] } = useQuery<Object[]>({
     queryKey: ["/api/objects"],
   });
 
-  const { data: employees = [], isLoading: employeesLoading } = useQuery<Employee[]>({
+  const { data: employees = [] } = useQuery<Employee[]>({
     queryKey: ["/api/employees"],
   });
-
-  const isLoading = objectsLoading || employeesLoading;
-  const hasData = objects.length > 0 || employees.length > 0;
-  const showSkeleton = useDelayedLoading(isLoading, hasData);
 
   // Фиктивная аналитика для демонстрации - в реальной системе это бы приходило с API
   const generateAnalytics = (): ObjectAnalytics[] => {
@@ -94,10 +88,6 @@ export default function Analytics() {
       minimumFractionDigits: 0 
     }).format(amount);
   };
-
-  if (showSkeleton) {
-    return <AnalyticsSkeleton />;
-  }
 
   if (user?.role !== "director" && user?.role !== "hr_economist") {
     return (

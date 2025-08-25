@@ -6,8 +6,6 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { EmployeeModal } from "@/components/modals/employee-modal";
-import { EmployeesSkeleton } from "@/components/skeletons/employees-skeleton";
-import { useDelayedLoading } from "@/hooks/useDelayedLoading";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { Employee } from "@shared/schema";
@@ -31,9 +29,6 @@ export default function Employees() {
       return fetch(url).then(res => res.json());
     },
   });
-
-  const hasData = employees.length > 0;
-  const showSkeleton = useDelayedLoading(isLoading, hasData);
 
   const createEmployeeMutation = useMutation({
     mutationFn: async (data: any) => {
@@ -196,10 +191,6 @@ export default function Employees() {
       </CardContent>
     </Card>
   );
-
-  if (showSkeleton) {
-    return <EmployeesSkeleton />;
-  }
 
   return (
     <div className="space-y-6">

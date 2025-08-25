@@ -3,8 +3,6 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { TimesheetCell } from "@/components/timesheet/timesheet-cell";
-import { TimesheetSkeleton } from "@/components/skeletons/timesheet-skeleton";
-import { useDelayedLoading } from "@/hooks/useDelayedLoading";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { format, getDaysInMonth, parseISO, isAfter } from "date-fns";
@@ -20,7 +18,7 @@ export default function Timesheet() {
   const queryClient = useQueryClient();
   const { selectedObjectId } = useObjectStore();
 
-  const { data: employees = [], isLoading: employeesLoading } = useQuery<Employee[]>({
+  const { data: employees = [] } = useQuery<Employee[]>({
     queryKey: ["/api/employees", selectedObjectId],
     queryFn: () => {
       const url = selectedObjectId ? `/api/employees?objectId=${selectedObjectId}` : '/api/employees';
@@ -28,7 +26,7 @@ export default function Timesheet() {
     },
   });
 
-  const { data: timeEntries = [], isLoading: timeEntriesLoading } = useQuery<TimeEntry[]>({
+  const { data: timeEntries = [] } = useQuery<TimeEntry[]>({
     queryKey: ["/api/time-entries", selectedMonth],
     queryFn: async () => {
       const startDate = `${selectedMonth}-01`;
@@ -37,10 +35,6 @@ export default function Timesheet() {
       return response.json();
     },
   });
-
-  const isLoading = employeesLoading || timeEntriesLoading;
-  const hasData = employees.length > 0 || timeEntries.length > 0;
-  const showSkeleton = useDelayedLoading(isLoading, hasData);
 
   const updateTimeEntryMutation = useMutation({
     mutationFn: async (data: any) => {
@@ -590,10 +584,6 @@ export default function Timesheet() {
       });
     }
   };
-
-  if (showSkeleton) {
-    return <TimesheetSkeleton />;
-  }
 
   return (
     <div className="space-y-6">

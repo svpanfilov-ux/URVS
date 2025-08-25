@@ -5,8 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import { ReportsSkeleton } from "@/components/skeletons/reports-skeleton";
-import { useDelayedLoading } from "@/hooks/useDelayedLoading";
 import { apiRequest } from "@/lib/queryClient";
 import { format } from "date-fns";
 import { ru } from "date-fns/locale";
@@ -17,12 +15,9 @@ export default function Reports() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
-  const { data: reports = [], isLoading } = useQuery({
+  const { data: reports = [] } = useQuery({
     queryKey: ["/api/reports"],
   });
-
-  const hasData = Array.isArray(reports) && reports.length > 0;
-  const showSkeleton = useDelayedLoading(isLoading, hasData);
 
   const sendReportMutation = useMutation({
     mutationFn: async (reportId: string) => {
@@ -100,10 +95,6 @@ export default function Reports() {
       </Badge>
     );
   };
-
-  if (showSkeleton) {
-    return <ReportsSkeleton />;
-  }
 
   // Director view - simplified read-only reports table
   if (user?.role === "director") {
