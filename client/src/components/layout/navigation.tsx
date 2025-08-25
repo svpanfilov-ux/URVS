@@ -6,7 +6,8 @@ import {
   FileText, 
   Settings,
   Eye,
-  BarChart3
+  BarChart3,
+  BookOpen
 } from "lucide-react";
 import { useLocation, Link } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
@@ -27,6 +28,7 @@ const allNavItems: NavItem[] = [
   { id: "timesheet", label: "Табель", icon: Calendar, path: "/timesheet", roles: ["object_manager", "hr_economist", "group_manager"] },
   { id: "reports", label: "Отчёты", icon: FileText, path: "/reports", roles: ["object_manager", "hr_economist", "director", "group_manager"] },
   { id: "analytics", label: "Аналитика", icon: BarChart3, path: "/analytics", roles: ["director", "hr_economist"] },
+  { id: "directory", label: "Справочник", icon: BookOpen, path: "/directory", roles: ["hr_economist"] },
   { id: "settings", label: "Настройки", icon: Settings, path: "/settings", roles: ["hr_economist"] },
 ];
 

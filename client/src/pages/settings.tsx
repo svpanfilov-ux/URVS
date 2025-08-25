@@ -19,6 +19,7 @@ export default function Settings() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const employeeFileInputRef = useRef<HTMLInputElement>(null);
   const [isImporting, setIsImporting] = useState(false);
 
   const { data: settings = [] } = useQuery<Setting[]>({
@@ -124,6 +125,63 @@ export default function Settings() {
 
   const handleImportClick = () => {
     fileInputRef.current?.click();
+  };
+
+  const handleEmployeeImportClick = () => {
+    employeeFileInputRef.current?.click();
+  };
+
+  const handleImportEmployees = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (file.type !== 'text/csv' && !file.name.endsWith('.csv')) {
+      toast({ 
+        title: "Ошибка", 
+        description: "Пожалуйста, выберите CSV файл",
+        variant: "destructive" 
+      });
+      return;
+    }
+
+    setIsImporting(true);
+    
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch('/api/import/employees', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.message || 'Ошибка импорта');
+      }
+
+      toast({ 
+        title: "Импорт завершён", 
+        description: `Импортировано сотрудников: ${result.employeesCount}` 
+      });
+
+      // Обновляем кэш сотрудников
+      queryClient.invalidateQueries({ queryKey: ["/api/employees"] });
+      
+    } catch (error) {
+      console.error('Import error:', error);
+      toast({ 
+        title: "Ошибка импорта", 
+        description: error instanceof Error ? error.message : "Неизвестная ошибка",
+        variant: "destructive" 
+      });
+    } finally {
+      setIsImporting(false);
+      if (employeeFileInputRef.current) {
+        employeeFileInputRef.current.value = '';
+      }
+    }
   };
 
   return (
@@ -323,13 +381,13 @@ export default function Settings() {
         </Card>
 
         {/* About */}
-        {/* Object Import for HR Economist */}
+        {/* Data Import for HR Economist */}
         {user?.role === "hr_economist" && (
           <Card>
             <CardHeader>
               <CardTitle>Управление справочниками</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-6">
               <div>
                 <Label htmlFor="import-objects">Импорт справочника объектов</Label>
                 <p className="text-xs text-muted-foreground mb-3">
@@ -351,18 +409,55 @@ export default function Settings() {
                     data-testid="button-import-objects"
                   >
                     <FileSpreadsheet className="h-4 w-4 mr-2" />
-                    {isImporting ? "Импорт..." : "Выбрать CSV файл"}
+                    {isImporting ? "Импорт объектов..." : "Импорт объектов"}
+                  </Button>
+                </div>
+              </div>
+
+              <div className="pt-4 border-t border-border">
+                <Label htmlFor="import-employees">Импорт справочника сотрудников</Label>
+                <p className="text-xs text-muted-foreground mb-3">
+                  Загрузите CSV файл со сотрудниками (формат: Объект;Сотрудник;Должность;статус)
+                </p>
+                <div className="space-y-2">
+                  <input
+                    ref={employeeFileInputRef}
+                    type="file"
+                    accept=".csv"
+                    onChange={handleImportEmployees}
+                    className="hidden"
+                    data-testid="file-input-employees"
+                  />
+                  <Button 
+                    onClick={handleEmployeeImportClick}
+                    disabled={isImporting}
+                    className="w-full"
+                    variant="outline"
+                    data-testid="button-import-employees"
+                  >
+                    <Upload className="h-4 w-4 mr-2" />
+                    {isImporting ? "Импорт сотрудников..." : "Импорт сотрудников"}
                   </Button>
                 </div>
               </div>
               
               <div className="pt-4 border-t border-border">
-                <h4 className="text-sm font-medium mb-2">Формат CSV файла:</h4>
-                <div className="text-xs text-muted-foreground space-y-1">
-                  <p>• Первая строка - заголовки: Объект;Менеджер объекта;Руководитель Группы Менеджеров</p>
-                  <p>• Кодировка: UTF-8</p>
-                  <p>• Разделитель: точка с запятой (;)</p>
-                  <p>• Пользователи будут созданы автоматически с соответствующими ролями</p>
+                <h4 className="text-sm font-medium mb-2">Форматы CSV файлов:</h4>
+                <div className="text-xs text-muted-foreground space-y-2">
+                  <div>
+                    <p className="font-medium">Объекты:</p>
+                    <p>• Заголовки: Объект;Менеджер объекта;Руководитель Группы Менеджеров</p>
+                    <p>• Пользователи создаются автоматически</p>
+                  </div>
+                  <div>
+                    <p className="font-medium">Сотрудники:</p>
+                    <p>• Заголовки: Объект;Сотрудник;Должность;статус</p>
+                    <p>• Статус: Активный, Неактивный, Уволен</p>
+                  </div>
+                  <div>
+                    <p>• Кодировка: UTF-8</p>
+                    <p>• Разделитель: точка с запятой (;)</p>
+                  </div>
                 </div>
               </div>
             </CardContent>

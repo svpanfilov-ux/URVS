@@ -26,8 +26,8 @@ const upload = multer({
   },
 });
 
-// CSV parsing function
-function parseCSV(csvContent: string): { objects: string; manager: string; groupManager: string }[] {
+// CSV parsing function for objects
+function parseObjectsCSV(csvContent: string): { objects: string; manager: string; groupManager: string }[] {
   const lines = csvContent.trim().split('\n');
   const data: { objects: string; manager: string; groupManager: string }[] = [];
   
@@ -40,6 +40,26 @@ function parseCSV(csvContent: string): { objects: string; manager: string; group
     
     if (objects && manager && groupManager) {
       data.push({ objects, manager, groupManager });
+    }
+  }
+  
+  return data;
+}
+
+// CSV parsing function for employees
+function parseEmployeesCSV(csvContent: string): { objectName: string; employeeName: string; position: string; status: string }[] {
+  const lines = csvContent.trim().split('\n');
+  const data: { objectName: string; employeeName: string; position: string; status: string }[] = [];
+  
+  // Skip header line and process data lines
+  for (let i = 1; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line) continue;
+    
+    const [objectName, employeeName, position, status] = line.split(';').map(s => s.trim());
+    
+    if (objectName && employeeName && position && status) {
+      data.push({ objectName, employeeName, position, status });
     }
   }
   
@@ -443,7 +463,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const csvContent = req.file.buffer.toString('utf-8');
-      const parsedData = parseCSV(csvContent);
+      const parsedData = parseObjectsCSV(csvContent);
 
       if (parsedData.length === 0) {
         return res.status(400).json({ message: "CSV файл пуст или имеет неверный формат" });
@@ -525,6 +545,78 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Import error:", error);
       res.status(500).json({ 
         message: "Ошибка при импорте", 
+        error: error instanceof Error ? error.message : "Неизвестная ошибка" 
+      });
+    }
+  });
+
+  // Import employees from CSV
+  app.post("/api/import/employees", upload.single('file'), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "Файл не найден" });
+      }
+
+      const csvContent = req.file.buffer.toString('utf-8');
+      const parsedData = parseEmployeesCSV(csvContent);
+
+      if (parsedData.length === 0) {
+        return res.status(400).json({ message: "CSV файл пуст или имеет неверный формат" });
+      }
+
+      let employeesCount = 0;
+      const existingObjects = await storage.getObjects();
+
+      for (const row of parsedData) {
+        // Find the object by name
+        const object = existingObjects.find(obj => obj.name === row.objectName);
+        
+        if (!object) {
+          console.warn(`Object not found: ${row.objectName}`);
+          continue;
+        }
+
+        // Map status from Russian to English
+        let statusMapped: "active" | "not_registered" | "fired" = "active";
+        switch (row.status.toLowerCase()) {
+          case "активный":
+            statusMapped = "active";
+            break;
+          case "неактивный":
+            statusMapped = "not_registered";
+            break;
+          case "уволен":
+            statusMapped = "fired";
+            break;
+          default:
+            statusMapped = "active";
+        }
+
+        try {
+          await storage.createEmployee({
+            name: row.employeeName,
+            position: row.position,
+            status: statusMapped,
+            workSchedule: "5/2", // Default work schedule
+            objectId: object.id,
+            terminationDate: statusMapped === "fired" ? new Date().toISOString().split('T')[0] : null
+          });
+          employeesCount++;
+        } catch (error) {
+          console.error(`Error creating employee ${row.employeeName}:`, error);
+          // Continue processing other employees
+        }
+      }
+
+      res.json({
+        message: "Импорт сотрудников завершён успешно",
+        employeesCount
+      });
+
+    } catch (error) {
+      console.error("Employee import error:", error);
+      res.status(500).json({ 
+        message: "Ошибка при импорте сотрудников", 
         error: error instanceof Error ? error.message : "Неизвестная ошибка" 
       });
     }

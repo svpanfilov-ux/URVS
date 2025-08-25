@@ -15,6 +15,7 @@ import Staffing from "@/pages/staffing";
 import Timesheet from "@/pages/timesheet";
 import Reports from "@/pages/reports";
 import Analytics from "@/pages/analytics";
+import Directory from "@/pages/directory";
 import Settings from "@/pages/settings";
 import NotFound from "@/pages/not-found";
 
@@ -31,6 +32,7 @@ function AuthenticatedApp() {
           <Route path="/timesheet" component={Timesheet} />
           <Route path="/reports" component={Reports} />
           <Route path="/analytics" component={Analytics} />
+          <Route path="/directory" component={Directory} />
           <Route path="/settings" component={Settings} />
           <Route component={NotFound} />
         </Switch>
