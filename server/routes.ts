@@ -455,6 +455,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get work schedules for object
+  app.get("/api/objects/:objectId/work-schedules", async (req, res) => {
+    try {
+      const { objectId } = req.params;
+      
+      // Get unique work schedules from employees and positions for this object
+      const employees = await storage.getEmployees();
+      const positions = await storage.getPositions();
+      
+      const objectEmployees = employees.filter(emp => emp.objectId === objectId);
+      const objectPositions = positions.filter(pos => pos.objectId === objectId);
+      
+      const schedules = new Set<string>();
+      
+      // Add schedules from existing employees
+      objectEmployees.forEach(emp => {
+        if (emp.workSchedule) {
+          schedules.add(emp.workSchedule);
+        }
+      });
+      
+      // Add schedules from existing positions
+      objectPositions.forEach(pos => {
+        if (pos.workSchedule) {
+          schedules.add(pos.workSchedule);
+        }
+      });
+      
+      // If no schedules found, return default options
+      if (schedules.size === 0) {
+        schedules.add("5/2");
+        schedules.add("2/2");
+        schedules.add("3/3");
+        schedules.add("6/1");
+        schedules.add("вахта");
+      }
+      
+      const scheduleList = Array.from(schedules).sort();
+      res.json(scheduleList);
+    } catch (error) {
+      console.error("Error fetching work schedules:", error);
+      res.status(500).json({ message: "Ошибка при загрузке графиков работы" });
+    }
+  });
+
   // Import objects from CSV
   app.post("/api/import/objects", upload.single('file'), async (req, res) => {
     try {

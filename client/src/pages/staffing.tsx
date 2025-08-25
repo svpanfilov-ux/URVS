@@ -61,6 +61,17 @@ export default function Staffing() {
     },
   });
 
+  // Get work schedules for selected object
+  const selectedObjectIdForSchedules = form.watch("objectId");
+  const { data: workSchedules = [] } = useQuery<string[]>({
+    queryKey: ["/api/objects", selectedObjectIdForSchedules, "work-schedules"],
+    queryFn: () => {
+      if (!selectedObjectIdForSchedules) return Promise.resolve([]);
+      return fetch(`/api/objects/${selectedObjectIdForSchedules}/work-schedules`).then(res => res.json());
+    },
+    enabled: !!selectedObjectIdForSchedules,
+  });
+
   const createPositionMutation = useMutation({
     mutationFn: async (data: InsertPosition) => {
       const response = await apiRequest("POST", "/api/positions", data);
@@ -277,6 +288,9 @@ export default function Staffing() {
                   <DialogTitle>
                     {editingPosition ? "Редактировать должность" : "Добавить должность"}
                   </DialogTitle>
+                  <DialogDescription>
+                    {editingPosition ? "Изменить параметры существующей должности" : "Создать новую должность в штатном расписании"}
+                  </DialogDescription>
                 </DialogHeader>
                 <Form {...form}>
                   <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -328,15 +342,25 @@ export default function Staffing() {
                           <Select onValueChange={field.onChange} value={field.value}>
                             <FormControl>
                               <SelectTrigger data-testid="select-position-schedule">
-                                <SelectValue />
+                                <SelectValue placeholder="Выберите график работы" />
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              <SelectItem value="5/2">5/2</SelectItem>
-                              <SelectItem value="2/2">2/2</SelectItem>
-                              <SelectItem value="3/3">3/3</SelectItem>
-                              <SelectItem value="6/1">6/1</SelectItem>
-                              <SelectItem value="вахта">вахта (7/0)</SelectItem>
+                              {workSchedules.length > 0 ? (
+                                workSchedules.map((schedule) => (
+                                  <SelectItem key={schedule} value={schedule}>
+                                    {schedule === "вахта" ? "вахта (7/0)" : schedule}
+                                  </SelectItem>
+                                ))
+                              ) : (
+                                <>
+                                  <SelectItem value="5/2">5/2</SelectItem>
+                                  <SelectItem value="2/2">2/2</SelectItem>
+                                  <SelectItem value="3/3">3/3</SelectItem>
+                                  <SelectItem value="6/1">6/1</SelectItem>
+                                  <SelectItem value="вахта">вахта (7/0)</SelectItem>
+                                </>
+                              )}
                             </SelectContent>
                           </Select>
                           <FormMessage />
