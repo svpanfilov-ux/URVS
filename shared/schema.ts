@@ -109,6 +109,7 @@ export const positions = pgTable("positions", {
   objectId: varchar("object_id").notNull().references(() => objects.id),
   title: text("title").notNull(),
   workSchedule: text("work_schedule").notNull().default("5/2"),
+  hoursPerShift: integer("hours_per_shift").notNull().default(8), // hours per shift
   paymentType: text("payment_type").notNull().default("hourly"), // hourly, salary
   hourlyRate: integer("hourly_rate"), // rate per hour in rubles
   monthlySalary: integer("monthly_salary"), // monthly salary in rubles
@@ -159,6 +160,7 @@ export const insertPositionSchema = createInsertSchema(positions).omit({
   createdAt: true,
 }).extend({
   workSchedule: z.enum(["5/2", "2/2", "3/3", "6/1", "вахта"]).default("5/2"),
+  hoursPerShift: z.number().positive().default(8),
   paymentType: z.enum(["hourly", "salary"]).default("hourly"),
   hourlyRate: z.number().positive().optional(),
   monthlySalary: z.number().positive().optional(),

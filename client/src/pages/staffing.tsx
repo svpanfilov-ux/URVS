@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useObjectStore } from "@/lib/object-store";
@@ -53,9 +53,10 @@ export default function Staffing() {
       objectId: "",
       title: "",
       workSchedule: "5/2",
+      hoursPerShift: 8,
       paymentType: "salary",
-      hourlyRate: null,
-      monthlySalary: null,
+      hourlyRate: undefined,
+      monthlySalary: undefined,
       positionsCount: 1,
       isActive: true,
     },
@@ -130,10 +131,11 @@ export default function Staffing() {
     form.reset({
       objectId: position.objectId,
       title: position.title,
-      workSchedule: position.workSchedule,
-      paymentType: position.paymentType,
-      hourlyRate: position.hourlyRate,
-      monthlySalary: position.monthlySalary,
+      workSchedule: position.workSchedule as "5/2" | "2/2" | "3/3" | "6/1" | "вахта",
+      hoursPerShift: position.hoursPerShift || 8,
+      paymentType: position.paymentType as "hourly" | "salary",
+      hourlyRate: position.hourlyRate || undefined,
+      monthlySalary: position.monthlySalary || undefined,
       positionsCount: position.positionsCount,
       isActive: position.isActive,
     });
@@ -239,15 +241,21 @@ export default function Staffing() {
     return "Не указано";
   };
 
-  // Function to calculate hours per month by work schedule
-  const getHoursPerMonth = (schedule: string): number => {
+  // Function to calculate hours per month by work schedule and hours per shift
+  const getHoursPerMonth = (schedule: string, hoursPerShift: number): number => {
+    const shifts = getShiftsPerMonth(schedule);
+    return shifts * hoursPerShift;
+  };
+
+  // Function to get number of shifts per month by work schedule
+  const getShiftsPerMonth = (schedule: string): number => {
     switch (schedule) {
-      case "5/2": return 160; // 8 hours * 20 working days
-      case "2/2": return 184; // 12 hours * 15.3 shifts per month
-      case "3/3": return 184; // 12 hours * 15.3 shifts per month
-      case "6/1": return 160; // 8 hours * 20 working days
-      case "вахта": return 322; // 14 days * 23 hours (7/0 schedule)
-      default: return 160;
+      case "5/2": return 20; // 20 working days
+      case "2/2": return 15.3; // 15.3 shifts per month
+      case "3/3": return 15.3; // 15.3 shifts per month  
+      case "6/1": return 20; // 20 working days
+      case "вахта": return 14; // 14 days on shift
+      default: return 20;
     }
   };
 
@@ -256,7 +264,7 @@ export default function Staffing() {
   
   // Calculate total monthly hours from staffing plan
   const totalMonthlyHours = filteredPositions.reduce((sum, position) => {
-    const hoursPerPosition = getHoursPerMonth(position.workSchedule);
+    const hoursPerPosition = getHoursPerMonth(position.workSchedule, position.hoursPerShift || 8);
     return sum + (hoursPerPosition * position.positionsCount);
   }, 0);
 
@@ -264,8 +272,8 @@ export default function Staffing() {
     if (pos.paymentType === "salary" && pos.monthlySalary) {
       return sum + (pos.monthlySalary * pos.positionsCount);
     } else if (pos.paymentType === "hourly" && pos.hourlyRate) {
-      // Use actual hours based on work schedule
-      const hoursPerPosition = getHoursPerMonth(pos.workSchedule);
+      // Use actual hours based on work schedule and hours per shift
+      const hoursPerPosition = getHoursPerMonth(pos.workSchedule, pos.hoursPerShift || 8);
       return sum + ((pos.hourlyRate / 100) * hoursPerPosition * pos.positionsCount);
     }
     return sum;
@@ -317,8 +325,9 @@ export default function Staffing() {
                 </DialogHeader>
                 <Form {...form}>
                   <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                    <FormField
-                      control={form.control}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <FormField
+                        control={form.control}
                       name="objectId"
                       render={({ field }) => (
                         <FormItem>
@@ -386,6 +395,33 @@ export default function Staffing() {
                               )}
                             </SelectContent>
                           </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <FormField
+                        control={form.control}
+                      name="hoursPerShift"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Часов в смену</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="number"
+                              min="1"
+                              max="24"
+                              placeholder="8"
+                              {...field}
+                              onChange={(e) => field.onChange(Number(e.target.value))}
+                              data-testid="input-hours-per-shift"
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            Количество рабочих часов в одну смену
+                          </FormDescription>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -502,6 +538,7 @@ export default function Staffing() {
                       >
                         {editingPosition ? "Сохранить" : "Добавить"}
                       </Button>
+                    </div>
                     </div>
                   </form>
                 </Form>
@@ -640,6 +677,7 @@ export default function Staffing() {
                 <TableHead>Должность</TableHead>
                 <TableHead>Объект</TableHead>
                 <TableHead>График</TableHead>
+                <TableHead className="text-center">Часов в смену</TableHead>
                 <TableHead>Тип оплаты</TableHead>
                 <TableHead>Тариф</TableHead>
                 <TableHead className="text-center">Количество</TableHead>
@@ -653,6 +691,11 @@ export default function Staffing() {
                   <TableCell className="font-medium">{position.title}</TableCell>
                   <TableCell>{getObjectName(position.objectId)}</TableCell>
                   <TableCell>{getWorkScheduleBadge(position.workSchedule)}</TableCell>
+                  <TableCell className="text-center">
+                    <span className="font-medium text-blue-600">
+                      {position.hoursPerShift || 8} ч
+                    </span>
+                  </TableCell>
                   <TableCell>
                     <Badge 
                       variant={position.paymentType === "hourly" ? "secondary" : "default"} 
@@ -673,7 +716,7 @@ export default function Staffing() {
                   </TableCell>
                   <TableCell className="text-center">
                     <span className="font-medium text-blue-600">
-                      {(getHoursPerMonth(position.workSchedule) * position.positionsCount).toLocaleString()} ч
+                      {(getHoursPerMonth(position.workSchedule, position.hoursPerShift || 8) * position.positionsCount).toLocaleString()} ч
                     </span>
                   </TableCell>
                   {canEdit && (
@@ -702,7 +745,7 @@ export default function Staffing() {
               ))}
               {filteredPositions.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={canEdit ? 8 : 7} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={canEdit ? 9 : 8} className="text-center py-8 text-muted-foreground">
                     Должности не найдены
                   </TableCell>
                 </TableRow>
