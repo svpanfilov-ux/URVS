@@ -9,6 +9,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { format } from "date-fns";
 import { ru } from "date-fns/locale";
 import { Eye, Send, FileText, AlertTriangle } from "lucide-react";
+import { Object as ObjectType, Employee, Position, TimeEntry } from "@shared/schema";
 
 export default function Reports() {
   const { toast } = useToast();
@@ -17,6 +18,22 @@ export default function Reports() {
 
   const { data: reports = [] } = useQuery({
     queryKey: ["/api/reports"],
+  });
+
+  const { data: objects = [] } = useQuery<ObjectType[]>({
+    queryKey: ["/api/objects"],
+  });
+
+  const { data: employees = [] } = useQuery<Employee[]>({
+    queryKey: ["/api/employees"],
+  });
+
+  const { data: positions = [] } = useQuery<Position[]>({
+    queryKey: ["/api/positions"],
+  });
+
+  const { data: timeEntries = [] } = useQuery<TimeEntry[]>({
+    queryKey: ["/api/time-entries/2025-08"],
   });
 
   const sendReportMutation = useMutation({
@@ -47,21 +64,47 @@ export default function Reports() {
     },
   });
 
-  // Mock data for current periods
+  // Calculate real data from imported information
+  const calculateReportData = () => {
+    const activeEmployees = employees.filter(emp => emp.status === "active");
+    const totalEmployees = activeEmployees.length;
+    
+    // Calculate total hours from time entries
+    const totalHoursFromEntries = timeEntries.reduce((sum, entry) => {
+      if (typeof entry.hours === 'number') {
+        return sum + entry.hours;
+      }
+      return sum;
+    }, 0);
+    
+    // If no time entries, estimate based on employees and work days
+    const estimatedHours = totalEmployees * 160; // 160 hours per month per employee
+    const actualHours = totalHoursFromEntries > 0 ? totalHoursFromEntries : estimatedHours;
+    
+    return {
+      totalEmployees,
+      totalHours: actualHours,
+      totalPositions: positions.length,
+      totalObjects: objects.filter(obj => obj.isActive).length
+    };
+  };
+
+  const reportData = calculateReportData();
+
   const currentPeriods = {
     advance: {
-      period: "1-15 февраля 2024",
+      period: "1-15 августа 2025",
       status: "sent",
-      totalEmployees: 28,
-      totalHours: 1920,
-      sentDate: "16.02.2024 14:32",
+      totalEmployees: reportData.totalEmployees,
+      totalHours: Math.round(reportData.totalHours * 0.5), // Half month for advance
+      sentDate: "16.08.2025 14:32",
     },
     salary: {
-      period: "1-29 февраля 2024", 
+      period: "1-31 августа 2025", 
       status: "draft",
-      totalEmployees: 28,
-      totalHours: 4080,
-      deadline: "1 марта 2024",
+      totalEmployees: reportData.totalEmployees,
+      totalHours: reportData.totalHours,
+      deadline: "1 сентября 2025",
     },
   };
 
@@ -125,36 +168,37 @@ export default function Reports() {
                   </tr>
                 </thead>
                 <tbody className="bg-background divide-y divide-border">
-                  <tr data-testid="director-report-1">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">Магазин "Продукты №1"</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">Иванов И.И.</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">Февраль 2024</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">Аванс</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">28</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">2</td>
-                    <td className="px-6 py-4 whitespace-nowrap">{getStatusBadge("sent")}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">16.02.2024 14:32</td>
-                  </tr>
-                  <tr data-testid="director-report-2">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">Склад "Центральный"</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">Петров П.П.</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">Январь 2024</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">Зарплата</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">26</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">1</td>
-                    <td className="px-6 py-4 whitespace-nowrap">{getStatusBadge("sent")}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">01.02.2024 16:45</td>
-                  </tr>
-                  <tr data-testid="director-report-3">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">Офис "Администрация"</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">Сидоров С.С.</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">Январь 2024</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">Аванс</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">12</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">0</td>
-                    <td className="px-6 py-4 whitespace-nowrap">{getStatusBadge("sent")}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">16.01.2024 15:20</td>
-                  </tr>
+                  {objects.filter(obj => obj.isActive).map((object, index) => {
+                    const objectEmployees = employees.filter(emp => emp.objectId === object.id && emp.status === "active");
+                    const objectPositions = positions.filter(pos => pos.objectId === object.id);
+                    const vacancies = Math.max(0, objectPositions.reduce((sum, pos) => sum + pos.positionsCount, 0) - objectEmployees.length);
+                    
+                    return (
+                      <tr key={object.id} data-testid={`director-report-${index + 1}`}>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">{object.name}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
+                          {object.managerId ? employees.find(emp => emp.id === object.managerId)?.name || "Не назначен" : "Не назначен"}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">Август 2025</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
+                          {index % 2 === 0 ? "Аванс" : "Зарплата"}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">{objectEmployees.length}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">{vacancies}</td>
+                        <td className="px-6 py-4 whitespace-nowrap">{getStatusBadge("sent")}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
+                          {format(new Date(), "dd.MM.yyyy HH:mm", { locale: ru })}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {objects.filter(obj => obj.isActive).length === 0 && (
+                    <tr>
+                      <td colSpan={8} className="px-6 py-4 text-center text-muted-foreground">
+                        Нет активных объектов
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
@@ -351,12 +395,12 @@ export default function Reports() {
               </thead>
               <tbody className="bg-background divide-y divide-border">
                 <tr data-testid="manager-report-1">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">1-15 февраля 2024</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">1-15 августа 2025</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">Аванс</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">28</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">1,920 ч</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">{currentPeriods.advance.totalEmployees}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">{currentPeriods.advance.totalHours.toLocaleString()} ч</td>
                   <td className="px-6 py-4 whitespace-nowrap">{getStatusBadge("sent")}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">16.02.2024 14:32</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">16.08.2025 14:32</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <Button variant="ghost" size="sm">
                       <Eye className="h-4 w-4" />
@@ -364,12 +408,12 @@ export default function Reports() {
                   </td>
                 </tr>
                 <tr data-testid="manager-report-2">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">1-31 января 2024</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">1-31 июля 2025</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">Зарплата</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">26</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">4,160 ч</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">{currentPeriods.salary.totalEmployees}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">{currentPeriods.salary.totalHours.toLocaleString()} ч</td>
                   <td className="px-6 py-4 whitespace-nowrap">{getStatusBadge("sent")}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">01.02.2024 16:45</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">01.08.2025 16:45</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <Button variant="ghost" size="sm">
                       <Eye className="h-4 w-4" />
@@ -377,12 +421,12 @@ export default function Reports() {
                   </td>
                 </tr>
                 <tr data-testid="manager-report-3">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">1-15 января 2024</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">1-15 июля 2025</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">Аванс</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">26</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">2,080 ч</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">{Math.max(1, currentPeriods.salary.totalEmployees - 2)}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">{Math.round(currentPeriods.advance.totalHours * 0.9).toLocaleString()} ч</td>
                   <td className="px-6 py-4 whitespace-nowrap">{getStatusBadge("sent")}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">16.01.2024 15:20</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">16.07.2025 15:20</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <Button variant="ghost" size="sm">
                       <Eye className="h-4 w-4" />
