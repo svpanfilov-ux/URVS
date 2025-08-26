@@ -239,11 +239,34 @@ export default function Staffing() {
     return "Не указано";
   };
 
+  // Function to calculate hours per month by work schedule
+  const getHoursPerMonth = (schedule: string): number => {
+    switch (schedule) {
+      case "5/2": return 160; // 8 hours * 20 working days
+      case "2/2": return 184; // 12 hours * 15.3 shifts per month
+      case "3/3": return 184; // 12 hours * 15.3 shifts per month
+      case "6/1": return 160; // 8 hours * 20 working days
+      case "вахта": return 322; // 14 days * 23 hours (7/0 schedule)
+      default: return 160;
+    }
+  };
+
   // Calculate totals
   const totalPositions = filteredPositions.reduce((sum, pos) => sum + pos.positionsCount, 0);
+  
+  // Calculate total monthly hours from staffing plan
+  const totalMonthlyHours = filteredPositions.reduce((sum, position) => {
+    const hoursPerPosition = getHoursPerMonth(position.workSchedule);
+    return sum + (hoursPerPosition * position.positionsCount);
+  }, 0);
+
   const totalSalaryBudget = filteredPositions.reduce((sum, pos) => {
     if (pos.paymentType === "salary" && pos.monthlySalary) {
       return sum + (pos.monthlySalary * pos.positionsCount);
+    } else if (pos.paymentType === "hourly" && pos.hourlyRate) {
+      // Use actual hours based on work schedule
+      const hoursPerPosition = getHoursPerMonth(pos.workSchedule);
+      return sum + ((pos.hourlyRate / 100) * hoursPerPosition * pos.positionsCount);
     }
     return sum;
   }, 0);
@@ -544,7 +567,7 @@ export default function Staffing() {
       </Card>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Всего должностей</CardTitle>
@@ -573,6 +596,18 @@ export default function Staffing() {
           <CardContent>
             <div className="text-2xl font-bold text-blue-600">
               {filteredPositions.filter(pos => pos.paymentType === "hourly").length}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Часов в месяц</CardTitle>
+            <Clock className="h-4 w-4 text-blue-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-blue-600">
+              {totalMonthlyHours.toLocaleString()} ч
             </div>
           </CardContent>
         </Card>
@@ -608,6 +643,7 @@ export default function Staffing() {
                 <TableHead>Тип оплаты</TableHead>
                 <TableHead>Тариф</TableHead>
                 <TableHead className="text-center">Количество</TableHead>
+                <TableHead className="text-center">Часов в месяц</TableHead>
                 {canEdit && <TableHead className="text-right">Действия</TableHead>}
               </TableRow>
             </TableHeader>
@@ -635,6 +671,11 @@ export default function Staffing() {
                       {position.positionsCount}
                     </Badge>
                   </TableCell>
+                  <TableCell className="text-center">
+                    <span className="font-medium text-blue-600">
+                      {(getHoursPerMonth(position.workSchedule) * position.positionsCount).toLocaleString()} ч
+                    </span>
+                  </TableCell>
                   {canEdit && (
                     <TableCell className="text-right">
                       <div className="flex justify-end space-x-2">
@@ -661,7 +702,7 @@ export default function Staffing() {
               ))}
               {filteredPositions.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={canEdit ? 7 : 6} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={canEdit ? 8 : 7} className="text-center py-8 text-muted-foreground">
                     Должности не найдены
                   </TableCell>
                 </TableRow>
