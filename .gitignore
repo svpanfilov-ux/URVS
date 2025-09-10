@@ -1,6 +1,40 @@
-node_modules
-dist
+# Зависимости
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Сборка
+dist/
+build/
+
+# Файлы окружения (содержат пароли и ключи)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Replit специфичные файлы
+.replit
+replit.nix
+.config/
+.upm/
+
+# Логи
+*.log
+
+# Временные файлы
 .DS_Store
+.vscode/
+*.tmp
+*.temp
+
+# База данных
+*.db
+*.sqlite
+
+# Публичные файлы сервера
 server/public
 vite.config.ts.*
 *.tar.gz
