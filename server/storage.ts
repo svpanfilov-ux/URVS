@@ -199,6 +199,7 @@ export class MemStorage implements IStorage {
       const position: Position = {
         id: randomUUID(),
         ...pos,
+        hoursPerShift: 8,
         hourlyRate: pos.hourlyRate || null,
         monthlySalary: pos.monthlySalary || null,
         positionsCount: pos.positionsCount || 1,
@@ -328,7 +329,13 @@ export class MemStorage implements IStorage {
 
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = randomUUID();
-    const user: User = { ...insertUser, id, role: insertUser.role || "manager" };
+    const user: User = { 
+      ...insertUser, 
+      id, 
+      role: insertUser.role || "object_manager",
+      isActive: insertUser.isActive ?? true,
+      createdAt: new Date()
+    };
     this.users.set(id, user);
     return user;
   }
@@ -438,7 +445,11 @@ export class MemStorage implements IStorage {
       ...insertReport, 
       id,
       status: insertReport.status || "draft",
+      submittedBy: insertReport.submittedBy || null,
+      reviewedBy: insertReport.reviewedBy || null,
+      comments: insertReport.comments || null,
       sentAt: insertReport.sentAt || null,
+      reviewedAt: insertReport.reviewedAt || null,
       createdAt: new Date()
     };
     this.reports.set(id, report);
@@ -498,6 +509,8 @@ export class MemStorage implements IStorage {
       ...insertObject, 
       id,
       description: insertObject.description || null,
+      managerId: insertObject.managerId || null,
+      groupManagerId: insertObject.groupManagerId || null,
       isActive: insertObject.isActive ?? true,
       createdAt: new Date()
     };
