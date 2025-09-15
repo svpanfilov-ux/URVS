@@ -120,7 +120,8 @@ export default function Objects() {
       description: object.description,
       managerId: object.managerId,
       groupManagerId: object.groupManagerId,
-      isActive: object.isActive
+      status: object.status,
+      closedAt: object.closedAt
     });
   };
 
@@ -148,8 +149,17 @@ export default function Objects() {
     });
   };
 
-  const handleFormChange = (field: string, value: string | boolean) => {
-    setEditForm(prev => ({ ...prev, [field]: value }));
+  const handleFormChange = (field: string, value: string | boolean | null) => {
+    setEditForm(prev => {
+      const newForm = { ...prev, [field]: value };
+      
+      // Очищаем дату закрытия при смене статуса на "активный"
+      if (field === "status" && value === "active") {
+        newForm.closedAt = null;
+      }
+      
+      return newForm;
+    });
   };
 
   return (
@@ -253,14 +263,14 @@ export default function Objects() {
                         <td className="px-6 py-4 whitespace-nowrap">
                           {isEditing ? (
                             <Select
-                              value={editForm.managerId || ""}
-                              onValueChange={(value) => handleFormChange("managerId", value)}
+                              value={editForm.managerId || "none"}
+                              onValueChange={(value) => handleFormChange("managerId", value === "none" ? null : value)}
                             >
                               <SelectTrigger className="w-full text-sm" data-testid={`edit-manager-${object.id}`}>
                                 <SelectValue placeholder="Выберите менеджера" />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="">Не назначен</SelectItem>
+                                <SelectItem value="none">Не назначен</SelectItem>
                                 {users.map((user) => (
                                   <SelectItem key={user.id} value={user.id}>
                                     {user.name}
@@ -277,14 +287,14 @@ export default function Objects() {
                         <td className="px-6 py-4 whitespace-nowrap">
                           {isEditing ? (
                             <Select
-                              value={editForm.groupManagerId || ""}
-                              onValueChange={(value) => handleFormChange("groupManagerId", value)}
+                              value={editForm.groupManagerId || "none"}
+                              onValueChange={(value) => handleFormChange("groupManagerId", value === "none" ? null : value)}
                             >
                               <SelectTrigger className="w-full text-sm" data-testid={`edit-group-manager-${object.id}`}>
                                 <SelectValue placeholder="Выберите руководителя" />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="">Не назначен</SelectItem>
+                                <SelectItem value="none">Не назначен</SelectItem>
                                 {users.map((user) => (
                                   <SelectItem key={user.id} value={user.id}>
                                     {user.name}
@@ -313,22 +323,41 @@ export default function Objects() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           {isEditing ? (
-                            <Select
-                              value={editForm.isActive ? "true" : "false"}
-                              onValueChange={(value) => handleFormChange("isActive", value === "true")}
-                            >
-                              <SelectTrigger className="w-full text-sm" data-testid={`edit-status-${object.id}`}>
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="true">Активный</SelectItem>
-                                <SelectItem value="false">Неактивный</SelectItem>
-                              </SelectContent>
-                            </Select>
+                            <div className="space-y-2">
+                              <Select
+                                value={editForm.status || "active"}
+                                onValueChange={(value) => handleFormChange("status", value)}
+                              >
+                                <SelectTrigger className="w-full text-sm" data-testid={`edit-status-${object.id}`}>
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="active">Активный</SelectItem>
+                                  <SelectItem value="closed">Закрыт</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              {editForm.status === "closed" && (
+                                <Input
+                                  type="date"
+                                  value={editForm.closedAt || ""}
+                                  onChange={(e) => handleFormChange("closedAt", e.target.value)}
+                                  className="text-sm"
+                                  placeholder="Дата закрытия"
+                                  data-testid={`edit-closed-date-${object.id}`}
+                                />
+                              )}
+                            </div>
                           ) : (
-                            <Badge variant={object.isActive ? "default" : "secondary"}>
-                              {object.isActive ? "Активный" : "Неактивный"}
-                            </Badge>
+                            <div>
+                              <Badge variant={object.status === "active" ? "default" : "secondary"}>
+                                {object.status === "active" ? "Активный" : "Закрыт"}
+                              </Badge>
+                              {object.status === "closed" && object.closedAt && (
+                                <div className="text-xs text-muted-foreground mt-1">
+                                  {object.closedAt}
+                                </div>
+                              )}
+                            </div>
                           )}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">

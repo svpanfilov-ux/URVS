@@ -101,7 +101,8 @@ export const objects = pgTable("objects", {
   description: text("description"),
   managerId: varchar("manager_id").references(() => users.id), // менеджер объекта
   groupManagerId: varchar("group_manager_id").references(() => users.id), // руководитель группы
-  isActive: boolean("is_active").notNull().default(true),
+  status: text("status", { enum: ["active", "closed"] }).notNull().default("active"),
+  closedAt: text("closed_at"), // дата закрытия объекта
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -154,6 +155,8 @@ export const insertSettingSchema = createInsertSchema(settings).omit({
 export const insertObjectSchema = createInsertSchema(objects).omit({
   id: true,
   createdAt: true,
+}).extend({
+  status: z.enum(["active", "closed"]).default("active"),
 });
 
 export const insertPositionSchema = createInsertSchema(positions).omit({
