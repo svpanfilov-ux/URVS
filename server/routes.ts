@@ -549,7 +549,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             username: createUsername(row.manager),
             password: "temp123", // Default password, should be changed on first login
             name: row.manager,
-            role: "object_manager",
+            role: "manager",
             isActive: true
           });
           usersCount++;
@@ -562,7 +562,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             username: createUsername(row.groupManager),
             password: "temp123", // Default password, should be changed on first login
             name: row.groupManager,
-            role: "group_manager",
+            role: "manager",
             isActive: true
           });
           usersCount++;
@@ -578,7 +578,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             description: `Импортировано из CSV`,
             managerId: manager.id,
             groupManagerId: groupManager.id,
-            isActive: true
+            status: "active"
           });
           objectsCount++;
         } catch (error) {
@@ -590,7 +590,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             await storage.updateObject(existingObject.id, {
               managerId: manager.id,
               groupManagerId: groupManager.id,
-              isActive: true
+              status: "active"
             });
           }
         }

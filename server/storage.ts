@@ -12,9 +12,19 @@ import {
   type Object,
   type InsertObject,
   type Position,
-  type InsertPosition
+  type InsertPosition,
+  users,
+  employees,
+  timeEntries,
+  reports,
+  settings,
+  objects,
+  positions
 } from "@shared/schema";
 import { randomUUID } from "crypto";
+import { drizzle } from "drizzle-orm/neon-http";
+import { neon } from "@neondatabase/serverless";
+import { eq } from "drizzle-orm";
 
 export interface IStorage {
   // Users
@@ -566,6 +576,95 @@ export class MemStorage implements IStorage {
   }
 }
 
-// Temporarily use MemStorage with role support until database migration is complete
-// export const storage = new DatabaseStorage();
-export const storage = new MemStorage();
+// Database connection
+const sql = neon(process.env.DATABASE_URL!);
+const db = drizzle(sql);
+
+export class DatabaseStorage implements IStorage {
+  // Users
+  async getUser(id: string): Promise<User | undefined> {
+    const result = await db.select().from(users).where(eq(users.id, id));
+    return result[0];
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const result = await db.select().from(users).where(eq(users.username, username));
+    return result[0];
+  }
+
+  async createUser(insertUser: InsertUser): Promise<User> {
+    const result = await db.insert(users).values(insertUser).returning();
+    return result[0];
+  }
+
+  // Objects
+  async getObjects(): Promise<Object[]> {
+    return db.select().from(objects);
+  }
+
+  async getObject(id: string): Promise<Object | undefined> {
+    const result = await db.select().from(objects).where(eq(objects.id, id));
+    return result[0];
+  }
+
+  async createObject(insertObject: InsertObject): Promise<Object> {
+    const result = await db.insert(objects).values(insertObject).returning();
+    return result[0];
+  }
+
+  async updateObject(id: string, updateData: Partial<InsertObject>): Promise<Object | undefined> {
+    const result = await db.update(objects).set(updateData).where(eq(objects.id, id)).returning();
+    return result[0];
+  }
+
+  async deleteObject(id: string): Promise<boolean> {
+    const result = await db.delete(objects).where(eq(objects.id, id));
+    return result.rowCount > 0;
+  }
+
+  // Employees  
+  async getEmployees(): Promise<Employee[]> {
+    return db.select().from(employees);
+  }
+
+  async getEmployee(id: string): Promise<Employee | undefined> {
+    const result = await db.select().from(employees).where(eq(employees.id, id));
+    return result[0];
+  }
+
+  async createEmployee(insertEmployee: InsertEmployee): Promise<Employee> {
+    const result = await db.insert(employees).values(insertEmployee).returning();
+    return result[0];
+  }
+
+  async updateEmployee(id: string, updateData: Partial<InsertEmployee>): Promise<Employee | undefined> {
+    const result = await db.update(employees).set(updateData).where(eq(employees.id, id)).returning();
+    return result[0];
+  }
+
+  async deleteEmployee(id: string): Promise<boolean> {
+    const result = await db.delete(employees).where(eq(employees.id, id));
+    return result.rowCount > 0;
+  }
+
+  // Stub implementations for other methods
+  async getTimeEntries(): Promise<TimeEntry[]> { return []; }
+  async createTimeEntry(): Promise<TimeEntry> { throw new Error("Not implemented"); }
+  async updateTimeEntry(): Promise<TimeEntry | undefined> { return undefined; }
+  async deleteTimeEntry(): Promise<boolean> { return false; }
+  async getReports(): Promise<Report[]> { return []; }
+  async getReport(): Promise<Report | undefined> { return undefined; }
+  async createReport(): Promise<Report> { throw new Error("Not implemented"); }
+  async updateReport(): Promise<Report | undefined> { return undefined; }
+  async getSettings(): Promise<Setting[]> { return []; }
+  async getSetting(): Promise<Setting | undefined> { return undefined; }
+  async setSetting(): Promise<Setting> { throw new Error("Not implemented"); }
+  async getPositions(): Promise<Position[]> { return []; }
+  async getPosition(): Promise<Position | undefined> { return undefined; }
+  async createPosition(): Promise<Position> { throw new Error("Not implemented"); }
+  async updatePosition(): Promise<Position | undefined> { return undefined; }
+  async deletePosition(): Promise<boolean> { return false; }
+}
+
+// Use PostgreSQL database storage
+export const storage = new DatabaseStorage();
