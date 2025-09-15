@@ -20,7 +20,8 @@ export const employees = pgTable("employees", {
   status: text("status").notNull().default("active"), // active, not_registered, fired
   workSchedule: text("work_schedule").notNull().default("5/2"), // 5/2, 2/2, 3/3, 6/1, вахта (7/0)
   objectId: varchar("object_id").references(() => objects.id),
-  terminationDate: text("termination_date"),
+  hireDate: text("hire_date"), // дата приема
+  terminationDate: text("termination_date"), // дата увольнения
   createdAt: timestamp("created_at").defaultNow(),
 });
 
