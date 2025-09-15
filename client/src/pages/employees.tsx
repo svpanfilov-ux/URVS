@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,17 +11,19 @@ import { apiRequest } from "@/lib/queryClient";
 import { Employee } from "@shared/schema";
 import type { Object as ObjectType } from "@shared/schema";
 import { useObjectStore } from "@/lib/object-store";
-import { Plus, Upload, Download, Edit, Trash2, Search } from "lucide-react";
+import { Plus, Upload, Download, Edit, Trash2, Search, FileSpreadsheet } from "lucide-react";
 
 export default function Employees() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [isImporting, setIsImporting] = useState(false);
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { selectedObjectId } = useObjectStore();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: employees = [], isLoading } = useQuery<Employee[]>({
     queryKey: ["/api/employees", selectedObjectId],
@@ -101,8 +103,67 @@ export default function Employees() {
   };
 
   const handleImportCSV = () => {
-    // TODO: Implement CSV import functionality
-    toast({ title: "Функция импорта CSV будет добавлена", variant: "default" });
+    fileInputRef.current?.click();
+  };
+
+  const handleFileImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (file.type !== 'text/csv' && !file.name.endsWith('.csv')) {
+      toast({ 
+        title: "Ошибка", 
+        description: "Пожалуйста, выберите CSV файл",
+        variant: "destructive" 
+      });
+      return;
+    }
+
+    setIsImporting(true);
+    
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch('/api/import/employees', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        let errorMessage = 'Ошибка импорта';
+        try {
+          const errorResult = await response.json();
+          errorMessage = errorResult.message || errorMessage;
+        } catch {
+          // Fallback if response is not JSON
+          errorMessage = `Ошибка сервера: ${response.status}`;
+        }
+        throw new Error(errorMessage);
+      }
+
+      const result = await response.json();
+      toast({ 
+        title: "Импорт завершён", 
+        description: `Импортировано сотрудников: ${result.employeesCount || 'неизвестно'}` 
+      });
+
+      // Обновляем кэш сотрудников
+      queryClient.invalidateQueries({ queryKey: ["/api/employees"] });
+      
+    } catch (error) {
+      console.error('Import error:', error);
+      toast({ 
+        title: "Ошибка импорта", 
+        description: error instanceof Error ? error.message : "Неизвестная ошибка",
+        variant: "destructive" 
+      });
+    } finally {
+      setIsImporting(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
   };
 
   // Filter employees
@@ -225,21 +286,37 @@ export default function Employees() {
           <Button 
             onClick={handleImportCSV}
             variant="outline"
+            disabled={isImporting}
             data-testid="import-csv"
           >
-            <Download className="h-4 w-4 mr-2" />
-            Импорт CSV
+            <FileSpreadsheet className="h-4 w-4 mr-2" />
+            {isImporting ? "Импорт CSV..." : "Импорт CSV"}
           </Button>
           <Button 
             onClick={handleExportCSV}
             variant="outline"
             data-testid="export-csv"
           >
-            <Upload className="h-4 w-4 mr-2" />
+            <Download className="h-4 w-4 mr-2" />
             Экспорт CSV
           </Button>
         </div>
       </div>
+
+      {/* Format Description */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Формат файла для импорта</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-sm text-muted-foreground space-y-2">
+            <p><strong>Заголовки CSV:</strong> Объект;Сотрудник;Должность;статус;Дата приема;Дата увольнения</p>
+            <p><strong>Пример:</strong> ТЦ Европа;Иван Иванов;Менеджер;Активный;2024-01-15;2024-12-31</p>
+            <p><strong>Статусы:</strong> Активный, Неактивный, Уволен</p>
+            <p><strong>Даты:</strong> Формат ГГГГ-ММ-ДД или оставьте пустым</p>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Search and Filters */}
       <Card>
@@ -269,6 +346,16 @@ export default function Employees() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Hidden file input */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".csv"
+        onChange={handleFileImport}
+        className="hidden"
+        data-testid="file-input-employees"
+      />
 
       {/* Employee Table */}
       {isLoading ? (
