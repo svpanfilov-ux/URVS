@@ -3,7 +3,10 @@ import {
   Users, 
   Calendar, 
   FileText, 
-  Settings
+  Settings,
+  Briefcase,
+  Building2,
+  UserCheck
 } from "lucide-react";
 import { useLocation, Link } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
@@ -21,6 +24,9 @@ const allNavItems: NavItem[] = [
   { id: "dashboard", label: "Главное", icon: Home, path: "/", roles: ["manager", "economist"] },
   { id: "employees", label: "Сотрудники", icon: Users, path: "/employees", roles: ["manager", "economist"] },
   { id: "timesheet", label: "Табель", icon: Calendar, path: "/timesheet", roles: ["manager", "economist"] },
+  { id: "staffing", label: "Штатное расписание", icon: Briefcase, path: "/staffing", roles: ["economist"] },
+  { id: "objects", label: "Объекты", icon: Building2, path: "/objects", roles: ["economist"] },
+  { id: "managers", label: "Менеджеры", icon: UserCheck, path: "/managers", roles: ["economist"] },
   { id: "reports", label: "Отчёты", icon: FileText, path: "/reports", roles: ["manager", "economist"] },
   { id: "settings", label: "Настройки", icon: Settings, path: "/settings", roles: ["economist"] },
 ];

@@ -12,6 +12,9 @@ import Login from "@/pages/login";
 import Dashboard from "@/pages/dashboard";
 import Employees from "@/pages/employees";
 import Timesheet from "@/pages/timesheet";
+import Staffing from "@/pages/staffing";
+import Objects from "@/pages/objects";
+import Managers from "@/pages/managers";
 import Reports from "@/pages/reports";
 import Settings from "@/pages/settings";
 import NotFound from "@/pages/not-found";
@@ -26,6 +29,9 @@ function AuthenticatedApp() {
           <Route path="/" component={Dashboard} />
           <Route path="/employees" component={Employees} />
           <Route path="/timesheet" component={Timesheet} />
+          <Route path="/staffing" component={Staffing} />
+          <Route path="/objects" component={Objects} />
+          <Route path="/managers" component={Managers} />
           <Route path="/reports" component={Reports} />
           <Route path="/settings" component={Settings} />
           <Route component={NotFound} />
