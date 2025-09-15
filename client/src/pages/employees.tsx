@@ -9,6 +9,7 @@ import { EmployeeModal } from "@/components/modals/employee-modal";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { Employee } from "@shared/schema";
+import type { Object as ObjectType } from "@shared/schema";
 import { useObjectStore } from "@/lib/object-store";
 import { Plus, Upload, Download, Edit, Trash2, Search } from "lucide-react";
 
@@ -28,6 +29,10 @@ export default function Employees() {
       const url = selectedObjectId ? `/api/employees?objectId=${selectedObjectId}` : '/api/employees';
       return fetch(url).then(res => res.json());
     },
+  });
+
+  const { data: objects = [] } = useQuery<ObjectType[]>({
+    queryKey: ["/api/objects"],
   });
 
   const createEmployeeMutation = useMutation({
@@ -141,50 +146,59 @@ export default function Employees() {
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">ФИО</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Должность</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Объект</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">График работы</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Статус</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Действия</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {employees.map((employee) => (
-                <tr key={employee.id} className="hover:bg-muted/50" data-testid={`employee-row-${employee.id}`}>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-foreground">{employee.name}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-muted-foreground">{employee.position}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-foreground">
-                      {employee.workSchedule || "5/2"}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {getStatusBadge(employee.status)}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <div className="flex space-x-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleEditEmployee(employee)}
-                        data-testid={`edit-employee-${employee.id}`}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDeleteEmployee(employee.id)}
-                        data-testid={`delete-employee-${employee.id}`}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+              {employees.map((employee) => {
+                const employeeObject = objects.find(obj => obj.id === employee.objectId);
+                return (
+                  <tr key={employee.id} className="hover:bg-muted/50" data-testid={`employee-row-${employee.id}`}>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-medium text-foreground">{employee.name}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-muted-foreground">{employee.position}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-muted-foreground" data-testid={`employee-object-${employee.id}`}>
+                        {employeeObject?.name || "Не указан"}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-medium text-foreground">
+                        {employee.workSchedule || "5/2"}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {getStatusBadge(employee.status)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <div className="flex space-x-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleEditEmployee(employee)}
+                          data-testid={`edit-employee-${employee.id}`}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDeleteEmployee(employee.id)}
+                          data-testid={`delete-employee-${employee.id}`}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
