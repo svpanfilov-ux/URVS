@@ -1,13 +1,9 @@
 import { 
   Home, 
   Users, 
-  UserCheck,
   Calendar, 
   FileText, 
-  Settings,
-  Eye,
-  BarChart3,
-  BookOpen
+  Settings
 } from "lucide-react";
 import { useLocation, Link } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
@@ -22,14 +18,11 @@ interface NavItem {
 }
 
 const allNavItems: NavItem[] = [
-  { id: "dashboard", label: "Главное", icon: Home, path: "/", roles: ["object_manager", "hr_economist", "director", "group_manager"] },
-  { id: "staffing", label: "Штатное расписание", icon: UserCheck, path: "/staffing", roles: ["object_manager", "hr_economist", "group_manager"] },
-  { id: "employees", label: "Сотрудники", icon: Users, path: "/employees", roles: ["object_manager", "hr_economist", "group_manager"] },
-  { id: "timesheet", label: "Табель", icon: Calendar, path: "/timesheet", roles: ["object_manager", "hr_economist", "group_manager"] },
-  { id: "reports", label: "Отчёты", icon: FileText, path: "/reports", roles: ["object_manager", "hr_economist", "director", "group_manager"] },
-  { id: "analytics", label: "Аналитика", icon: BarChart3, path: "/analytics", roles: ["director", "hr_economist"] },
-  { id: "directory", label: "Справочник", icon: BookOpen, path: "/directory", roles: ["hr_economist"] },
-  { id: "settings", label: "Настройки", icon: Settings, path: "/settings", roles: ["hr_economist"] },
+  { id: "dashboard", label: "Главное", icon: Home, path: "/", roles: ["manager", "economist"] },
+  { id: "employees", label: "Сотрудники", icon: Users, path: "/employees", roles: ["manager", "economist"] },
+  { id: "timesheet", label: "Табель", icon: Calendar, path: "/timesheet", roles: ["manager", "economist"] },
+  { id: "reports", label: "Отчёты", icon: FileText, path: "/reports", roles: ["manager", "economist"] },
+  { id: "settings", label: "Настройки", icon: Settings, path: "/settings", roles: ["economist"] },
 ];
 
 export function Navigation() {

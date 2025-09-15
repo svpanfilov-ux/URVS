@@ -440,7 +440,7 @@ export default function Settings() {
 
         {/* About */}
         {/* Data Import for HR Economist */}
-        {user?.role === "hr_economist" && (
+        {user?.role === "economist" && (
           <Card>
             <CardHeader>
               <CardTitle>Управление справочниками</CardTitle>

@@ -89,26 +89,20 @@ export class MemStorage implements IStorage {
       {
         username: "admin",
         password: "admin",
-        role: "hr_economist" as const,
+        role: "economist" as const,
         name: "Экономист по з/п"
-      },
-      {
-        username: "director",
-        password: "director", 
-        role: "director" as const,
-        name: "Директор компании"
       },
       {
         username: "manager1",
         password: "manager1",
-        role: "object_manager" as const, 
+        role: "manager" as const, 
         name: "Менеджер объекта 1"
       },
       {
-        username: "groupmgr",
-        password: "groupmgr",
-        role: "group_manager" as const,
-        name: "Руководитель группы"
+        username: "manager2",
+        password: "manager2",
+        role: "manager" as const, 
+        name: "Менеджер объекта 2"
       }
     ];
 
@@ -131,15 +125,15 @@ export class MemStorage implements IStorage {
         code: "SOLK_SKRU_1", 
         description: "Производственный объект в Соликамске", 
         managerId: userIds.manager1,
-        groupManagerId: userIds.groupmgr,
+        groupManagerId: null,
         isActive: true 
       },
       { 
         name: "ОП Соликамск СКРУ-3", 
         code: "SOLK_SKRU_3", 
         description: "Производственный объект в Соликамске", 
-        managerId: userIds.manager1,
-        groupManagerId: userIds.groupmgr,
+        managerId: userIds.manager2,
+        groupManagerId: null,
         isActive: true 
       },
       { 
@@ -147,7 +141,7 @@ export class MemStorage implements IStorage {
         code: "UPGP_URAY", 
         description: "Газоперерабатывающее предприятие в Урае", 
         managerId: null,
-        groupManagerId: userIds.groupmgr,
+        groupManagerId: null,
         isActive: true 
       },
       { 
@@ -155,7 +149,7 @@ export class MemStorage implements IStorage {
         code: "UPGP_BELOZ", 
         description: "Газоперерабатывающее предприятие Белозерное", 
         managerId: null,
-        groupManagerId: userIds.groupmgr,
+        groupManagerId: null,
         isActive: true 
       },
     ];
@@ -332,7 +326,7 @@ export class MemStorage implements IStorage {
     const user: User = { 
       ...insertUser, 
       id, 
-      role: insertUser.role || "object_manager",
+      role: insertUser.role || "manager",
       isActive: insertUser.isActive ?? true,
       createdAt: new Date()
     };

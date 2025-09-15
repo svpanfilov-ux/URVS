@@ -5,7 +5,7 @@ interface User {
   id: string;
   username: string;
   name: string;
-  role: "object_manager" | "hr_economist" | "director" | "group_manager";
+  role: "manager" | "economist";
   isActive: boolean;
 }
 
@@ -19,6 +19,8 @@ interface AuthState {
   canManageObjects: () => boolean;
   canViewAllObjects: () => boolean;
   isAdmin: () => boolean;
+  isManager: () => boolean;
+  isEconomist: () => boolean;
 }
 
 export const useAuth = create<AuthState>()(
@@ -52,17 +54,27 @@ export const useAuth = create<AuthState>()(
 
       canManageObjects: () => {
         const { user } = get();
-        return user?.role === "hr_economist";
+        return user?.role === "economist";
       },
 
       canViewAllObjects: () => {
         const { user } = get();
-        return user?.role === "director" || user?.role === "hr_economist";
+        return user?.role === "economist";
       },
 
       isAdmin: () => {
         const { user } = get();
-        return user?.role === "hr_economist";
+        return user?.role === "economist";
+      },
+
+      isManager: () => {
+        const { user } = get();
+        return user?.role === "manager";
+      },
+
+      isEconomist: () => {
+        const { user } = get();
+        return user?.role === "economist";
       },
     }),
     {

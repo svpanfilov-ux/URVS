@@ -8,7 +8,7 @@ export const users = pgTable("users", {
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
   name: text("name").notNull(),
-  role: text("role", { enum: ["object_manager", "hr_economist", "director", "group_manager"] }).notNull().default("object_manager"),
+  role: text("role", { enum: ["manager", "economist"] }).notNull().default("manager"),
   isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at").defaultNow(),
 });
@@ -123,7 +123,7 @@ export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
   createdAt: true,
 }).extend({
-  role: z.enum(["object_manager", "hr_economist", "director", "group_manager"]).default("object_manager"),
+  role: z.enum(["manager", "economist"]).default("manager"),
 });
 
 export const insertEmployeeSchema = createInsertSchema(employees).omit({

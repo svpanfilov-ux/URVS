@@ -140,7 +140,8 @@ export default function Reports() {
   };
 
   // Director view - simplified read-only reports table
-  if (user?.role === "director") {
+  // Economist gets director-level view (read-only reports)
+  if (user?.role === "economist") {
     return (
       <div className="space-y-6">
         <div>
@@ -230,7 +231,7 @@ export default function Reports() {
       </div>
 
       {/* Object Manager Action Buttons */}
-      {user?.role === "object_manager" && (
+      {user?.role === "manager" && (
         <Card>
           <CardHeader>
             <CardTitle>Управление отчётами</CardTitle>

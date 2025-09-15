@@ -37,7 +37,7 @@ export default function Staffing() {
   const queryClient = useQueryClient();
   
   // Check if user can edit staffing (only HR economist can edit)
-  const canEdit = user?.role === "hr_economist";
+  const canEdit = user?.role === "economist";
 
   const { data: objects = [] } = useQuery<ObjectType[]>({
     queryKey: ["/api/objects"],

@@ -192,7 +192,7 @@ export default function Dashboard() {
         </Card>
 
         {/* Object Manager specific cards */}
-        {user?.role === "object_manager" && selectedObjectId && (
+        {user?.role === "manager" && selectedObjectId && (
           <>
             <Card>
               <CardContent className="pt-6">
