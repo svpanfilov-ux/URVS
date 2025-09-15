@@ -3,16 +3,20 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import type { Object as ObjectType } from "@shared/schema";
-import { Plus, FileSpreadsheet, Edit, Trash2 } from "lucide-react";
+import { FileSpreadsheet, Edit, Check, X } from "lucide-react";
 
 export default function Objects() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const objectFileInputRef = useRef<HTMLInputElement>(null);
   const [isImporting, setIsImporting] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState<Partial<ObjectType>>({});
 
   const { data: objects = [], isLoading } = useQuery<ObjectType[]>({
     queryKey: ["/api/objects"],
@@ -20,6 +24,22 @@ export default function Objects() {
 
   const { data: users = [] } = useQuery<any[]>({
     queryKey: ["/api/users"],
+  });
+
+  const updateObjectMutation = useMutation({
+    mutationFn: async (data: { id: string; updates: Partial<ObjectType> }) => {
+      const response = await apiRequest("PUT", `/api/objects/${data.id}`, data.updates);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/objects"] });
+      toast({ title: "Объект обновлен успешно" });
+      setEditingId(null);
+      setEditForm({});
+    },
+    onError: () => {
+      toast({ title: "Ошибка при обновлении объекта", variant: "destructive" });
+    },
   });
 
   const handleObjectImportClick = () => {
@@ -92,6 +112,46 @@ export default function Objects() {
     return groupManager?.name || "Не назначен";
   };
 
+  const handleEditStart = (object: ObjectType) => {
+    setEditingId(object.id);
+    setEditForm({
+      name: object.name,
+      code: object.code,
+      description: object.description,
+      managerId: object.managerId,
+      groupManagerId: object.groupManagerId,
+      isActive: object.isActive
+    });
+  };
+
+  const handleEditCancel = () => {
+    setEditingId(null);
+    setEditForm({});
+  };
+
+  const handleEditSave = () => {
+    if (!editingId) return;
+    
+    // Нормализуем данные перед отправкой
+    const updates = {
+      ...editForm,
+      managerId: editForm.managerId || null,
+      groupManagerId: editForm.groupManagerId || null,
+      name: editForm.name?.trim(),
+      code: editForm.code?.trim(),
+      description: editForm.description?.trim() || null
+    };
+    
+    updateObjectMutation.mutate({
+      id: editingId,
+      updates
+    });
+  };
+
+  const handleFormChange = (field: string, value: string | boolean) => {
+    setEditForm(prev => ({ ...prev, [field]: value }));
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
@@ -158,37 +218,156 @@ export default function Objects() {
                     <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Руководитель группы</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Описание</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Статус</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Действия</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
-                  {objects.map((object) => (
-                    <tr key={object.id} className="hover:bg-muted/50" data-testid={`object-row-${object.id}`}>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-foreground">{object.name}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-muted-foreground">{object.code}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-muted-foreground" data-testid={`object-manager-${object.id}`}>
-                          {getManagerName(object.managerId)}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-muted-foreground" data-testid={`object-group-manager-${object.id}`}>
-                          {getGroupManagerName(object.groupManagerId)}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-muted-foreground">{object.description || "—"}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <Badge variant={object.isActive ? "default" : "secondary"}>
-                          {object.isActive ? "Активный" : "Неактивный"}
-                        </Badge>
-                      </td>
-                    </tr>
-                  ))}
+                  {objects.map((object) => {
+                    const isEditing = editingId === object.id;
+                    return (
+                      <tr key={object.id} className="hover:bg-muted/50" data-testid={`object-row-${object.id}`}>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {isEditing ? (
+                            <Input
+                              value={editForm.name || ""}
+                              onChange={(e) => handleFormChange("name", e.target.value)}
+                              className="text-sm"
+                              data-testid={`edit-name-${object.id}`}
+                            />
+                          ) : (
+                            <div className="text-sm font-medium text-foreground">{object.name}</div>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {isEditing ? (
+                            <Input
+                              value={editForm.code || ""}
+                              onChange={(e) => handleFormChange("code", e.target.value)}
+                              className="text-sm"
+                              data-testid={`edit-code-${object.id}`}
+                            />
+                          ) : (
+                            <div className="text-sm text-muted-foreground">{object.code}</div>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {isEditing ? (
+                            <Select
+                              value={editForm.managerId || ""}
+                              onValueChange={(value) => handleFormChange("managerId", value)}
+                            >
+                              <SelectTrigger className="w-full text-sm" data-testid={`edit-manager-${object.id}`}>
+                                <SelectValue placeholder="Выберите менеджера" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="">Не назначен</SelectItem>
+                                {users.map((user) => (
+                                  <SelectItem key={user.id} value={user.id}>
+                                    {user.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          ) : (
+                            <div className="text-sm text-muted-foreground" data-testid={`object-manager-${object.id}`}>
+                              {getManagerName(object.managerId)}
+                            </div>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {isEditing ? (
+                            <Select
+                              value={editForm.groupManagerId || ""}
+                              onValueChange={(value) => handleFormChange("groupManagerId", value)}
+                            >
+                              <SelectTrigger className="w-full text-sm" data-testid={`edit-group-manager-${object.id}`}>
+                                <SelectValue placeholder="Выберите руководителя" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="">Не назначен</SelectItem>
+                                {users.map((user) => (
+                                  <SelectItem key={user.id} value={user.id}>
+                                    {user.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          ) : (
+                            <div className="text-sm text-muted-foreground" data-testid={`object-group-manager-${object.id}`}>
+                              {getGroupManagerName(object.groupManagerId)}
+                            </div>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {isEditing ? (
+                            <Input
+                              value={editForm.description || ""}
+                              onChange={(e) => handleFormChange("description", e.target.value)}
+                              className="text-sm"
+                              placeholder="Описание объекта"
+                              data-testid={`edit-description-${object.id}`}
+                            />
+                          ) : (
+                            <div className="text-sm text-muted-foreground">{object.description || "—"}</div>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {isEditing ? (
+                            <Select
+                              value={editForm.isActive ? "true" : "false"}
+                              onValueChange={(value) => handleFormChange("isActive", value === "true")}
+                            >
+                              <SelectTrigger className="w-full text-sm" data-testid={`edit-status-${object.id}`}>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="true">Активный</SelectItem>
+                                <SelectItem value="false">Неактивный</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          ) : (
+                            <Badge variant={object.isActive ? "default" : "secondary"}>
+                              {object.isActive ? "Активный" : "Неактивный"}
+                            </Badge>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex space-x-2">
+                            {isEditing ? (
+                              <>
+                                <Button
+                                  size="sm"
+                                  onClick={handleEditSave}
+                                  disabled={updateObjectMutation.isPending}
+                                  data-testid={`save-edit-${object.id}`}
+                                >
+                                  <Check className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={handleEditCancel}
+                                  disabled={updateObjectMutation.isPending}
+                                  data-testid={`cancel-edit-${object.id}`}
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              </>
+                            ) : (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleEditStart(object)}
+                                data-testid={`edit-object-${object.id}`}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
