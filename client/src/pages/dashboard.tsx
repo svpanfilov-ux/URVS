@@ -47,11 +47,16 @@ export default function Dashboard() {
     queryKey: ["/api/time-entries"],
   });
 
-  const activeEmployees = employees.filter((emp) => emp.status === "active");
-  const firedEmployees = employees.filter((emp) => emp.status === "fired");
-  const contractEmployees = employees.filter((emp) => emp.status === "not_registered");
+  // Filter employees by selected object for managers
+  const relevantEmployees = user?.role === "manager" && selectedObjectId
+    ? employees.filter(emp => emp.objectId === selectedObjectId)
+    : employees;
+
+  const activeEmployees = relevantEmployees.filter((emp) => emp.status === "active");
+  const firedEmployees = relevantEmployees.filter((emp) => emp.status === "fired");
+  const contractEmployees = relevantEmployees.filter((emp) => emp.status === "not_registered");
   
-  const totalEmployees = employees.length;
+  const totalEmployees = relevantEmployees.length;
   
   // Calculate real deadline days
   const today = new Date();
@@ -59,7 +64,7 @@ export default function Dashboard() {
   const currentYear = today.getFullYear();
   
   // Calculate hired employees this month (for demo purposes, we'll consider those with recent creation)
-  const hiredThisMonth = employees.filter((emp) => {
+  const hiredThisMonth = relevantEmployees.filter((emp) => {
     if (!emp.createdAt) return false;
     const createdDate = new Date(emp.createdAt);
     return createdDate.getMonth() === currentMonth && createdDate.getFullYear() === currentYear;
