@@ -44,16 +44,11 @@ args = "Start application"
 [[workflows.workflow]]
 name = "Start application"
 author = "agent"
+mode = "sequential"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "npm run dev"
-waitForPort = 5000
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "npm run dev"
-waitForPort = 5000
 
 [agent]
 integrations = ["javascript_log_in_with_replit==1.0.0", "javascript_database==1.0.0"]
