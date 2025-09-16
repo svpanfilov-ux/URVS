@@ -13,7 +13,9 @@ import {
   Calendar,
   Briefcase,
   UserX,
-  Building2
+  Building2,
+  BarChart3,
+  PieChart
 } from "lucide-react";
 import { useLocation } from "wouter";
 import { Employee, TimeEntry, Position, Object as ObjectType } from "@shared/schema";
@@ -21,6 +23,7 @@ import { format, getDaysInMonth, differenceInDays, parseISO } from "date-fns";
 import { ru } from "date-fns/locale";
 import { useObjectStore } from "@/lib/object-store";
 import { useAuth } from "@/hooks/useAuth";
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, PieChart as RechartsPieChart, Pie, Cell, Legend } from "recharts";
 
 export default function Dashboard() {
   const [, navigate] = useLocation();
@@ -609,6 +612,101 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
+        {/* Charts section for economists */}
+        {user?.role === "economist" && (
+          <>
+            <div className="grid gap-6 md:grid-cols-2">
+              {/* ФОТ Comparison Chart */}
+              <Card data-testid="fot-comparison-chart">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">
+                    <BarChart3 className="h-4 w-4 inline mr-2" />
+                    Плановый vs Фактический ФОТ
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={200}>
+                    <BarChart data={[
+                      { name: 'Плановый ФОТ', value: plannedPayrollFund },
+                      { name: 'Фактический ФОТ', value: actualPayrollFund }
+                    ]}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="name" fontSize={12} />
+                      <YAxis fontSize={12} tickFormatter={(value) => `${(value / 1000).toFixed(0)}k ₽`} />
+                      <Tooltip formatter={(value) => [`${Number(value).toLocaleString('ru-RU')} ₽`, '']} />
+                      <Bar dataKey="value">
+                        <Cell fill="#4f46e5" />
+                        <Cell fill="#10b981" />
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+
+              {/* Employee Status Distribution */}
+              <Card data-testid="employee-status-chart">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">
+                    <PieChart className="h-4 w-4 inline mr-2" />
+                    Состав сотрудников
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={200}>
+                    <RechartsPieChart>
+                      <Pie
+                        data={[
+                          { name: 'Активные', value: activeEmployees },
+                          { name: 'Уволенные', value: firedEmployees },
+                          { name: 'Договорники', value: contractEmployees },
+                          { name: 'Новые', value: newlyHiredEmployees }
+                        ]}
+                        cx="50%"
+                        cy="50%"
+                        outerRadius={60}
+                        dataKey="value"
+                      >
+                        <Cell fill="#10b981" />
+                        <Cell fill="#ef4444" />
+                        <Cell fill="#f59e0b" />
+                        <Cell fill="#3b82f6" />
+                      </Pie>
+                      <Tooltip formatter={(value, name) => [`${value} чел.`, name]} />
+                      <Legend />
+                    </RechartsPieChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Hours Comparison Chart */}
+            <Card data-testid="hours-comparison-chart">
+              <CardHeader>
+                <CardTitle className="text-sm font-medium">
+                  <BarChart3 className="h-4 w-4 inline mr-2" />
+                  Сравнение часов: норма vs факт
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={250}>
+                  <BarChart data={[
+                    { name: 'Нормочасы', value: monthlyNormHours },
+                    { name: 'Фактические часы', value: actualHours }
+                  ]}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="name" fontSize={12} />
+                    <YAxis fontSize={12} />
+                    <Tooltip formatter={(value) => [`${value} ч`, '']} />
+                    <Bar dataKey="value">
+                      <Cell fill="#4f46e5" />
+                      <Cell fill="#10b981" />
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+          </>
+        )}
 
       </div>
     </div>
