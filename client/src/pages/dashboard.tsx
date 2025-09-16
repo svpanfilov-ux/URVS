@@ -168,6 +168,115 @@ export default function Dashboard() {
   const currentFTE = standardMonthlyHours > 0 ? (actualHours / standardMonthlyHours).toFixed(2) : "0.00";
   const plannedFTE = standardMonthlyHours > 0 ? (monthlyNormHours / standardMonthlyHours).toFixed(2) : "0.00";
 
+  // Calculate planned payroll fund (ФОТ) from staffing schedule
+  const calculatePlannedPayroll = () => {
+    if (!positions.length) return 0;
+    
+    let totalPlannedPayroll = 0;
+    
+    positions.forEach(position => {
+      const { workSchedule, hoursPerShift = 8, positionsCount = 0, hourlyRate, monthlySalary } = position;
+      
+      if (monthlySalary && monthlySalary > 0) {
+        // For salaried positions, multiply salary by positions count
+        totalPlannedPayroll += monthlySalary * positionsCount;
+      } else if (hourlyRate && hourlyRate > 0) {
+        // For hourly positions, calculate monthly hours and multiply by rate
+        let workdaysPerMonth = 0;
+        
+        switch (workSchedule) {
+          case "5/2":
+            workdaysPerMonth = Array.from({ length: daysInCurrentMonth }, (_, i) => {
+              const date = new Date(currentYear, currentMonth, i + 1);
+              const dayOfWeek = date.getDay();
+              return dayOfWeek !== 0 && dayOfWeek !== 6;
+            }).filter(Boolean).length;
+            break;
+          case "2/2":
+            workdaysPerMonth = Math.floor(daysInCurrentMonth / 2);
+            break;
+          case "3/3":
+            workdaysPerMonth = Math.floor(daysInCurrentMonth / 2);
+            break;
+          case "6/1":
+            workdaysPerMonth = Math.floor((daysInCurrentMonth * 6) / 7);
+            break;
+          case "вахта (7/0)":
+            workdaysPerMonth = daysInCurrentMonth;
+            break;
+          default:
+            workdaysPerMonth = Math.floor(daysInCurrentMonth * 5 / 7);
+        }
+        
+        const monthlyHours = Math.max(0, workdaysPerMonth * hoursPerShift);
+        totalPlannedPayroll += monthlyHours * hourlyRate * positionsCount;
+      }
+    });
+    
+    return totalPlannedPayroll;
+  };
+
+  const plannedPayrollFund = calculatePlannedPayroll();
+
+  // Calculate actual payroll fund (ФОТ) from timesheet data  
+  const calculateActualPayroll = () => {
+    let totalActualPayroll = 0;
+    
+    relevantTimeEntries.forEach(entry => {
+      if (typeof entry.hours === 'number' && entry.hours > 0) {
+        // Find employee and their position to get rate
+        const employee = employees.find(emp => emp.id === entry.employeeId);
+        if (employee) {
+          const position = positions.find(pos => 
+            pos.title === employee.position && pos.objectId === employee.objectId
+          );
+          
+          if (position) {
+            if (position.hourlyRate && position.hourlyRate > 0) {
+              totalActualPayroll += entry.hours * position.hourlyRate;
+            } else if (position.monthlySalary && position.monthlySalary > 0) {
+              // For salaried employees, calculate position-specific monthly hours
+              const { workSchedule, hoursPerShift = 8 } = position;
+              let positionWorkdaysPerMonth = 0;
+              
+              switch (workSchedule) {
+                case "5/2":
+                  positionWorkdaysPerMonth = Array.from({ length: daysInCurrentMonth }, (_, i) => {
+                    const date = new Date(currentYear, currentMonth, i + 1);
+                    const dayOfWeek = date.getDay();
+                    return dayOfWeek !== 0 && dayOfWeek !== 6;
+                  }).filter(Boolean).length;
+                  break;
+                case "2/2":
+                  positionWorkdaysPerMonth = Math.floor(daysInCurrentMonth / 2);
+                  break;
+                case "3/3":
+                  positionWorkdaysPerMonth = Math.floor(daysInCurrentMonth / 2);
+                  break;
+                case "6/1":
+                  positionWorkdaysPerMonth = Math.floor((daysInCurrentMonth * 6) / 7);
+                  break;
+                case "вахта (7/0)":
+                  positionWorkdaysPerMonth = daysInCurrentMonth;
+                  break;
+                default:
+                  positionWorkdaysPerMonth = Math.floor(daysInCurrentMonth * 5 / 7);
+              }
+              
+              const positionMonthlyHours = Math.max(1, positionWorkdaysPerMonth * hoursPerShift);
+              const salaryPerHour = position.monthlySalary / positionMonthlyHours;
+              totalActualPayroll += entry.hours * salaryPerHour;
+            }
+          }
+        }
+      }
+    });
+    
+    return totalActualPayroll;
+  };
+
+  const actualPayrollFund = calculateActualPayroll();
+
   // Helper function for proper Russian pluralization
   const getDayWord = (days: number) => {
     if (days % 10 === 1 && days % 100 !== 11) return "день";
@@ -177,8 +286,8 @@ export default function Dashboard() {
 
   // Get objects for current manager
   const managerObjects = user?.role === "manager" 
-    ? objects.filter(obj => obj.managerId === user.id && obj.isActive)
-    : objects.filter(obj => obj.isActive);
+    ? objects.filter(obj => obj.managerId === user.id && obj.status === 'active')
+    : objects.filter(obj => obj.status === 'active');
 
   // Auto-select first object if manager has objects and none selected
   React.useEffect(() => {
@@ -343,6 +452,49 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
+        {/* ФОТ Cards for Economist role */}
+        {user?.role === "economist" && (
+          <>
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Плановый ФОТ</p>
+                    <p className="text-2xl font-semibold text-indigo-600 mt-1" data-testid="planned-payroll">
+                      {plannedPayrollFund.toLocaleString('ru-RU')} ₽
+                    </p>
+                  </div>
+                  <div className="bg-indigo-100 dark:bg-indigo-900/20 p-3 rounded-full">
+                    <Calendar className="text-indigo-600 h-6 w-6" />
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Из штатного расписания за месяц
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Фактический ФОТ</p>
+                    <p className="text-2xl font-semibold text-emerald-600 mt-1" data-testid="actual-payroll">
+                      {actualPayrollFund.toLocaleString('ru-RU')} ₽
+                    </p>
+                  </div>
+                  <div className="bg-emerald-100 dark:bg-emerald-900/20 p-3 rounded-full">
+                    <FileText className="text-emerald-600 h-6 w-6" />
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">
+                  По данным табеля за месяц
+                </p>
+              </CardContent>
+            </Card>
+          </>
+        )}
+
         {/* Object Manager specific cards */}
         {user?.role === "manager" && selectedObjectId && (
           <>
@@ -414,12 +566,46 @@ export default function Dashboard() {
               <span className="text-muted-foreground">Текущий FTE:</span>
               <span className="font-medium text-purple-600" data-testid="current-fte">{currentFTE}</span>
             </div>
-            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 mt-4">
-              <div 
-                className="bg-green-600 h-3 rounded-full" 
-                style={{ width: `${monthlyNormHours > 0 ? (actualHours / monthlyNormHours) * 100 : 0}%` }}
-              />
-            </div>
+            
+            {/* ФОТ metrics for economists */}
+            {user?.role === "economist" && (
+              <>
+                <div className="flex justify-between items-center border-t pt-4 mt-4">
+                  <span className="text-muted-foreground">Плановый ФОТ:</span>
+                  <span className="font-medium text-indigo-600" data-testid="planned-payroll-stat">
+                    {plannedPayrollFund.toLocaleString('ru-RU')} ₽
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-muted-foreground">Фактический ФОТ:</span>
+                  <span className="font-medium text-emerald-600" data-testid="actual-payroll-stat">
+                    {actualPayrollFund.toLocaleString('ru-RU')} ₽
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-muted-foreground">Отклонение ФОТ:</span>
+                  <span className={`font-medium ${actualPayrollFund - plannedPayrollFund >= 0 ? 'text-red-600' : 'text-green-600'}`} data-testid="payroll-deviation">
+                    {(actualPayrollFund - plannedPayrollFund >= 0 ? '+' : '')}{(actualPayrollFund - plannedPayrollFund).toLocaleString('ru-RU')} ₽
+                  </span>
+                </div>
+                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 mt-4">
+                  <div 
+                    className={`h-3 rounded-full ${actualPayrollFund <= plannedPayrollFund ? 'bg-green-600' : 'bg-red-500'}`}
+                    style={{ width: `${plannedPayrollFund > 0 ? Math.min((actualPayrollFund / plannedPayrollFund) * 100, 100) : 0}%` }}
+                  />
+                </div>
+              </>
+            )}
+
+            {/* Hours progress bar for non-economists */}
+            {user?.role !== "economist" && (
+              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 mt-4">
+                <div 
+                  className="bg-green-600 h-3 rounded-full" 
+                  style={{ width: `${monthlyNormHours > 0 ? (actualHours / monthlyNormHours) * 100 : 0}%` }}
+                />
+              </div>
+            )}
           </CardContent>
         </Card>
 

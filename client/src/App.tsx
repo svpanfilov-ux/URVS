@@ -27,6 +27,7 @@ function AuthenticatedApp() {
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <Switch>
           <Route path="/" component={Dashboard} />
+          <Route path="/dashboard" component={Dashboard} />
           <Route path="/employees" component={Employees} />
           <Route path="/timesheet" component={Timesheet} />
           <Route path="/staffing" component={Staffing} />
