@@ -390,7 +390,7 @@ export default function Staffing() {
                                   <SelectItem value="2/2">2/2</SelectItem>
                                   <SelectItem value="3/3">3/3</SelectItem>
                                   <SelectItem value="6/1">6/1</SelectItem>
-                                  <SelectItem value="вахта">вахта (7/0)</SelectItem>
+                                  <SelectItem value="вахта (7/0)">вахта (7/0)</SelectItem>
                                 </>
                               )}
                             </SelectContent>
