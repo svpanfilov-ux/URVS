@@ -659,7 +659,7 @@ export default function Dashboard() {
                           { name: 'Активные', value: activeEmployees },
                           { name: 'Уволенные', value: firedEmployees },
                           { name: 'Договорники', value: contractEmployees },
-                          { name: 'Новые', value: newlyHiredEmployees }
+                          { name: 'Новые', value: hiredThisMonth.length }
                         ]}
                         cx="50%"
                         cy="50%"
