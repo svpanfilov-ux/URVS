@@ -8,8 +8,21 @@ import { Badge } from "@/components/ui/badge";
 import { EmployeeModal } from "@/components/modals/employee-modal";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { Employee } from "@shared/schema";
+import { Employee, Position } from "@shared/schema";
 import type { Object as ObjectType } from "@shared/schema";
+
+// Type for employee/vacancy row in the table
+type EmployeeRow = {
+  id: string;
+  type: 'employee' | 'vacancy';
+  employee?: Employee;
+  position?: Position;
+  name: string;
+  positionTitle: string;
+  objectId: string;
+  workSchedule: string;
+  status: string;
+};
 import { useObjectStore } from "@/lib/object-store";
 import { Plus, Upload, Download, Edit, Trash2, Search, FileSpreadsheet } from "lucide-react";
 
@@ -37,6 +50,80 @@ export default function Employees() {
     queryKey: ["/api/objects"],
   });
 
+  const { data: positions = [], isLoading: isPositionsLoading } = useQuery<Position[]>({
+    queryKey: ["/api/positions", selectedObjectId],
+    queryFn: () => fetch(selectedObjectId ? `/api/positions?objectId=${selectedObjectId}` : "/api/positions").then(r => r.json()),
+  });
+
+  // Create combined rows for employees and vacancies
+  const createEmployeeRows = (): EmployeeRow[] => {
+    const rows: EmployeeRow[] = [];
+    
+    // Filter positions based on selected object if manager role
+    const filteredPositions = positions.filter(position => {
+      if (selectedObjectId) {
+        return position.objectId === selectedObjectId;
+      }
+      return true;
+    });
+
+    // Create rows for each position
+    filteredPositions.forEach(position => {
+      // Check how many positions are needed for this position type
+      const positionsNeeded = position.positionsCount || 1;
+      
+      // Find employees assigned to this position
+      const assignedEmployees = employees.filter(emp => 
+        emp.position === position.title && 
+        emp.objectId === position.objectId &&
+        emp.status !== 'fired'
+      );
+      
+      // Add employee rows for assigned employees
+      assignedEmployees.forEach(employee => {
+        rows.push({
+          id: employee.id,
+          type: 'employee',
+          employee,
+          position,
+          name: employee.name,
+          positionTitle: employee.position || 'Не указано',
+          objectId: employee.objectId || '',
+          workSchedule: employee.workSchedule || position.workSchedule || '5/2',
+          status: employee.status
+        });
+      });
+      
+      // Add vacancy rows for unassigned positions
+      const vacanciesNeeded = Math.max(0, positionsNeeded - assignedEmployees.length);
+      for (let i = 0; i < vacanciesNeeded; i++) {
+        rows.push({
+          id: `vacancy-${position.id}-${i}`,
+          type: 'vacancy',
+          position,
+          name: 'Вакансия',
+          positionTitle: position.title,
+          objectId: position.objectId,
+          workSchedule: position.workSchedule || '5/2',
+          status: 'vacancy'
+        });
+      }
+    });
+
+    return rows.sort((a, b) => {
+      // Sort by position title first, then employees before vacancies
+      if (a.positionTitle !== b.positionTitle) {
+        return a.positionTitle.localeCompare(b.positionTitle, 'ru');
+      }
+      if (a.type !== b.type) {
+        return a.type === 'employee' ? -1 : 1;
+      }
+      return a.name.localeCompare(b.name, 'ru');
+    });
+  };
+
+  const employeeRows = createEmployeeRows();
+
   const createEmployeeMutation = useMutation({
     mutationFn: async (data: any) => {
       const response = await apiRequest("POST", "/api/employees", data);
@@ -44,6 +131,7 @@ export default function Employees() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/employees"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/employees", selectedObjectId] });
       toast({ title: "Сотрудник добавлен успешно" });
     },
     onError: () => {
@@ -58,6 +146,7 @@ export default function Employees() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/employees"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/employees", selectedObjectId] });
       toast({ title: "Сотрудник обновлён успешно" });
     },
     onError: () => {
@@ -71,6 +160,7 @@ export default function Employees() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/employees"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/employees", selectedObjectId] });
       toast({ title: "Сотрудник удалён успешно" });
     },
     onError: () => {
@@ -150,6 +240,7 @@ export default function Employees() {
 
       // Обновляем кэш сотрудников
       queryClient.invalidateQueries({ queryKey: ["/api/employees"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/employees", selectedObjectId] });
       
     } catch (error) {
       console.error('Import error:', error);
@@ -166,10 +257,11 @@ export default function Employees() {
     }
   };
 
-  // Filter employees
-  const filteredEmployees = employees.filter((employee: Employee) => {
-    const matchesSearch = employee.name.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = !statusFilter || statusFilter === "all" || employee.status === statusFilter;
+  // Filter employee rows (employees and vacancies)
+  const filteredEmployeeRows = employeeRows.filter((row: EmployeeRow) => {
+    const matchesSearch = row.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         row.positionTitle.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = !statusFilter || statusFilter === "all" || row.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
@@ -180,6 +272,7 @@ export default function Employees() {
       active: { label: "Активный", className: "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400" },
       not_registered: { label: "Подработка", className: "bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-400" },
       fired: { label: "Уволен", className: "bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400" },
+      vacancy: { label: "Вакансия", className: "bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-400" },
     };
     
     const variant = variants[status as keyof typeof variants] || variants.active;
@@ -191,13 +284,13 @@ export default function Employees() {
     );
   };
 
-  // Single table component without grouping
-  const EmployeeTable = ({ employees }: { employees: Employee[] }) => (
+  // Single table component without grouping  
+  const EmployeeTable = ({ rows }: { rows: EmployeeRow[] }) => (
     <Card>
       <CardHeader className="border-b">
         <CardTitle className="flex items-center justify-between">
-          Список сотрудников
-          <Badge variant="outline">{employees.length}</Badge>
+          Должности и сотрудники
+          <Badge variant="outline">{rows.length}</Badge>
         </CardTitle>
       </CardHeader>
       <CardContent className="p-0">
@@ -214,48 +307,59 @@ export default function Employees() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {employees.map((employee) => {
-                const employeeObject = objects.find(obj => obj.id === employee.objectId);
+              {rows.map((row) => {
+                const rowObject = objects.find(obj => obj.id === row.objectId);
+                const isVacancy = row.type === 'vacancy';
                 return (
-                  <tr key={employee.id} className="hover:bg-muted/50" data-testid={`employee-row-${employee.id}`}>
+                  <tr key={row.id} className={`hover:bg-muted/50 ${isVacancy ? 'bg-orange-50 dark:bg-orange-950/20' : ''}`} data-testid={`row-${row.id}`}>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-foreground">{employee.name}</div>
+                      <div className={`text-sm font-medium ${
+                        isVacancy ? 'text-orange-600 dark:text-orange-400' : 'text-foreground'
+                      }`}>{row.name}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-muted-foreground">{employee.position}</div>
+                      <div className={`text-sm ${
+                        isVacancy ? 'text-orange-500 dark:text-orange-300' : 'text-muted-foreground'
+                      }`}>{row.positionTitle}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-muted-foreground" data-testid={`employee-object-${employee.id}`}>
-                        {employeeObject?.name || "Не указан"}
+                      <div className="text-sm text-muted-foreground" data-testid={`row-object-${row.id}`}>
+                        {rowObject?.name || "Не указан"}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-foreground">
-                        {employee.workSchedule || "5/2"}
+                        {row.workSchedule || "5/2"}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      {getStatusBadge(employee.status)}
+                      {getStatusBadge(row.status)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <div className="flex space-x-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleEditEmployee(employee)}
-                          data-testid={`edit-employee-${employee.id}`}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDeleteEmployee(employee.id)}
-                          data-testid={`delete-employee-${employee.id}`}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
+                      {!isVacancy ? (
+                        <div className="flex space-x-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleEditEmployee(row.employee!)}
+                            data-testid={`edit-employee-${row.id}`}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDeleteEmployee(row.id)}
+                            data-testid={`delete-employee-${row.id}`}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="text-xs text-orange-500 dark:text-orange-400">
+                          Требуется найм
+                        </div>
+                      )}
                     </td>
                   </tr>
                 );
@@ -358,10 +462,10 @@ export default function Employees() {
       />
 
       {/* Employee Table */}
-      {isLoading ? (
+      {isLoading || isPositionsLoading ? (
         <div className="text-center py-8">Загрузка...</div>
       ) : (
-        <EmployeeTable employees={filteredEmployees} />
+        <EmployeeTable rows={filteredEmployeeRows} />
       )}
 
       <EmployeeModal
