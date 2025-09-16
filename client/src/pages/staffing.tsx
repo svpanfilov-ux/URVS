@@ -191,11 +191,21 @@ export default function Staffing() {
     setIsImporting(true);
     
     try {
+      // Get token from localStorage for authorization
+      const authStorage = localStorage.getItem('auth-storage');
+      const token = authStorage ? JSON.parse(authStorage).state?.token : null;
+      
       const formData = new FormData();
       formData.append('file', file);
 
+      const headers: Record<string, string> = {};
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+
       const response = await fetch('/api/import/staffing', {
         method: 'POST',
+        headers,
         body: formData,
       });
 
@@ -233,8 +243,58 @@ export default function Staffing() {
     }
   };
 
-  const handleExportStaffing = () => {
-    window.open("/api/positions/export/csv", "_blank");
+  const handleExportStaffing = async () => {
+    try {
+      // Get token from localStorage for authorization
+      const authStorage = localStorage.getItem('auth-storage');
+      const token = authStorage ? JSON.parse(authStorage).state?.token : null;
+      
+      const headers: Record<string, string> = {};
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+
+      const response = await fetch('/api/positions/export/csv', {
+        method: 'GET',
+        headers,
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        let errorMessage = 'Ошибка экспорта';
+        try {
+          const errorResult = await response.json();
+          errorMessage = errorResult.message || errorMessage;
+        } catch {
+          errorMessage = `Ошибка сервера: ${response.status}`;
+        }
+        throw new Error(errorMessage);
+      }
+
+      // Create blob and download
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `staffing-${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      toast({ 
+        title: "Экспорт завершён", 
+        description: "Файл штатного расписания сохранён" 
+      });
+      
+    } catch (error) {
+      console.error('Export error:', error);
+      toast({ 
+        title: "Ошибка экспорта", 
+        description: error instanceof Error ? error.message : "Неизвестная ошибка",
+        variant: "destructive" 
+      });
+    }
   };
 
   const getObjectName = (objectId: string) => {

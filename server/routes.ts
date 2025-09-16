@@ -1,4 +1,4 @@
-import type { Express } from "express";
+import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertUserSchema, insertEmployeeSchema, insertTimeEntrySchema, insertReportSchema, insertSettingSchema, insertObjectSchema, insertPositionSchema } from "@shared/schema";
@@ -10,6 +10,49 @@ const loginSchema = z.object({
   username: z.string(),
   password: z.string(),
 });
+
+// Authorization middleware
+interface AuthRequest extends Request {
+  user?: any;
+}
+
+async function requireAuth(req: AuthRequest, res: Response, next: NextFunction) {
+  try {
+    const authHeader = req.headers.authorization;
+    const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
+    
+    if (!token || !token.startsWith('session-')) {
+      return res.status(401).json({ message: "Требуется авторизация" });
+    }
+    
+    const userId = token.replace('session-', '');
+    const user = await storage.getUsers().then(users => users.find(u => u.id === userId));
+    
+    if (!user || !user.isActive) {
+      return res.status(401).json({ message: "Недействительный токен" });
+    }
+    
+    req.user = user;
+    next();
+  } catch (error) {
+    console.error("Auth middleware error:", error);
+    res.status(401).json({ message: "Ошибка авторизации" });
+  }
+}
+
+function requireRole(role: string) {
+  return (req: AuthRequest, res: Response, next: NextFunction) => {
+    if (!req.user) {
+      return res.status(401).json({ message: "Требуется авторизация" });
+    }
+    
+    if (req.user.role !== role) {
+      return res.status(403).json({ message: "Недостаточно прав доступа" });
+    }
+    
+    next();
+  };
+}
 
 // Multer configuration for file upload
 const upload = multer({
@@ -640,7 +683,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Import staffing schedule from CSV
-  app.post("/api/import/staffing", upload.single("file"), async (req, res) => {
+  app.post("/api/import/staffing", requireAuth, requireRole("economist"), upload.single("file"), async (req, res) => {
     if (!req.file) {
       return res.status(400).json({ message: "Файл не найден" });
     }
@@ -657,9 +700,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const header = lines[0].replace(/^\uFEFF/, '').split(';');
       const dataLines = lines.slice(1);
 
-      // Expected columns: Объект;Должность;График работы;Оклад (тариф)
-      const expectedColumns = ['Объект', 'Должность', 'График работы', 'Оклад (тариф)'];
-      if (header.length < 4) {
+      // Expected columns: Объект;Должность;График работы;Оклад (тариф);Количество ставок;Тип оплат
+      const expectedColumns = ['Объект', 'Должность', 'График работы', 'Оклад (тариф)', 'Количество ставок', 'Тип оплат'];
+      if (header.length < 6) {
         return res.status(400).json({ 
           message: `Неправильный формат файла. Ожидается: ${expectedColumns.join(';')}` 
         });
@@ -677,11 +720,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       for (const line of dataLines) {
         const columns = line.split(';');
-        if (columns.length < 4) continue;
+        if (columns.length < 6) continue;
 
-        const [objectName, position, workSchedule, salaryStr] = columns.map(col => col.trim());
+        const [objectName, position, workSchedule, salaryStr, positionsCountStr, paymentTypeStr] = columns.map(col => col.trim());
         
-        if (!objectName || !position || !salaryStr) continue;
+        if (!objectName || !position || !salaryStr || !positionsCountStr || !paymentTypeStr) continue;
 
         const objectId = objectMap.get(objectName);
         if (!objectId) {
@@ -698,24 +741,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
           continue;
         }
 
-        // Group positions by object and title
+        // Parse positions count
+        const positionsCount = parseInt(positionsCountStr.replace(/\s/g, ''));
+        if (isNaN(positionsCount) || positionsCount < 1) {
+          console.warn(`Invalid positions count: ${positionsCountStr}`);
+          skippedRows++;
+          continue;
+        }
+
+        // Parse payment type
+        const paymentType = paymentTypeStr.toLowerCase().includes('оклад') ? 'salary' : 'hourly';
+
+        // Create unique position entry
         if (!staffingData.has(objectId)) {
           staffingData.set(objectId, new Map());
         }
         
         const objectPositions = staffingData.get(objectId);
-        const positionKey = `${position}_${workSchedule}`;
+        const positionKey = `${position}_${workSchedule}_${paymentType}_${salary}`;
         
         if (!objectPositions.has(positionKey)) {
           objectPositions.set(positionKey, {
             title: position,
-            workSchedule: workSchedule || "Основной",
+            workSchedule: workSchedule || "5/2",
             salary: salary,
-            count: 0
+            paymentType: paymentType,
+            count: positionsCount
           });
+        } else {
+          objectPositions.get(positionKey).count += positionsCount;
         }
         
-        objectPositions.get(positionKey).count++;
         processedRows++;
       }
 
@@ -724,26 +780,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       for (const [objectId, positions] of Array.from(staffingData.entries())) {
         for (const [, positionData] of Array.from((positions as Map<string, any>).entries())) {
           try {
-            // Determine payment type based on salary value
-            let paymentType = "salary";
-            let monthlySalary = positionData.salary;
+            // Use the payment type from CSV data
             let hourlyRate = null;
+            let monthlySalary = null;
 
-            // If salary is less than 1000, assume it's hourly rate
-            if (positionData.salary < 1000) {
-              paymentType = "hourly";
-              hourlyRate = Math.round(positionData.salary * 100); // Convert to kopecks
-              monthlySalary = null;
+            if (positionData.paymentType === "hourly") {
+              hourlyRate = positionData.salary;
+            } else {
+              monthlySalary = positionData.salary;
             }
 
             await storage.createPosition({
               objectId,
               title: positionData.title,
               workSchedule: normalizeWorkSchedule(positionData.workSchedule) as "5/2" | "2/2" | "3/3" | "6/1" | "вахта",
-              paymentType: paymentType as "hourly" | "salary",
+              paymentType: positionData.paymentType as "hourly" | "salary",
               hoursPerShift: 8,
-              hourlyRate: hourlyRate || undefined,
-              monthlySalary: monthlySalary || undefined,
+              hourlyRate: hourlyRate,
+              monthlySalary: monthlySalary,
               positionsCount: positionData.count,
               isActive: true
             });
@@ -758,11 +812,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
         message: "Импорт штатного расписания завершён успешно",
         processedRows,
         skippedRows,
-        createdPositions
+        positionsCount: createdPositions
       });
     } catch (error) {
       console.error("Error importing staffing:", error);
       res.status(500).json({ message: "Ошибка при импорте файла" });
+    }
+  });
+
+  // Export positions to CSV
+  app.get("/api/positions/export/csv", requireAuth, requireRole("economist"), async (req, res) => {
+    try {
+      const positions = await storage.getPositions();
+      const objects = await storage.getObjects();
+      
+      // Create object lookup map
+      const objectMap = new Map();
+      objects.forEach(obj => {
+        objectMap.set(obj.id, obj.name);
+      });
+
+      const csvHeader = "Объект;Должность;График работы;Оклад (тариф);Количество ставок;Тип оплат\n";
+      const csvData = positions.map(pos => {
+        const objectName = objectMap.get(pos.objectId) || "Не указан";
+        const salary = pos.paymentType === "salary" ? pos.monthlySalary || 0 : pos.hourlyRate || 0;
+        const paymentType = pos.paymentType === "salary" ? "Оклад" : "Почасовая";
+        
+        return `"${objectName}";"${pos.title}";"${pos.workSchedule}";"${salary}";"${pos.positionsCount}";"${paymentType}"`;
+      }).join("\n");
+      
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      res.setHeader('Content-Disposition', 'attachment; filename="staffing_schedule.csv"');
+      res.send(csvHeader + csvData);
+    } catch (error) {
+      console.error("Error exporting positions:", error);
+      res.status(500).json({ message: "Ошибка экспорта данных" });
     }
   });
 
