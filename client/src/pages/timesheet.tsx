@@ -47,8 +47,9 @@ export default function Timesheet() {
     },
   });
 
-  const { data: positions = [] } = useQuery<Position[]>({
-    queryKey: selectedObjectId ? ["/api/positions", { objectId: selectedObjectId }] : ["/api/positions"],
+  const { data: positions = [], isLoading: isPositionsLoading } = useQuery<Position[]>({
+    queryKey: ["/api/positions", selectedObjectId],
+    queryFn: () => fetch(selectedObjectId ? `/api/positions?objectId=${selectedObjectId}` : "/api/positions").then(r => r.json()),
   });
 
   const updateTimeEntryMutation = useMutation({
