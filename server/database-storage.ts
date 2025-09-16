@@ -1,4 +1,4 @@
-import { eq, and } from "drizzle-orm";
+import { eq, and, gte, lte } from "drizzle-orm";
 import { db } from "./db";
 import { 
   users,
@@ -8,9 +8,6 @@ import {
   settings,
   objects,
   positions,
-  budgets,
-  additionalPayments,
-  timesheetStatus,
   type User,
   type InsertUser,
   type Employee,
@@ -24,13 +21,7 @@ import {
   type Object,
   type InsertObject,
   type Position,
-  type InsertPosition,
-  type Budget,
-  type InsertBudget,
-  type AdditionalPayment,
-  type InsertAdditionalPayment,
-  type TimesheetStatus,
-  type InsertTimesheetStatus
+  type InsertPosition
 } from "@shared/schema";
 import { IStorage } from "./storage";
 
@@ -51,37 +42,19 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
+  async getUsers(): Promise<User[]> {
+    return await db.select().from(users).orderBy(users.name);
+  }
+
   async updateUser(id: string, updateData: Partial<InsertUser>): Promise<User | undefined> {
     const [user] = await db.update(users).set(updateData).where(eq(users.id, id)).returning();
     return user || undefined;
   }
 
-  async deleteUser(id: string): Promise<boolean> {
-    const result = await db.delete(users).where(eq(users.id, id));
-    return result.rowCount! > 0;
-  }
 
-  async getUsers(): Promise<User[]> {
-    return await db.select().from(users).orderBy(users.name);
-  }
-
-  // Employees - with role-based access control
-  async getEmployees(objectId?: string, userId?: string, userRole?: string): Promise<Employee[]> {
-    let query = db.select().from(employees);
-
-    if (userRole === "object_manager" && objectId) {
-      query = query.where(eq(employees.objectId, objectId));
-    } else if (userRole === "group_manager" && userId) {
-      // Get objects managed by this group manager
-      const managedObjects = await db.select().from(objects).where(eq(objects.groupManagerId, userId));
-      if (managedObjects.length > 0) {
-        const objectIds = managedObjects.map(obj => obj.id);
-        query = query.where(employees.objectId.in(objectIds));
-      }
-    }
-    // director and hr_economist see all employees
-
-    return await query.orderBy(employees.name);
+  // Employees
+  async getEmployees(): Promise<Employee[]> {
+    return await db.select().from(employees).orderBy(employees.name);
   }
 
   async getEmployee(id: string): Promise<Employee | undefined> {
@@ -104,31 +77,20 @@ export class DatabaseStorage implements IStorage {
     return result.rowCount! > 0;
   }
 
-  // Time Entries - with access control
-  async getTimeEntries(period?: string, objectId?: string, userId?: string, userRole?: string): Promise<TimeEntry[]> {
-    let query = db.select().from(timeEntries).innerJoin(employees, eq(timeEntries.employeeId, employees.id));
+  // Time Entries
+  async getTimeEntries(employeeId?: string, startDate?: string, endDate?: string): Promise<TimeEntry[]> {
+    let query = db.select().from(timeEntries);
 
-    if (period) {
-      const [year, month] = period.split('-');
-      query = query.where(
-        and(
-          timeEntries.date.like(`${year}-${month.padStart(2, '0')}-%`)
-        )
-      );
+    const conditions = [];
+    if (employeeId) conditions.push(eq(timeEntries.employeeId, employeeId));
+    if (startDate) conditions.push(gte(timeEntries.date, startDate));
+    if (endDate) conditions.push(lte(timeEntries.date, endDate));
+    
+    if (conditions.length > 0) {
+      query = query.where(and(...conditions));
     }
 
-    if (userRole === "object_manager" && objectId) {
-      query = query.where(eq(employees.objectId, objectId));
-    } else if (userRole === "group_manager" && userId) {
-      const managedObjects = await db.select().from(objects).where(eq(objects.groupManagerId, userId));
-      if (managedObjects.length > 0) {
-        const objectIds = managedObjects.map(obj => obj.id);
-        query = query.where(employees.objectId.in(objectIds));
-      }
-    }
-
-    const results = await query.orderBy(timeEntries.date, employees.name);
-    return results.map(r => r.time_entries);
+    return await query.orderBy(timeEntries.date);
   }
 
   async createTimeEntry(insertTimeEntry: InsertTimeEntry): Promise<TimeEntry> {
@@ -166,11 +128,6 @@ export class DatabaseStorage implements IStorage {
     return report || undefined;
   }
 
-  async deleteReport(id: string): Promise<boolean> {
-    const result = await db.delete(reports).where(eq(reports.id, id));
-    return result.rowCount! > 0;
-  }
-
   // Settings
   async getSettings(): Promise<Setting[]> {
     return await db.select().from(settings).orderBy(settings.key);
@@ -192,14 +149,8 @@ export class DatabaseStorage implements IStorage {
     return setting;
   }
 
-  // Objects - with access control
-  async getObjects(userId?: string, userRole?: string): Promise<Object[]> {
-    if (userRole === "object_manager" && userId) {
-      return await db.select().from(objects).where(eq(objects.managerId, userId));
-    } else if (userRole === "group_manager" && userId) {
-      return await db.select().from(objects).where(eq(objects.groupManagerId, userId));
-    }
-    // director and hr_economist see all objects
+  // Objects
+  async getObjects(): Promise<Object[]> {
     return await db.select().from(objects).orderBy(objects.name);
   }
 
@@ -250,74 +201,5 @@ export class DatabaseStorage implements IStorage {
   async deletePosition(id: string): Promise<boolean> {
     const result = await db.delete(positions).where(eq(positions.id, id));
     return result.rowCount! > 0;
-  }
-
-  // Budgets
-  async getBudgets(objectId?: string): Promise<Budget[]> {
-    let query = db.select().from(budgets);
-    if (objectId) {
-      query = query.where(eq(budgets.objectId, objectId));
-    }
-    return await query.orderBy(budgets.year, budgets.month);
-  }
-
-  async getBudget(id: string): Promise<Budget | undefined> {
-    const [budget] = await db.select().from(budgets).where(eq(budgets.id, id));
-    return budget || undefined;
-  }
-
-  async createBudget(insertBudget: InsertBudget): Promise<Budget> {
-    const [budget] = await db.insert(budgets).values(insertBudget).returning();
-    return budget;
-  }
-
-  async updateBudget(id: string, updateData: Partial<InsertBudget>): Promise<Budget | undefined> {
-    const [budget] = await db.update(budgets).set(updateData).where(eq(budgets.id, id)).returning();
-    return budget || undefined;
-  }
-
-  async deleteBudget(id: string): Promise<boolean> {
-    const result = await db.delete(budgets).where(eq(budgets.id, id));
-    return result.rowCount! > 0;
-  }
-
-  // Additional Payments
-  async getAdditionalPayments(objectId?: string, period?: string): Promise<AdditionalPayment[]> {
-    let query = db.select().from(additionalPayments);
-    
-    const conditions = [];
-    if (objectId) conditions.push(eq(additionalPayments.objectId, objectId));
-    if (period) conditions.push(eq(additionalPayments.period, period));
-    
-    if (conditions.length > 0) {
-      query = query.where(and(...conditions));
-    }
-    
-    return await query.orderBy(additionalPayments.createdAt);
-  }
-
-  async createAdditionalPayment(insertPayment: InsertAdditionalPayment): Promise<AdditionalPayment> {
-    const [payment] = await db.insert(additionalPayments).values(insertPayment).returning();
-    return payment;
-  }
-
-  // Timesheet Status
-  async getTimesheetStatus(objectId: string, period: string): Promise<TimesheetStatus | undefined> {
-    const [status] = await db.select().from(timesheetStatus)
-      .where(and(eq(timesheetStatus.objectId, objectId), eq(timesheetStatus.period, period)));
-    return status || undefined;
-  }
-
-  async createTimesheetStatus(insertStatus: InsertTimesheetStatus): Promise<TimesheetStatus> {
-    const [status] = await db.insert(timesheetStatus).values(insertStatus).returning();
-    return status;
-  }
-
-  async updateTimesheetStatus(objectId: string, period: string, updateData: Partial<InsertTimesheetStatus>): Promise<TimesheetStatus | undefined> {
-    const [status] = await db.update(timesheetStatus)
-      .set(updateData)
-      .where(and(eq(timesheetStatus.objectId, objectId), eq(timesheetStatus.period, period)))
-      .returning();
-    return status || undefined;
   }
 }

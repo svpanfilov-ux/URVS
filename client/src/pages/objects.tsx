@@ -223,7 +223,6 @@ export default function Objects() {
                 <thead className="bg-muted/50">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Название</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Код</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Менеджер объекта</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Руководитель группы</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Описание</th>
@@ -246,18 +245,6 @@ export default function Objects() {
                             />
                           ) : (
                             <div className="text-sm font-medium text-foreground">{object.name}</div>
-                          )}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          {isEditing ? (
-                            <Input
-                              value={editForm.code || ""}
-                              onChange={(e) => handleFormChange("code", e.target.value)}
-                              className="text-sm"
-                              data-testid={`edit-code-${object.id}`}
-                            />
-                          ) : (
-                            <div className="text-sm text-muted-foreground">{object.code}</div>
                           )}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">

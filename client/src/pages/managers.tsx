@@ -2,17 +2,21 @@ import { useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import type { User } from "@shared/schema";
-import { Plus, FileSpreadsheet, Edit, Trash2, Upload } from "lucide-react";
+import { Plus, FileSpreadsheet, Edit, Trash2, Upload, Check, X } from "lucide-react";
 
 export default function Managers() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const employeeFileInputRef = useRef<HTMLInputElement>(null);
   const [isImporting, setIsImporting] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState<Partial<User>>({});
 
   const { data: users = [], isLoading } = useQuery<User[]>({
     queryKey: ["/api/users"],
@@ -20,6 +24,22 @@ export default function Managers() {
 
   const { data: objects = [] } = useQuery<any[]>({
     queryKey: ["/api/objects"],
+  });
+
+  const updateUserMutation = useMutation({
+    mutationFn: async (data: { id: string; updates: Partial<User> }) => {
+      const response = await apiRequest("PUT", `/api/users/${data.id}`, data.updates);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      toast({ title: "Менеджер обновлен успешно" });
+      setEditingId(null);
+      setEditForm({});
+    },
+    onError: () => {
+      toast({ title: "Ошибка при обновлении менеджера", variant: "destructive" });
+    },
   });
 
   const handleEmployeeImportClick = () => {
@@ -77,6 +97,40 @@ export default function Managers() {
         employeeFileInputRef.current.value = '';
       }
     }
+  };
+
+  const handleEditStart = (user: User) => {
+    setEditingId(user.id);
+    setEditForm({
+      name: user.name,
+      username: user.username,
+      role: user.role,
+      isActive: user.isActive
+    });
+  };
+
+  const handleEditCancel = () => {
+    setEditingId(null);
+    setEditForm({});
+  };
+
+  const handleEditSave = () => {
+    if (!editingId) return;
+    
+    const updates = {
+      ...editForm,
+      name: editForm.name?.trim(),
+      username: editForm.username?.trim()
+    };
+    
+    updateUserMutation.mutate({
+      id: editingId,
+      updates
+    });
+  };
+
+  const handleFormChange = (field: string, value: string | boolean) => {
+    setEditForm(prev => ({ ...prev, [field]: value }));
   };
 
   // Filter only manager users
@@ -162,21 +216,56 @@ export default function Managers() {
                     <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Роль</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Назначенные объекты</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Статус</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Действия</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
                   {managers.map((manager) => {
                     const managerObjects = getObjectsForManager(manager.id);
+                    const isEditing = editingId === manager.id;
                     return (
                       <tr key={manager.id} className="hover:bg-muted/50" data-testid={`manager-row-${manager.id}`}>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-medium text-foreground">{manager.name}</div>
+                          {isEditing ? (
+                            <Input
+                              value={editForm.name || ""}
+                              onChange={(e) => handleFormChange("name", e.target.value)}
+                              className="text-sm"
+                              data-testid={`edit-manager-name-${manager.id}`}
+                            />
+                          ) : (
+                            <div className="text-sm font-medium text-foreground">{manager.name}</div>
+                          )}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-muted-foreground">{manager.username}</div>
+                          {isEditing ? (
+                            <Input
+                              value={editForm.username || ""}
+                              onChange={(e) => handleFormChange("username", e.target.value)}
+                              className="text-sm"
+                              data-testid={`edit-manager-username-${manager.id}`}
+                            />
+                          ) : (
+                            <div className="text-sm text-muted-foreground">{manager.username}</div>
+                          )}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          {getRoleBadge(manager.role)}
+                          {isEditing ? (
+                            <Select
+                              value={editForm.role || "manager"}
+                              onValueChange={(value) => handleFormChange("role", value)}
+                            >
+                              <SelectTrigger className="w-full text-sm" data-testid={`edit-manager-role-${manager.id}`}>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="manager">Менеджер</SelectItem>
+                                <SelectItem value="economist">Экономист</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          ) : (
+                            getRoleBadge(manager.role)
+                          )}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm text-muted-foreground" data-testid={`manager-objects-${manager.id}`}>
@@ -194,9 +283,58 @@ export default function Managers() {
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <Badge variant={manager.isActive ? "default" : "secondary"}>
-                            {manager.isActive ? "Активный" : "Неактивный"}
-                          </Badge>
+                          {isEditing ? (
+                            <Select
+                              value={editForm.isActive ? "true" : "false"}
+                              onValueChange={(value) => handleFormChange("isActive", value === "true")}
+                            >
+                              <SelectTrigger className="w-full text-sm" data-testid={`edit-manager-status-${manager.id}`}>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="true">Активный</SelectItem>
+                                <SelectItem value="false">Неактивный</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          ) : (
+                            <Badge variant={manager.isActive ? "default" : "secondary"}>
+                              {manager.isActive ? "Активный" : "Неактивный"}
+                            </Badge>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex space-x-2">
+                            {isEditing ? (
+                              <>
+                                <Button
+                                  size="sm"
+                                  onClick={handleEditSave}
+                                  disabled={updateUserMutation.isPending}
+                                  data-testid={`save-manager-edit-${manager.id}`}
+                                >
+                                  <Check className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={handleEditCancel}
+                                  disabled={updateUserMutation.isPending}
+                                  data-testid={`cancel-manager-edit-${manager.id}`}
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              </>
+                            ) : (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleEditStart(manager)}
+                                data-testid={`edit-manager-${manager.id}`}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     );
