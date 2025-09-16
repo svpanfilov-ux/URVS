@@ -13,6 +13,7 @@ import { useObjectStore } from "@/lib/object-store";
 
 export default function Timesheet() {
   const [selectedMonth, setSelectedMonth] = useState("2025-08");
+  const [selectedPeriod, setSelectedPeriod] = useState<"advance" | "salary">("advance");
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -57,7 +58,8 @@ export default function Timesheet() {
   const month = parseInt(selectedMonth.split("-")[1]);
   const daysInMonth = getDaysInMonth(new Date(year, month - 1));
 
-  const days = Array.from({ length: daysInMonth }, (_, i) => {
+  // Generate days for the selected period
+  const allDays = Array.from({ length: daysInMonth }, (_, i) => {
     const day = i + 1;
     const date = new Date(year, month - 1, day);
     const dayOfWeek = date.getDay();
@@ -69,6 +71,15 @@ export default function Timesheet() {
       dayOfWeek: format(date, "EEEEEE", { locale: ru }),
       isWeekend,
     };
+  });
+
+  // Filter days based on selected period
+  const days = allDays.filter(day => {
+    if (selectedPeriod === "advance") {
+      return day.day >= 1 && day.day <= 15;
+    } else {
+      return day.day >= 16;
+    }
   });
 
   // Filter and separate employees into two groups
@@ -126,19 +137,30 @@ export default function Timesheet() {
     }, 0);
   };
 
-  // Calculate planned hours for employee based on 5/2 schedule (8 hours per working day)
+  // Calculate planned hours for employee based on period and work schedule
   const calculatePlannedHours = (employee: Employee) => {
+    // Determine which days to count based on selected period and requirements
+    let daysToCount;
+    
+    if (selectedPeriod === "advance") {
+      // For advance period: count only 1-15 days (as requested)
+      daysToCount = allDays.filter(day => day.day >= 1 && day.day <= 15);
+    } else {
+      // For salary period: count all days in month (as requested)
+      daysToCount = allDays;
+    }
+
     if (employee.status === 'fired' && employee.terminationDate) {
       // For fired employees, count only working days until termination
       const terminationDate = parseISO(employee.terminationDate);
-      const workingDays = days.filter(day => {
+      const workingDays = daysToCount.filter(day => {
         const dayDate = parseISO(day.date);
         return !day.isWeekend && !isAfter(dayDate, terminationDate);
       }).length;
       return workingDays * 8;
     } else {
-      // For active employees, count all working days in month
-      const workingDays = days.filter(day => !day.isWeekend).length;
+      // For active employees, count working days in the specified range
+      const workingDays = daysToCount.filter(day => !day.isWeekend).length;
       return workingDays * 8;
     }
   };
@@ -593,11 +615,30 @@ export default function Timesheet() {
           <Calendar className="h-8 w-8 text-primary" />
           <div>
             <h1 className="text-2xl font-bold">Табель учёта рабочего времени</h1>
-            <p className="text-muted-foreground">Учёт рабочих часов и оценка качества работы</p>
+            <p className="text-muted-foreground">
+              {selectedPeriod === "advance" 
+                ? `Период: Аванс (1-15 ${format(new Date(selectedMonth + "-01"), "MMMM yyyy", { locale: ru })})` 
+                : `Период: Зарплата (16-${daysInMonth} ${format(new Date(selectedMonth + "-01"), "MMMM yyyy", { locale: ru })})`
+              }
+            </p>
           </div>
         </div>
         
         <div className="flex items-center space-x-4">
+          <Select value={selectedPeriod} onValueChange={(value: "advance" | "salary") => setSelectedPeriod(value)}>
+            <SelectTrigger className="w-40" data-testid="select-period">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="advance" data-testid="option-advance">
+                Аванс (1-15)
+              </SelectItem>
+              <SelectItem value="salary" data-testid="option-salary">
+                Зарплата (16-{daysInMonth})
+              </SelectItem>
+            </SelectContent>
+          </Select>
+          
           <Button 
             onClick={handleClearAll} 
             variant="destructive" 
