@@ -700,11 +700,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const header = lines[0].replace(/^\uFEFF/, '').split(';');
       const dataLines = lines.slice(1);
 
-      // Expected columns: Объект;Должность;График работы;Оклад (тариф);Количество ставок;Тип оплат
-      const expectedColumns = ['Объект', 'Должность', 'График работы', 'Оклад (тариф)', 'Количество ставок', 'Тип оплат'];
+      // Expected columns: Объект;Должность;График работы;Оклад (тариф);Количество ставок;Тип оплаты (или Тип оплат)
+      const expectedColumns = ['Объект', 'Должность', 'График работы', 'Оклад (тариф)', 'Количество ставок'];
+      const acceptableHeaders = [
+        'Тип оплат', 'Тип оплаты', 'тип оплат', 'тип оплаты'
+      ];
+      
       if (header.length < 6) {
         return res.status(400).json({ 
-          message: `Неправильный формат файла. Ожидается: ${expectedColumns.join(';')}` 
+          message: `Неправильный формат файла. Ожидается 6 колонок: ${expectedColumns.join(';')};Тип оплаты` 
+        });
+      }
+      
+      // Check if last column is a payment type column
+      const lastColumn = header[5].trim();
+      if (!acceptableHeaders.some(h => h.toLowerCase() === lastColumn.toLowerCase())) {
+        return res.status(400).json({ 
+          message: `Неправильный заголовок в 6-й колонке: "${lastColumn}". Ожидается "Тип оплаты" или "Тип оплат"` 
         });
       }
 
@@ -733,24 +745,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
           continue;
         }
 
-        // Parse salary (remove spaces and convert to number)
-        const salary = parseInt(salaryStr.replace(/\s/g, '').replace(',', ''));
-        if (isNaN(salary)) {
+        // Parse salary (remove spaces, commas and convert to number)
+        const cleanSalaryStr = salaryStr.replace(/\s/g, '').replace(/,/g, '').replace(/\./g, '');
+        const salary = parseFloat(cleanSalaryStr);
+        if (isNaN(salary) || salary < 0) {
           console.warn(`Invalid salary: ${salaryStr}`);
           skippedRows++;
           continue;
         }
 
-        // Parse positions count
-        const positionsCount = parseInt(positionsCountStr.replace(/\s/g, ''));
-        if (isNaN(positionsCount) || positionsCount < 1) {
-          console.warn(`Invalid positions count: ${positionsCountStr}`);
-          skippedRows++;
-          continue;
+        // Parse positions count (handle fractions like "1/2", "1/4")
+        let positionsCount: number;
+        const cleanCountStr = positionsCountStr.replace(/\s/g, '');
+        
+        if (cleanCountStr.includes('/')) {
+          // Handle fractions like "1/2", "1/4"
+          const [numerator, denominator] = cleanCountStr.split('/').map(n => parseInt(n));
+          if (isNaN(numerator) || isNaN(denominator) || denominator === 0) {
+            console.warn(`Invalid fractional positions count: ${positionsCountStr}`);
+            skippedRows++;
+            continue;
+          }
+          positionsCount = numerator / denominator;
+        } else {
+          positionsCount = parseInt(cleanCountStr);
+          if (isNaN(positionsCount) || positionsCount < 0) {
+            console.warn(`Invalid positions count: ${positionsCountStr}`);
+            skippedRows++;
+            continue;
+          }
         }
 
-        // Parse payment type
-        const paymentType = paymentTypeStr.toLowerCase().includes('оклад') ? 'salary' : 'hourly';
+        // Parse payment type - handle both "тариф"/"оклад" and "Почасовая"/"Оклад"
+        const paymentTypeLower = paymentTypeStr.toLowerCase().trim();
+        let paymentType: string;
+        
+        if (paymentTypeLower.includes('тариф') || paymentTypeLower.includes('почасовая')) {
+          paymentType = 'hourly';
+        } else if (paymentTypeLower.includes('оклад') || paymentTypeLower.includes('salary')) {
+          paymentType = 'salary';
+        } else {
+          console.warn(`Unknown payment type: ${paymentTypeStr}, defaulting to salary`);
+          paymentType = 'salary';
+        }
 
         // Create unique position entry
         if (!staffingData.has(objectId)) {
