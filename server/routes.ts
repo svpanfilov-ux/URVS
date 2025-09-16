@@ -462,6 +462,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { objectId } = req.query;
       const positions = await storage.getPositions(objectId as string);
+      
+      // Disable caching to prevent 304 Not Modified responses
+      res.set('Cache-Control', 'no-store');
       res.json(positions);
     } catch (error) {
       console.error("Error fetching positions:", error);

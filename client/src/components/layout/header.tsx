@@ -15,7 +15,7 @@ export function Header() {
     queryKey: ["/api/objects"],
   });
 
-  const activeObjects = objects.filter(obj => obj.isActive);
+  const activeObjects = objects.filter(obj => obj.status === "active");
 
   return (
     <header className="bg-card shadow-lg">
@@ -30,7 +30,7 @@ export function Header() {
           
           <div className="flex items-center space-x-4">
             {/* Object Selector - только если пользователь может работать с объектами */}
-            {(user?.role === "object_manager" || user?.role === "group_manager" || user?.role === "hr_economist") && (
+            {(user?.role === "manager" || user?.role === "economist") && (
               <div className="flex items-center space-x-2">
                 <span className="text-sm font-medium text-foreground whitespace-nowrap">
                   Выбор объекта:

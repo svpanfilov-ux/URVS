@@ -27,6 +27,9 @@ export default function Staffing() {
   
   // Check if user can edit staffing (only HR economist can edit)
   const canEdit = user?.role === "economist";
+  
+  // For managers, show only their assigned object positions
+  const isManager = user?.role === "manager";
 
   const { data: objects = [] } = useQuery<ObjectType[]>({
     queryKey: ["/api/objects"],
@@ -84,7 +87,16 @@ export default function Staffing() {
   // Filter positions
   const filteredPositions = positions.filter((position: Position) => {
     const matchesSearch = position.title.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesObject = selectedObjectFilter === "all" || position.objectId === selectedObjectFilter;
+    
+    // For managers, show only positions from their selected object
+    let matchesObject = true;
+    if (isManager) {
+      matchesObject = selectedObjectId ? position.objectId === selectedObjectId : false;
+    } else {
+      // For economists, use the object filter
+      matchesObject = selectedObjectFilter === "all" || position.objectId === selectedObjectFilter;
+    }
+    
     return matchesSearch && matchesObject;
   });
 
@@ -375,21 +387,23 @@ export default function Staffing() {
             />
           </div>
         </div>
-        <div className="sm:w-48">
-          <Select value={selectedObjectFilter} onValueChange={setSelectedObjectFilter}>
-            <SelectTrigger data-testid="select-object-filter">
-              <SelectValue placeholder="Все объекты" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Все объекты</SelectItem>
-              {objects.map((object) => (
-                <SelectItem key={object.id} value={object.id}>
-                  {object.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+        {!isManager && (
+          <div className="sm:w-48">
+            <Select value={selectedObjectFilter} onValueChange={setSelectedObjectFilter}>
+              <SelectTrigger data-testid="select-object-filter">
+                <SelectValue placeholder="Все объекты" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Все объекты</SelectItem>
+                {objects.map((object) => (
+                  <SelectItem key={object.id} value={object.id}>
+                    {object.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
       </div>
 
       {/* Staffing Table */}

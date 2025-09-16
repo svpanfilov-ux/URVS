@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -8,8 +8,19 @@ import { apiRequest } from "@/lib/queryClient";
 import { format, getDaysInMonth, parseISO, isAfter } from "date-fns";
 import { ru } from "date-fns/locale";
 import { Wand2, Calendar } from "lucide-react";
-import { Employee, TimeEntry } from "@shared/schema";
+import { Employee, TimeEntry, Position } from "@shared/schema";
 import { useObjectStore } from "@/lib/object-store";
+
+// Type for timesheet row that can be either an employee or a vacancy
+type TimesheetRow = {
+  id: string;
+  type: 'employee' | 'vacancy';
+  employee?: Employee;
+  position?: Position;
+  name: string;
+  positionTitle: string;
+  status: string;
+};
 
 export default function Timesheet() {
   const [selectedMonth, setSelectedMonth] = useState("2025-08");
@@ -34,6 +45,10 @@ export default function Timesheet() {
       const response = await fetch(`/api/time-entries?startDate=${startDate}&endDate=${endDate}`);
       return response.json();
     },
+  });
+
+  const { data: positions = [] } = useQuery<Position[]>({
+    queryKey: selectedObjectId ? ["/api/positions", { objectId: selectedObjectId }] : ["/api/positions"],
   });
 
   const updateTimeEntryMutation = useMutation({
@@ -71,27 +86,73 @@ export default function Timesheet() {
     };
   });
 
-  // Filter and separate employees into two groups
-  const allVisibleEmployees = employees.filter((emp) => {
-    if (emp.status === "active" || emp.status === "not_registered") {
-      return true;
-    }
-    if (emp.status === "fired" && emp.terminationDate) {
-      // Show fired employees if current month is same or before their termination month
-      const terminationMonth = emp.terminationDate.substring(0, 7); // YYYY-MM format
-      return selectedMonth <= terminationMonth;
-    }
-    return false;
-  });
+  // Create combined timesheet rows from employees and positions
+  const createTimesheetRows = (): TimesheetRow[] => {
+    const rows: TimesheetRow[] = [];
+    
+    // Filter visible employees
+    const allVisibleEmployees = employees.filter((emp) => {
+      if (emp.status === "active" || emp.status === "not_registered") {
+        return true;
+      }
+      if (emp.status === "fired" && emp.terminationDate) {
+        // Show fired employees if current month is same or before their termination month
+        const terminationMonth = emp.terminationDate.substring(0, 7); // YYYY-MM format
+        return selectedMonth <= terminationMonth;
+      }
+      return false;
+    });
 
-  // Separate employees into active and part-time workers (including fired employees in their sections)
-  // For now, all fired employees go to active section since we don't track original status
-  const activeEmployees = allVisibleEmployees.filter(emp => 
-    emp.status === "active" || emp.status === "fired"
+    // Add employees to rows
+    allVisibleEmployees.forEach(emp => {
+      rows.push({
+        id: emp.id,
+        type: 'employee',
+        employee: emp,
+        name: emp.name,
+        positionTitle: emp.position || 'Не указано',
+        status: emp.status,
+      });
+    });
+
+    // Add vacancies for positions without assigned employees
+    positions.forEach(position => {
+      // Check if we need multiple vacancies for this position (positionsCount > 1)
+      const assignedEmployeesCount = allVisibleEmployees.filter(emp => 
+        emp.position === position.title && emp.objectId === position.objectId
+      ).length;
+      
+      const vacanciesNeeded = Math.max(0, position.positionsCount - assignedEmployeesCount);
+      
+      for (let i = 0; i < vacanciesNeeded; i++) {
+        rows.push({
+          id: `vacancy-${position.id}-${i}`,
+          type: 'vacancy',
+          position,
+          name: 'Вакансия',
+          positionTitle: position.title,
+          status: 'vacancy',
+        });
+      }
+    });
+
+    return rows;
+  };
+
+  const timesheetRows = createTimesheetRows();
+
+  // Separate rows into active and part-time workers  
+  const activeEmployeeRows = timesheetRows.filter(row => 
+    (row.type === 'employee' && (row.employee?.status === "active" || row.employee?.status === "fired")) ||
+    row.type === 'vacancy'
   );
-  const partTimeEmployees = allVisibleEmployees.filter(emp => 
-    emp.status === "not_registered"
+  const partTimeEmployeeRows = timesheetRows.filter(row => 
+    row.type === 'employee' && row.employee?.status === "not_registered"
   );
+
+  // Keep old variables for compatibility
+  const activeEmployees = activeEmployeeRows.filter(row => row.type === 'employee').map(row => row.employee!);
+  const partTimeEmployees = partTimeEmployeeRows.map(row => row.employee!);
 
   const getTimeEntry = (employeeId: string, date: string) => {
     return timeEntries.find((entry: TimeEntry) => 
@@ -147,6 +208,55 @@ export default function Timesheet() {
   const hasInsufficientHours = (employee: Employee, actualHours: number) => {
     const plannedHours = calculatePlannedHours(employee);
     return actualHours < plannedHours;
+  };
+
+  // Optimize timeEntries lookup with memoized index
+  const timeEntriesMap = useMemo(() => {
+    const map = new Map<string, TimeEntry[]>();
+    timeEntries.forEach((entry: TimeEntry) => {
+      if (!map.has(entry.employeeId)) {
+        map.set(entry.employeeId, []);
+      }
+      map.get(entry.employeeId)!.push(entry);
+    });
+    return map;
+  }, [timeEntries]);
+
+  // Helper functions for TimesheetRow
+  const getRowTotalHours = (row: TimesheetRow): number => {
+    if (row.type === 'vacancy') return 0;
+    const entries = timeEntriesMap.get(row.id) || [];
+    return entries
+      .filter((entry: TimeEntry) => typeof entry.hours === 'number')
+      .reduce((sum: number, entry: TimeEntry) => sum + (entry.hours || 0), 0);
+  };
+
+  const getRowPlannedHours = (row: TimesheetRow): number => {
+    if (row.type === 'vacancy') {
+      // Calculate planned hours based on position work schedule
+      const workingDays = days.filter(day => !day.isWeekend).length;
+      const hoursPerShift = row.position?.hoursPerShift || 8;
+      return workingDays * hoursPerShift;
+    } else {
+      return calculatePlannedHours(row.employee!);
+    }
+  };
+
+  // Group-level totals for TimesheetRow arrays
+  const getGroupTotalHours = (rows: TimesheetRow[]): number => {
+    return rows.reduce((total, row) => total + getRowTotalHours(row), 0);
+  };
+
+  const getGroupPlannedHours = (rows: TimesheetRow[]): number => {
+    return rows.reduce((total, row) => total + getRowPlannedHours(row), 0);
+  };
+
+  const isRowCellLocked = (row: TimesheetRow, date: string): boolean => {
+    // Vacancies are always locked
+    if (row.type === 'vacancy') return true;
+    
+    // Normal lock logic for employees
+    return isCellLocked(date) || (row.employee ? isCellTerminated(row.employee, date) : false);
   };
 
   const handleCellChange = (employeeId: string, date: string, value: string | number, qualityScore?: number) => {
@@ -672,62 +782,70 @@ export default function Timesheet() {
 
             {/* Body - Active Employees Section */}
             <tbody>
-              {/* Active Employees Header */}
-              {activeEmployees.length > 0 && (
+              {/* Active Employees & Vacancies Header */}
+              {activeEmployeeRows.length > 0 && (
                 <tr className="bg-blue-50 dark:bg-blue-950/20">
                   <td colSpan={days.length + 3} className="p-2 font-semibold text-sm text-blue-800 dark:text-blue-200">
-                    Активные сотрудники
+                    Активные сотрудники и вакансии
                   </td>
                 </tr>
               )}
               
-              {/* Active Employees Rows */}
-              {activeEmployees.map((employee) => {
-                const totalHours = timeEntries
-                  .filter((entry: TimeEntry) => entry.employeeId === employee.id && typeof entry.hours === 'number')
-                  .reduce((sum: number, entry: TimeEntry) => sum + (entry.hours || 0), 0);
-                
-                const insufficientHours = hasInsufficientHours(employee, totalHours);
+              {/* Active Employees & Vacancies Rows */}
+              {activeEmployeeRows.map((row) => {
+                const totalHours = getRowTotalHours(row);
+                const plannedHours = getRowPlannedHours(row);
+                const insufficientHours = row.type === 'employee' ? hasInsufficientHours(row.employee!, totalHours) : false;
+                const isVacancy = row.type === 'vacancy';
 
                 return (
                   <tr 
-                    key={employee.id} 
-                    className={`hover:bg-muted/30 ${employee.status === "fired" ? "opacity-75" : ""} ${
+                    key={row.id} 
+                    className={`hover:bg-muted/30 ${row.employee?.status === "fired" ? "opacity-75" : ""} ${
                       insufficientHours ? "border-b-2 border-red-500" : ""
-                    }`}
+                    } ${isVacancy ? "bg-gray-50 dark:bg-gray-900/20" : ""}`}
                   >
                     <td className="sticky left-0 z-10 bg-background border-r p-1 font-medium">
                       <div className={`text-[10px] truncate max-w-28 ${
                         insufficientHours ? "text-red-600 font-bold" : ""
-                      }`} title={employee.name}>
-                        {employee.name}{employee.status === "fired" ? " (уволен)" : ""}
+                      } ${isVacancy ? "text-orange-600 font-semibold" : ""}`} title={row.name}>
+                        {row.name}{row.employee?.status === "fired" ? " (уволен)" : ""}
                       </div>
                       <div className={`text-[8px] truncate ${
                         insufficientHours ? "text-red-500 font-semibold" : "text-muted-foreground"
-                      }`}>
-                        {employee.position}
+                      } ${isVacancy ? "text-orange-500" : ""}`}>
+                        {row.positionTitle}
                       </div>
                     </td>
                     {days.map((day) => {
-                      const entry = getTimeEntry(employee.id, day.date);
-                      const isTerminated = isCellTerminated(employee, day.date);
-                      const isLocked = isCellLocked(day.date);
+                      const entry = row.type === 'employee' ? getTimeEntry(row.id, day.date) : null;
+                      const isRowLocked = isRowCellLocked(row, day.date);
                       
                       return (
                         <td key={day.date} className="p-0">
                           <TimesheetCell
                             value={entry?.hours !== null ? entry?.hours : entry?.dayType}
                             qualityScore={entry?.qualityScore || 3}
-                            isLocked={isLocked}
-                            isTerminated={isTerminated}
-                            employeeId={employee.id}
+                            isLocked={isRowLocked}
+                            isTerminated={row.type === 'employee' ? isCellTerminated(row.employee!, day.date) : false}
+                            employeeId={row.type === 'employee' ? row.id : ''}
                             date={day.date}
                             isPartTime={false}
-                            onChange={(value, qualityScore) => 
-                              handleCellChange(employee.id, day.date, value, qualityScore)
-                            }
-                            onClearRow={() => handleClearRow(employee.id)}
-                            onFillBySchedule={() => handleFillBySchedule(employee.id, entry?.hours !== null ? entry?.hours : entry?.dayType, entry?.qualityScore || undefined)}
+                            onChange={(value, qualityScore) => {
+                              if (row.type === 'employee') {
+                                handleCellChange(row.id, day.date, value, qualityScore);
+                              }
+                            }}
+                            onClearRow={() => {
+                              if (row.type === 'employee') {
+                                handleClearRow(row.id);
+                              }
+                            }}
+                            onFillBySchedule={() => {
+                              if (row.type === 'employee' && entry) {
+                                handleFillBySchedule(row.id, entry?.hours !== null ? entry?.hours : entry?.dayType, entry?.qualityScore || undefined);
+                              }
+                            }}
                           />
                         </td>
                       );
@@ -736,14 +854,14 @@ export default function Timesheet() {
                       <div className="text-[9px]">{totalHours}</div>
                     </td>
                     <td className="border-r p-1 text-center font-bold bg-green-50 dark:bg-green-950/20">
-                      <div className="text-[9px]">{calculatePlannedHours(employee)}</div>
+                      <div className="text-[9px]">{plannedHours}</div>
                     </td>
                   </tr>
                 );
               })}
               
-              {/* Active Employees Subtotal */}
-              {activeEmployees.length > 0 && (
+              {/* Active Employees & Vacancies Subtotal */}
+              {activeEmployeeRows.length > 0 && (
                 <tr className="bg-blue-100 dark:bg-blue-900/30 border-t-2 border-blue-300">
                   <td className="sticky left-0 z-10 bg-blue-100 dark:bg-blue-900/30 border-r p-1 font-bold text-blue-800 dark:text-blue-200">
                     <div className="text-[10px]">Итого активные:</div>
@@ -752,10 +870,10 @@ export default function Timesheet() {
                     <td key={day.date} className="p-0 bg-blue-100 dark:bg-blue-900/30"></td>
                   ))}
                   <td className="border-r p-1 text-center font-bold bg-blue-200 dark:bg-blue-800/50 text-blue-800 dark:text-blue-200">
-                    <div className="text-[10px]">{calculateGroupTotal(activeEmployees)}</div>
+                    <div className="text-[10px]">{getGroupTotalHours(activeEmployeeRows)}</div>
                   </td>
                   <td className="border-r p-1 text-center font-bold bg-green-100 dark:bg-green-800/50 text-green-800 dark:text-green-200">
-                    <div className="text-[10px]">{activeEmployees.reduce((total, emp) => total + calculatePlannedHours(emp), 0)}</div>
+                    <div className="text-[10px]">{getGroupPlannedHours(activeEmployeeRows)}</div>
                   </td>
                 </tr>
               )}
@@ -840,10 +958,10 @@ export default function Timesheet() {
                     <td key={day.date} className="p-0 bg-orange-100 dark:bg-orange-900/30"></td>
                   ))}
                   <td className="border-r p-1 text-center font-bold bg-orange-200 dark:bg-orange-800/50 text-orange-800 dark:text-orange-200">
-                    <div className="text-[10px]">{calculateGroupTotal(partTimeEmployees)}</div>
+                    <div className="text-[10px]">{getGroupTotalHours(partTimeEmployeeRows)}</div>
                   </td>
                   <td className="border-r p-1 text-center font-bold bg-green-100 dark:bg-green-800/50 text-green-800 dark:text-green-200">
-                    <div className="text-[10px]">{partTimeEmployees.reduce((total, emp) => total + calculatePlannedHours(emp), 0)}</div>
+                    <div className="text-[10px]">{getGroupPlannedHours(partTimeEmployeeRows)}</div>
                   </td>
                 </tr>
               )}
@@ -859,10 +977,10 @@ export default function Timesheet() {
                   <td key={day.date} className="p-0 bg-gray-200 dark:bg-gray-800"></td>
                 ))}
                 <td className="border-r p-1 text-center font-bold bg-gray-300 dark:bg-gray-700 text-gray-800 dark:text-gray-200">
-                  <div className="text-[11px]">{calculateGroupTotal([...activeEmployees, ...partTimeEmployees])}</div>
+                  <div className="text-[11px]">{getGroupTotalHours([...activeEmployeeRows, ...partTimeEmployeeRows])}</div>
                 </td>
                 <td className="border-r p-1 text-center font-bold bg-green-200 dark:bg-green-700 text-green-800 dark:text-green-200">
-                  <div className="text-[11px]">{[...activeEmployees, ...partTimeEmployees].reduce((total, emp) => total + calculatePlannedHours(emp), 0)}</div>
+                  <div className="text-[11px]">{getGroupPlannedHours([...activeEmployeeRows, ...partTimeEmployeeRows])}</div>
                 </td>
               </tr>
             </tbody>
