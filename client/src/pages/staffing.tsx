@@ -1,36 +1,25 @@
 import { useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useObjectStore } from "@/lib/object-store";
 import { useAuth } from "@/hooks/useAuth";
-import { Position, Object as ObjectType, insertPositionSchema, InsertPosition } from "@shared/schema";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { Users, Building2, Clock, Briefcase, CalendarDays, Plus, Edit, Trash2, Upload, FileSpreadsheet, Search } from "lucide-react";
-
-const positionFormSchema = insertPositionSchema.extend({
-  objectId: z.string().min(1, "Выберите объект"),
-});
+import { Position, Object as ObjectType, User } from "@shared/schema";
+import { Plus, Upload, Download, Edit, Check, X, Search } from "lucide-react";
 
 export default function Staffing() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedObjectFilter, setSelectedObjectFilter] = useState<string>("all");
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingPosition, setEditingPosition] = useState<Position | null>(null);
-  const staffingFileInputRef = useRef<HTMLInputElement>(null);
+  const [editingPositions, setEditingPositions] = useState<Record<string, any>>({});
   const [isImporting, setIsImporting] = useState(false);
+  const staffingFileInputRef = useRef<HTMLInputElement>(null);
+  
   const { selectedObjectId } = useObjectStore();
   const { user } = useAuth();
   const { toast } = useToast();
@@ -43,66 +32,39 @@ export default function Staffing() {
     queryKey: ["/api/objects"],
   });
 
-  const { data: positions = [] } = useQuery<Position[]>({
+  const { data: positions = [], isLoading } = useQuery<Position[]>({
     queryKey: ["/api/positions"],
   });
 
-  const form = useForm<z.infer<typeof positionFormSchema>>({
-    resolver: zodResolver(positionFormSchema),
-    defaultValues: {
-      objectId: "",
-      title: "",
-      workSchedule: "5/2",
-      hoursPerShift: 8,
-      paymentType: "salary",
-      hourlyRate: undefined,
-      monthlySalary: undefined,
-      positionsCount: 1,
-      isActive: true,
-    },
-  });
-
-  // Get work schedules for selected object
-  const selectedObjectIdForSchedules = form.watch("objectId");
-  const { data: workSchedules = [] } = useQuery<string[]>({
-    queryKey: ["/api/objects", selectedObjectIdForSchedules, "work-schedules"],
-    queryFn: () => {
-      if (!selectedObjectIdForSchedules) return Promise.resolve([]);
-      return fetch(`/api/objects/${selectedObjectIdForSchedules}/work-schedules`).then(res => res.json());
-    },
-    enabled: !!selectedObjectIdForSchedules,
-  });
-
-  const createPositionMutation = useMutation({
-    mutationFn: async (data: InsertPosition) => {
-      const response = await apiRequest("POST", "/api/positions", data);
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/positions"] });
-      setIsDialogOpen(false);
-      form.reset();
-      toast({ title: "Должность добавлена" });
-    },
-    onError: () => {
-      toast({ title: "Ошибка при добавлении должности", variant: "destructive" });
-    },
+  const { data: users = [] } = useQuery<User[]>({
+    queryKey: ["/api/users"],
   });
 
   const updatePositionMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: Partial<InsertPosition> }) => {
+    mutationFn: async ({ id, data }: { id: string; data: any }) => {
       const response = await apiRequest("PUT", `/api/positions/${id}`, data);
       return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/positions"] });
-      setIsDialogOpen(false);
-      setEditingPosition(null);
-      form.reset();
-      toast({ title: "Должность обновлена" });
+      toast({ title: "Позиция обновлена успешно" });
     },
     onError: () => {
-      toast({ title: "Ошибка при обновлении должности", variant: "destructive" });
+      toast({ title: "Ошибка при обновлении позиции", variant: "destructive" });
+    },
+  });
+
+  const createPositionMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const response = await apiRequest("POST", "/api/positions", data);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/positions"] });
+      toast({ title: "Позиция добавлена успешно" });
+    },
+    onError: () => {
+      toast({ title: "Ошибка при добавлении позиции", variant: "destructive" });
     },
   });
 
@@ -112,58 +74,108 @@ export default function Staffing() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/positions"] });
-      toast({ title: "Должность удалена" });
+      toast({ title: "Позиция удалена успешно" });
     },
     onError: () => {
-      toast({ title: "Ошибка при удалении должности", variant: "destructive" });
+      toast({ title: "Ошибка при удалении позиции", variant: "destructive" });
     },
   });
 
-  // Filter positions based on search and object
-  const filteredPositions = positions.filter(pos => {
-    const matchesSearch = pos.title.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesObject = selectedObjectFilter === "all" || pos.objectId === selectedObjectFilter;
+  // Filter positions
+  const filteredPositions = positions.filter((position: Position) => {
+    const matchesSearch = position.title.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesObject = selectedObjectFilter === "all" || position.objectId === selectedObjectFilter;
     return matchesSearch && matchesObject;
   });
 
-  const handleEdit = (position: Position) => {
-    setEditingPosition(position);
-    form.reset({
-      objectId: position.objectId,
-      title: position.title,
-      workSchedule: position.workSchedule as "5/2" | "2/2" | "3/3" | "6/1" | "вахта",
-      hoursPerShift: position.hoursPerShift || 8,
-      paymentType: position.paymentType as "hourly" | "salary",
-      hourlyRate: position.hourlyRate || undefined,
-      monthlySalary: position.monthlySalary || undefined,
-      positionsCount: position.positionsCount,
-      isActive: position.isActive,
+  const handleEditPosition = (position: Position) => {
+    setEditingPositions({
+      ...editingPositions,
+      [position.id]: {
+        objectId: position.objectId,
+        title: position.title,
+        workSchedule: position.workSchedule,
+        paymentType: position.paymentType,
+        hourlyRate: position.hourlyRate || "",
+        monthlySalary: position.monthlySalary || "",
+        positionsCount: position.positionsCount,
+      }
     });
-    setIsDialogOpen(true);
   };
 
-  const handleDelete = (id: string) => {
-    if (confirm("Вы уверены, что хотите удалить эту должность?")) {
-      deletePositionMutation.mutate(id);
+  const handleSavePosition = (positionId: string) => {
+    const editData = editingPositions[positionId];
+    if (!editData) return;
+
+    updatePositionMutation.mutate({
+      id: positionId,
+      data: {
+        ...editData,
+        hourlyRate: editData.hourlyRate ? Number(editData.hourlyRate) : null,
+        monthlySalary: editData.monthlySalary ? Number(editData.monthlySalary) : null,
+        positionsCount: Number(editData.positionsCount),
+      }
+    });
+
+    setEditingPositions(prev => {
+      const newState = { ...prev };
+      delete newState[positionId];
+      return newState;
+    });
+  };
+
+  const handleCancelEdit = (positionId: string) => {
+    setEditingPositions(prev => {
+      const newState = { ...prev };
+      delete newState[positionId];
+      return newState;
+    });
+  };
+
+  const handleAddNewPosition = () => {
+    const newId = `new-${Date.now()}`;
+    setEditingPositions({
+      ...editingPositions,
+      [newId]: {
+        objectId: selectedObjectId || "",
+        title: "",
+        workSchedule: "5/2",
+        paymentType: "salary",
+        hourlyRate: "",
+        monthlySalary: "",
+        positionsCount: 1,
+      }
+    });
+  };
+
+  const handleSaveNewPosition = (newId: string) => {
+    const editData = editingPositions[newId];
+    if (!editData || !editData.objectId || !editData.title) {
+      toast({ title: "Заполните обязательные поля", variant: "destructive" });
+      return;
     }
+
+    createPositionMutation.mutate({
+      ...editData,
+      hourlyRate: editData.hourlyRate ? Number(editData.hourlyRate) : null,
+      monthlySalary: editData.monthlySalary ? Number(editData.monthlySalary) : null,
+      positionsCount: Number(editData.positionsCount),
+      hoursPerShift: 8,
+      isActive: true,
+    });
+
+    setEditingPositions(prev => {
+      const newState = { ...prev };
+      delete newState[newId];
+      return newState;
+    });
   };
 
-  const onSubmit = (data: z.infer<typeof positionFormSchema>) => {
-    if (editingPosition) {
-      updatePositionMutation.mutate({
-        id: editingPosition.id,
-        data,
-      });
-    } else {
-      createPositionMutation.mutate(data);
-    }
-  };
-
-  const handleStaffingImportClick = () => {
+  const handleImportStaffing = () => {
     staffingFileInputRef.current?.click();
   };
 
-  const handleImportStaffing = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -187,18 +199,23 @@ export default function Staffing() {
         body: formData,
       });
 
-      const result = await response.json();
-
       if (!response.ok) {
-        throw new Error(result.message || 'Ошибка импорта');
+        let errorMessage = 'Ошибка импорта';
+        try {
+          const errorResult = await response.json();
+          errorMessage = errorResult.message || errorMessage;
+        } catch {
+          errorMessage = `Ошибка сервера: ${response.status}`;
+        }
+        throw new Error(errorMessage);
       }
 
+      const result = await response.json();
       toast({ 
         title: "Импорт завершён", 
-        description: `Создано должностей: ${result.createdPositions}, обработано строк: ${result.processedRows}` 
+        description: `Импортировано позиций: ${result.positionsCount || 'неизвестно'}` 
       });
 
-      // Обновляем кэш должностей
       queryClient.invalidateQueries({ queryKey: ["/api/positions"] });
       
     } catch (error) {
@@ -216,128 +233,300 @@ export default function Staffing() {
     }
   };
 
-  const getObjectName = (objectId: string) => {
-    const object = objects.find(obj => obj.id === objectId);
-    return object?.name || "Неизвестный объект";
+  const handleExportStaffing = () => {
+    window.open("/api/positions/export/csv", "_blank");
   };
 
-  const getWorkScheduleBadge = (schedule: string) => {
-    const scheduleMap: Record<string, string> = {
-      "5/2": "5/2",
-      "2/2": "2/2", 
-      "3/3": "3/3",
-      "6/1": "6/1",
-      "вахта": "Вахта"
-    };
-    return <Badge variant="outline" className="text-xs">{scheduleMap[schedule] || schedule}</Badge>;
+  const getObjectName = (objectId: string) => {
+    const obj = objects.find(o => o.id === objectId);
+    return obj?.name || "Не указан";
   };
 
   const formatSalary = (position: Position) => {
-    if (position.paymentType === "hourly" && position.hourlyRate) {
-      return `${(position.hourlyRate / 100).toFixed(2)} ₽/час`;
-    } else if (position.paymentType === "salary" && position.monthlySalary) {
-      return `${position.monthlySalary.toLocaleString()} ₽/мес`;
+    if (position.paymentType === "salary" && position.monthlySalary) {
+      return `${position.monthlySalary.toLocaleString()} руб/мес`;
+    } else if (position.paymentType === "hourly" && position.hourlyRate) {
+      return `${position.hourlyRate} руб/час`;
     }
-    return "Не указано";
+    return "Не указан";
   };
 
-  // Function to calculate hours per month by work schedule and hours per shift
-  const getHoursPerMonth = (schedule: string, hoursPerShift: number): number => {
-    const shifts = getShiftsPerMonth(schedule);
-    return shifts * hoursPerShift;
+  const getPaymentTypeLabel = (type: string) => {
+    return type === "salary" ? "Оклад" : "Почасовая";
   };
 
-  // Function to get number of shifts per month by work schedule
-  const getShiftsPerMonth = (schedule: string): number => {
-    switch (schedule) {
-      case "5/2": return 20; // 20 working days
-      case "2/2": return 15.3; // 15.3 shifts per month
-      case "3/3": return 15.3; // 15.3 shifts per month  
-      case "6/1": return 20; // 20 working days
-      case "вахта": return 14; // 14 days on shift
-      default: return 20;
-    }
-  };
-
-  // Calculate totals
-  const totalPositions = filteredPositions.reduce((sum, pos) => sum + pos.positionsCount, 0);
-  
-  // Calculate total monthly hours from staffing plan
-  const totalMonthlyHours = filteredPositions.reduce((sum, position) => {
-    const hoursPerPosition = getHoursPerMonth(position.workSchedule, position.hoursPerShift || 8);
-    return sum + (hoursPerPosition * position.positionsCount);
-  }, 0);
-
-  const totalSalaryBudget = filteredPositions.reduce((sum, pos) => {
-    if (pos.paymentType === "salary" && pos.monthlySalary) {
-      return sum + (pos.monthlySalary * pos.positionsCount);
-    } else if (pos.paymentType === "hourly" && pos.hourlyRate) {
-      // Use actual hours based on work schedule and hours per shift
-      const hoursPerPosition = getHoursPerMonth(pos.workSchedule, pos.hoursPerShift || 8);
-      return sum + ((pos.hourlyRate / 100) * hoursPerPosition * pos.positionsCount);
-    }
-    return sum;
-  }, 0);
+  if (isLoading) {
+    return (
+      <div className="p-6">
+        <div className="animate-pulse space-y-4">
+          <div className="h-8 bg-gray-200 rounded w-1/4"></div>
+          <div className="h-64 bg-gray-200 rounded"></div>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Штатное расписание</h1>
-          <p className="text-muted-foreground">Управление должностями и позициями по объектам</p>
-        </div>
+    <div className="p-6 space-y-6">
+      <div className="flex justify-between items-center">
+        <h1 className="text-3xl font-bold text-foreground">Штатное Расписание</h1>
         {canEdit && (
-          <div className="flex items-center space-x-2">
-            <input
-              ref={staffingFileInputRef}
-              type="file"
-              accept=".csv"
-              onChange={handleImportStaffing}
-              className="hidden"
-              data-testid="file-input-staffing"
-            />
+          <div className="flex space-x-2">
             <Button 
-              onClick={handleStaffingImportClick}
+              onClick={handleAddNewPosition}
+              data-testid="button-add-position"
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Добавить позицию
+            </Button>
+            <Button 
+              variant="outline" 
+              onClick={handleImportStaffing}
               disabled={isImporting}
-              variant="outline"
               data-testid="button-import-staffing"
             >
-              <FileSpreadsheet className="h-4 w-4 mr-2" />
-              {isImporting ? "Импорт..." : "Импорт CSV"}
+              <Upload className="h-4 w-4 mr-2" />
+              {isImporting ? "Импорт..." : "Импорт"}
             </Button>
-            
-            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-              <DialogTrigger asChild>
-                <Button data-testid="button-add-position">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Добавить должность
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-md">
-                <DialogHeader>
-                  <DialogTitle>
-                    {editingPosition ? "Редактировать должность" : "Добавить должность"}
-                  </DialogTitle>
-                  <DialogDescription>
-                    {editingPosition ? "Изменить параметры существующей должности" : "Создать новую должность в штатном расписании"}
-                  </DialogDescription>
-                </DialogHeader>
-                <Form {...form}>
-                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <FormField
-                        control={form.control}
-                      name="objectId"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Объект</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value}>
-                            <FormControl>
-                              <SelectTrigger data-testid="select-position-object">
-                                <SelectValue placeholder="Выберите объект" />
-                              </SelectTrigger>
-                            </FormControl>
+            <Button 
+              variant="outline" 
+              onClick={handleExportStaffing}
+              data-testid="button-export-staffing"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Экспорт
+            </Button>
+          </div>
+        )}
+      </div>
+
+      {/* Filters */}
+      <div className="flex flex-col sm:flex-row gap-4 mb-6">
+        <div className="flex-1">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+            <Input
+              placeholder="Поиск по должности..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+              data-testid="input-search-position"
+            />
+          </div>
+        </div>
+        <div className="sm:w-48">
+          <Select value={selectedObjectFilter} onValueChange={setSelectedObjectFilter}>
+            <SelectTrigger data-testid="select-object-filter">
+              <SelectValue placeholder="Все объекты" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Все объекты</SelectItem>
+              {objects.map((object) => (
+                <SelectItem key={object.id} value={object.id}>
+                  {object.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      {/* Staffing Table */}
+      <Card>
+        <CardHeader className="border-b">
+          <CardTitle className="flex items-center justify-between">
+            Штатное расписание
+            <Badge variant="outline">{filteredPositions.length}</Badge>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-muted/50">
+                  <TableHead className="font-medium text-muted-foreground">Объект</TableHead>
+                  <TableHead className="font-medium text-muted-foreground">Должность</TableHead>
+                  <TableHead className="font-medium text-muted-foreground">График работы</TableHead>
+                  <TableHead className="font-medium text-muted-foreground">Оклад (тариф)</TableHead>
+                  <TableHead className="font-medium text-muted-foreground">Количество ставок</TableHead>
+                  <TableHead className="font-medium text-muted-foreground">Тип оплат</TableHead>
+                  {canEdit && (
+                    <TableHead className="font-medium text-muted-foreground">Действия</TableHead>
+                  )}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {/* New positions in edit mode */}
+                {Object.entries(editingPositions).filter(([id]) => id.startsWith('new-')).map(([newId, editData]) => (
+                  <TableRow key={newId} className="bg-blue-50 dark:bg-blue-950/20">
+                    {/* Объект */}
+                    <TableCell>
+                      <Select 
+                        value={editData.objectId} 
+                        onValueChange={(value) => setEditingPositions(prev => ({ 
+                          ...prev, 
+                          [newId]: { ...prev[newId], objectId: value } 
+                        }))}
+                      >
+                        <SelectTrigger className="h-8">
+                          <SelectValue placeholder="Выберите объект" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {objects.map((object) => (
+                            <SelectItem key={object.id} value={object.id}>
+                              {object.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
+
+                    {/* Должность */}
+                    <TableCell>
+                      <Input
+                        value={editData.title}
+                        onChange={(e) => setEditingPositions(prev => ({ 
+                          ...prev, 
+                          [newId]: { ...prev[newId], title: e.target.value } 
+                        }))}
+                        placeholder="Введите должность"
+                        className="h-8"
+                      />
+                    </TableCell>
+
+                    {/* График работы */}
+                    <TableCell>
+                      <Select 
+                        value={editData.workSchedule} 
+                        onValueChange={(value) => setEditingPositions(prev => ({ 
+                          ...prev, 
+                          [newId]: { ...prev[newId], workSchedule: value } 
+                        }))}
+                      >
+                        <SelectTrigger className="h-8">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="5/2">5/2</SelectItem>
+                          <SelectItem value="2/2">2/2</SelectItem>
+                          <SelectItem value="3/3">3/3</SelectItem>
+                          <SelectItem value="6/1">6/1</SelectItem>
+                          <SelectItem value="вахта (7/0)">вахта (7/0)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
+
+                    {/* Оклад (тариф) */}
+                    <TableCell>
+                      <Input
+                        type="number"
+                        value={editData.paymentType === "salary" ? editData.monthlySalary : editData.hourlyRate}
+                        onChange={(e) => setEditingPositions(prev => ({ 
+                          ...prev, 
+                          [newId]: { 
+                            ...prev[newId], 
+                            [editData.paymentType === "salary" ? "monthlySalary" : "hourlyRate"]: e.target.value,
+                            [editData.paymentType === "salary" ? "hourlyRate" : "monthlySalary"]: ""
+                          } 
+                        }))}
+                        placeholder={editData.paymentType === "salary" ? "Месячный оклад" : "Часовая ставка"}
+                        className="h-8"
+                      />
+                    </TableCell>
+
+                    {/* Количество ставок */}
+                    <TableCell>
+                      <Select 
+                        value={editData.positionsCount.toString()} 
+                        onValueChange={(value) => setEditingPositions(prev => ({ 
+                          ...prev, 
+                          [newId]: { ...prev[newId], positionsCount: parseInt(value) } 
+                        }))}
+                      >
+                        <SelectTrigger className="h-8">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="1">1</SelectItem>
+                          <SelectItem value="2">2</SelectItem>
+                          <SelectItem value="3">3</SelectItem>
+                          <SelectItem value="4">4</SelectItem>
+                          <SelectItem value="5">5</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
+
+                    {/* Тип оплат */}
+                    <TableCell>
+                      <Select 
+                        value={editData.paymentType} 
+                        onValueChange={(value) => setEditingPositions(prev => ({ 
+                          ...prev, 
+                          [newId]: { 
+                            ...prev[newId], 
+                            paymentType: value,
+                            hourlyRate: "",
+                            monthlySalary: ""
+                          } 
+                        }))}
+                      >
+                        <SelectTrigger className="h-8">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="salary">Оклад</SelectItem>
+                          <SelectItem value="hourly">Почасовая</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
+
+                    {/* Действия */}
+                    {canEdit && (
+                      <TableCell>
+                        <div className="flex space-x-1">
+                          <Button 
+                            size="sm" 
+                            variant="ghost"
+                            onClick={() => handleSaveNewPosition(newId)}
+                            data-testid={`save-new-position-${newId}`}
+                          >
+                            <Check className="h-4 w-4 text-green-600" />
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant="ghost"
+                            onClick={() => handleCancelEdit(newId)}
+                            data-testid={`cancel-new-position-${newId}`}
+                          >
+                            <X className="h-4 w-4 text-red-600" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    )}
+                  </TableRow>
+                ))}
+
+                {/* Existing positions */}
+                {filteredPositions.map((position) => {
+                  const isEditing = editingPositions[position.id];
+                  const editData = editingPositions[position.id];
+
+                  return (
+                    <TableRow key={position.id} className="hover:bg-muted/50" data-testid={`position-row-${position.id}`}>
+                      {/* Объект */}
+                      <TableCell>
+                        {isEditing ? (
+                          <Select 
+                            value={editData.objectId} 
+                            onValueChange={(value) => setEditingPositions(prev => ({ 
+                              ...prev, 
+                              [position.id]: { ...prev[position.id], objectId: value } 
+                            }))}
+                          >
+                            <SelectTrigger className="h-8">
+                              <SelectValue />
+                            </SelectTrigger>
                             <SelectContent>
                               {objects.map((object) => (
                                 <SelectItem key={object.id} value={object.id}>
@@ -346,414 +535,189 @@ export default function Staffing() {
                               ))}
                             </SelectContent>
                           </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                        ) : (
+                          <div className="text-sm text-foreground" data-testid={`position-object-${position.id}`}>
+                            {getObjectName(position.objectId)}
+                          </div>
+                        )}
+                      </TableCell>
 
-                    <FormField
-                      control={form.control}
-                      name="title"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Должность</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Введите название должности" {...field} data-testid="input-position-title" />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                      {/* Должность */}
+                      <TableCell>
+                        {isEditing ? (
+                          <Input
+                            value={editData.title}
+                            onChange={(e) => setEditingPositions(prev => ({ 
+                              ...prev, 
+                              [position.id]: { ...prev[position.id], title: e.target.value } 
+                            }))}
+                            className="h-8"
+                          />
+                        ) : (
+                          <div className="text-sm font-medium text-foreground">{position.title}</div>
+                        )}
+                      </TableCell>
 
-                    <FormField
-                      control={form.control}
-                      name="workSchedule"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>График работы</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value}>
-                            <FormControl>
-                              <SelectTrigger data-testid="select-position-schedule">
-                                <SelectValue placeholder="Выберите график работы" />
-                              </SelectTrigger>
-                            </FormControl>
+                      {/* График работы */}
+                      <TableCell>
+                        {isEditing ? (
+                          <Select 
+                            value={editData.workSchedule} 
+                            onValueChange={(value) => setEditingPositions(prev => ({ 
+                              ...prev, 
+                              [position.id]: { ...prev[position.id], workSchedule: value } 
+                            }))}
+                          >
+                            <SelectTrigger className="h-8">
+                              <SelectValue />
+                            </SelectTrigger>
                             <SelectContent>
-                              {workSchedules.length > 0 ? (
-                                workSchedules.map((schedule) => (
-                                  <SelectItem key={schedule} value={schedule}>
-                                    {schedule === "вахта" ? "вахта (7/0)" : schedule}
-                                  </SelectItem>
-                                ))
-                              ) : (
-                                <>
-                                  <SelectItem value="5/2">5/2</SelectItem>
-                                  <SelectItem value="2/2">2/2</SelectItem>
-                                  <SelectItem value="3/3">3/3</SelectItem>
-                                  <SelectItem value="6/1">6/1</SelectItem>
-                                  <SelectItem value="вахта (7/0)">вахта (7/0)</SelectItem>
-                                </>
-                              )}
+                              <SelectItem value="5/2">5/2</SelectItem>
+                              <SelectItem value="2/2">2/2</SelectItem>
+                              <SelectItem value="3/3">3/3</SelectItem>
+                              <SelectItem value="6/1">6/1</SelectItem>
+                              <SelectItem value="вахта (7/0)">вахта (7/0)</SelectItem>
                             </SelectContent>
                           </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    </div>
+                        ) : (
+                          <div className="text-sm text-muted-foreground">{position.workSchedule}</div>
+                        )}
+                      </TableCell>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <FormField
-                        control={form.control}
-                      name="hoursPerShift"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Часов в смену</FormLabel>
-                          <FormControl>
-                            <Input
-                              type="number"
-                              min="1"
-                              max="24"
-                              placeholder="8"
-                              {...field}
-                              onChange={(e) => field.onChange(Number(e.target.value))}
-                              data-testid="input-hours-per-shift"
-                            />
-                          </FormControl>
-                          <FormDescription>
-                            Количество рабочих часов в одну смену
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                      {/* Оклад (тариф) */}
+                      <TableCell>
+                        {isEditing ? (
+                          <Input
+                            type="number"
+                            value={editData.paymentType === "salary" ? editData.monthlySalary : editData.hourlyRate}
+                            onChange={(e) => setEditingPositions(prev => ({ 
+                              ...prev, 
+                              [position.id]: { 
+                                ...prev[position.id], 
+                                [editData.paymentType === "salary" ? "monthlySalary" : "hourlyRate"]: e.target.value,
+                                [editData.paymentType === "salary" ? "hourlyRate" : "monthlySalary"]: ""
+                              } 
+                            }))}
+                            className="h-8"
+                          />
+                        ) : (
+                          <div className="text-sm text-muted-foreground">{formatSalary(position)}</div>
+                        )}
+                      </TableCell>
 
-                    <FormField
-                      control={form.control}
-                      name="paymentType"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Тип оплаты</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value}>
-                            <FormControl>
-                              <SelectTrigger data-testid="select-payment-type">
-                                <SelectValue />
-                              </SelectTrigger>
-                            </FormControl>
+                      {/* Количество ставок */}
+                      <TableCell>
+                        {isEditing ? (
+                          <Select 
+                            value={editData.positionsCount.toString()} 
+                            onValueChange={(value) => setEditingPositions(prev => ({ 
+                              ...prev, 
+                              [position.id]: { ...prev[position.id], positionsCount: parseInt(value) } 
+                            }))}
+                          >
+                            <SelectTrigger className="h-8">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="1">1</SelectItem>
+                              <SelectItem value="2">2</SelectItem>
+                              <SelectItem value="3">3</SelectItem>
+                              <SelectItem value="4">4</SelectItem>
+                              <SelectItem value="5">5</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <div className="text-sm text-center font-medium text-foreground">{position.positionsCount}</div>
+                        )}
+                      </TableCell>
+
+                      {/* Тип оплат */}
+                      <TableCell>
+                        {isEditing ? (
+                          <Select 
+                            value={editData.paymentType} 
+                            onValueChange={(value) => setEditingPositions(prev => ({ 
+                              ...prev, 
+                              [position.id]: { 
+                                ...prev[position.id], 
+                                paymentType: value,
+                                hourlyRate: value === "salary" ? "" : editData.hourlyRate,
+                                monthlySalary: value === "hourly" ? "" : editData.monthlySalary
+                              } 
+                            }))}
+                          >
+                            <SelectTrigger className="h-8">
+                              <SelectValue />
+                            </SelectTrigger>
                             <SelectContent>
                               <SelectItem value="salary">Оклад</SelectItem>
                               <SelectItem value="hourly">Почасовая</SelectItem>
                             </SelectContent>
                           </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    {form.watch("paymentType") === "salary" && (
-                      <FormField
-                        control={form.control}
-                        name="monthlySalary"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Месячный оклад (₽)</FormLabel>
-                            <FormControl>
-                              <Input 
-                                type="number" 
-                                placeholder="50000" 
-                                {...field}
-                                value={field.value || ""}
-                                onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : null)}
-                                data-testid="input-monthly-salary"
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
+                        ) : (
+                          <div className="text-sm text-muted-foreground">{getPaymentTypeLabel(position.paymentType)}</div>
                         )}
-                      />
-                    )}
+                      </TableCell>
 
-                    {form.watch("paymentType") === "hourly" && (
-                      <FormField
-                        control={form.control}
-                        name="hourlyRate"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Почасовая ставка (₽)</FormLabel>
-                            <FormControl>
-                              <Input 
-                                type="number" 
-                                step="0.01"
-                                placeholder="300.00" 
-                                {...field}
-                                value={field.value ? (field.value / 100).toFixed(2) : ""}
-                                onChange={(e) => field.onChange(e.target.value ? Math.round(parseFloat(e.target.value) * 100) : null)}
-                                data-testid="input-hourly-rate"
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    )}
-
-                    <FormField
-                      control={form.control}
-                      name="positionsCount"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Количество позиций</FormLabel>
-                          <FormControl>
-                            <Input 
-                              type="number" 
-                              min="1"
-                              placeholder="1" 
-                              {...field}
-                              value={field.value}
-                              onChange={(e) => field.onChange(parseInt(e.target.value) || 1)}
-                              data-testid="input-positions-count"
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
+                      {/* Действия */}
+                      {canEdit && (
+                        <TableCell>
+                          {isEditing ? (
+                            <div className="flex space-x-1">
+                              <Button 
+                                size="sm" 
+                                variant="ghost"
+                                onClick={() => handleSavePosition(position.id)}
+                                data-testid={`save-position-${position.id}`}
+                              >
+                                <Check className="h-4 w-4 text-green-600" />
+                              </Button>
+                              <Button 
+                                size="sm" 
+                                variant="ghost"
+                                onClick={() => handleCancelEdit(position.id)}
+                                data-testid={`cancel-position-${position.id}`}
+                              >
+                                <X className="h-4 w-4 text-red-600" />
+                              </Button>
+                            </div>
+                          ) : (
+                            <Button 
+                              size="sm" 
+                              variant="ghost"
+                              onClick={() => handleEditPosition(position)}
+                              data-testid={`edit-position-${position.id}`}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </TableCell>
                       )}
-                    />
+                    </TableRow>
+                  );
+                })}
 
-                    <div className="flex justify-end space-x-2">
-                      <Button 
-                        type="button" 
-                        variant="outline" 
-                        onClick={() => {
-                          setIsDialogOpen(false);
-                          setEditingPosition(null);
-                          form.reset();
-                        }}
-                        data-testid="button-cancel-position"
-                      >
-                        Отмена
-                      </Button>
-                      <Button 
-                        type="submit" 
-                        disabled={createPositionMutation.isPending || updatePositionMutation.isPending}
-                        data-testid="button-save-position"
-                      >
-                        {editingPosition ? "Сохранить" : "Добавить"}
-                      </Button>
-                    </div>
-                    </div>
-                  </form>
-                </Form>
-              </DialogContent>
-            </Dialog>
-          </div>
-        )}
-      </div>
-
-      {/* Filters */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Фильтры и поиск</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <Label htmlFor="search">Поиск по должности</Label>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                <Input
-                  id="search"
-                  placeholder="Введите название должности..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                  data-testid="input-search-positions"
-                />
-              </div>
-            </div>
-
-            <div>
-              <Label>Объект</Label>
-              <Select value={selectedObjectFilter} onValueChange={setSelectedObjectFilter}>
-                <SelectTrigger data-testid="select-filter-object">
-                  <SelectValue placeholder="Все объекты" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Все объекты</SelectItem>
-                  {objects.map((object) => (
-                    <SelectItem key={object.id} value={object.id}>
-                      {object.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="flex items-end">
-              <Button 
-                variant="outline" 
-                onClick={() => {
-                  setSearchTerm("");
-                  setSelectedObjectFilter("all");
-                }}
-                data-testid="button-clear-filters"
-              >
-                Сбросить фильтры
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Всего должностей</CardTitle>
-            <Briefcase className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{filteredPositions.length}</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Всего позиций</CardTitle>
-            <Users className="h-4 w-4 text-purple-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-purple-600">{totalPositions}</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Почасовая оплата</CardTitle>
-            <Clock className="h-4 w-4 text-blue-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-blue-600">
-              {filteredPositions.filter(pos => pos.paymentType === "hourly").length}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Часов в месяц</CardTitle>
-            <Clock className="h-4 w-4 text-blue-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-blue-600">
-              {totalMonthlyHours.toLocaleString()} ч
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Месячный ФОТ</CardTitle>
-            <Briefcase className="h-4 w-4 text-green-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">
-              {totalSalaryBudget.toLocaleString()} ₽
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Positions Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Должности ({filteredPositions.length})</CardTitle>
-          <CardDescription>
-            Полный список должностей и их характеристики
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Должность</TableHead>
-                <TableHead>Объект</TableHead>
-                <TableHead>График</TableHead>
-                <TableHead className="text-center">Часов в смену</TableHead>
-                <TableHead>Тип оплаты</TableHead>
-                <TableHead>Тариф</TableHead>
-                <TableHead className="text-center">Количество</TableHead>
-                <TableHead className="text-center">Часов в месяц</TableHead>
-                {canEdit && <TableHead className="text-right">Действия</TableHead>}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredPositions.map((position) => (
-                <TableRow key={position.id} data-testid={`position-row-${position.id}`}>
-                  <TableCell className="font-medium">{position.title}</TableCell>
-                  <TableCell>{getObjectName(position.objectId)}</TableCell>
-                  <TableCell>{getWorkScheduleBadge(position.workSchedule)}</TableCell>
-                  <TableCell className="text-center">
-                    <span className="font-medium text-blue-600">
-                      {position.hoursPerShift || 8} ч
-                    </span>
-                  </TableCell>
-                  <TableCell>
-                    <Badge 
-                      variant={position.paymentType === "hourly" ? "secondary" : "default"} 
-                      className="text-xs"
-                    >
-                      {position.paymentType === "hourly" ? "Почасовая" : "Оклад"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <span className="font-medium">
-                      {formatSalary(position)}
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <Badge variant="outline">
-                      {position.positionsCount}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <span className="font-medium text-blue-600">
-                      {(getHoursPerMonth(position.workSchedule, position.hoursPerShift || 8) * position.positionsCount).toLocaleString()} ч
-                    </span>
-                  </TableCell>
-                  {canEdit && (
-                    <TableCell className="text-right">
-                      <div className="flex justify-end space-x-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleEdit(position)}
-                          data-testid={`button-edit-${position.id}`}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => handleDelete(position.id)}
-                          data-testid={`button-delete-${position.id}`}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
+                {filteredPositions.length === 0 && Object.keys(editingPositions).filter(id => id.startsWith('new-')).length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={canEdit ? 7 : 6} className="text-center py-8 text-muted-foreground">
+                      Нет данных для отображения
                     </TableCell>
-                  )}
-                </TableRow>
-              ))}
-              {filteredPositions.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={canEdit ? 9 : 8} className="text-center py-8 text-muted-foreground">
-                    Должности не найдены
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
+
+      {/* Hidden file input for import */}
+      <input
+        ref={staffingFileInputRef}
+        type="file"
+        accept=".csv"
+        onChange={handleFileImport}
+        style={{ display: 'none' }}
+      />
     </div>
   );
 }
