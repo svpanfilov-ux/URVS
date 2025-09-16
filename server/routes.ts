@@ -25,8 +25,8 @@ async function requireAuth(req: AuthRequest, res: Response, next: NextFunction) 
       return res.status(401).json({ message: "Требуется авторизация" });
     }
     
-    const userId = token.replace('session-', '');
-    const user = await storage.getUsers().then(users => users.find(u => u.id === userId));
+    const username = token.replace('session-', '');
+    const user = await storage.getUserByUsername(username);
     
     if (!user || !user.isActive) {
       return res.status(401).json({ message: "Недействительный токен" });
@@ -132,7 +132,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           role: user.role,
           isActive: user.isActive
         },
-        token: `session-${user.id}`
+        token: `session-${user.username}`
       });
     } catch (error) {
       console.error("Login error:", error);
