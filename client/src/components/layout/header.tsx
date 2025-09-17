@@ -6,6 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Object } from "@shared/schema";
 import { useObjectStore } from "@/lib/object-store";
 import { useAuth } from "@/hooks/useAuth";
+import { useEffect } from "react";
 
 export function Header() {
   const { selectedObjectId, setSelectedObjectId } = useObjectStore();
@@ -16,6 +17,16 @@ export function Header() {
   });
 
   const activeObjects = objects.filter(obj => obj.status === "active");
+  
+  // Автоматический выбор ПортЭнерго для менеджеров в тестовом режиме
+  useEffect(() => {
+    if (user?.role === "manager" && !selectedObjectId && activeObjects.length > 0) {
+      const portEnergo = activeObjects.find(obj => obj.name === "ПортЭнерго");
+      if (portEnergo) {
+        setSelectedObjectId(portEnergo.id);
+      }
+    }
+  }, [user, selectedObjectId, activeObjects, setSelectedObjectId]);
 
   return (
     <header className="bg-card shadow-lg">

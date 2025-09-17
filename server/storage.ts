@@ -133,6 +133,15 @@ export class MemStorage implements IStorage {
     // Create sample objects with manager assignments - based on imported data
     const sampleObjects = [
       { 
+        name: "ПортЭнерго", 
+        code: "PORT_ENERGO", 
+        description: "Тестовый объект ПортЭнерго для демонстрации системы", 
+        managerId: userIds.manager1,
+        groupManagerId: null,
+        status: "active" as const,
+        closedAt: null
+      },
+      { 
         name: "ОП Соликамск СКРУ-1", 
         code: "SOLK_SKRU_1", 
         description: "Производственный объект в Соликамске", 
@@ -183,26 +192,32 @@ export class MemStorage implements IStorage {
 
     // Create sample positions for each object - based on imported data
     const samplePositions = [
+      // ПортЭнерго (тестовый объект)
+      { objectId: objectIds[0], title: "Менеджер", workSchedule: "5/2", paymentType: "salary", monthlySalary: 65000, positionsCount: 1 },
+      { objectId: objectIds[0], title: "Инженер-энергетик", workSchedule: "5/2", paymentType: "salary", monthlySalary: 75000, positionsCount: 2 },
+      { objectId: objectIds[0], title: "Электромонтер", workSchedule: "2/2", paymentType: "hourly", hourlyRate: 450, positionsCount: 4 },
+      { objectId: objectIds[0], title: "Слесарь-ремонтник", workSchedule: "5/2", paymentType: "hourly", hourlyRate: 380, positionsCount: 2 },
+      
       // ОП Соликамск СКРУ-1
-      { objectId: objectIds[0], title: "Менеджер", workSchedule: "5/2", paymentType: "salary", monthlySalary: 55000, positionsCount: 2 },
-      { objectId: objectIds[0], title: "Уборщик производственных и служебных помещений", workSchedule: "5/2", paymentType: "hourly", hourlyRate: 250, positionsCount: 4 },
-      { objectId: objectIds[0], title: "Оператор", workSchedule: "2/2", paymentType: "hourly", hourlyRate: 400, positionsCount: 6 },
-      { objectId: objectIds[0], title: "Слесарь", workSchedule: "5/2", paymentType: "hourly", hourlyRate: 350, positionsCount: 3 },
+      { objectId: objectIds[1], title: "Менеджер", workSchedule: "5/2", paymentType: "salary", monthlySalary: 55000, positionsCount: 2 },
+      { objectId: objectIds[1], title: "Уборщик производственных и служебных помещений", workSchedule: "5/2", paymentType: "hourly", hourlyRate: 250, positionsCount: 4 },
+      { objectId: objectIds[1], title: "Оператор", workSchedule: "2/2", paymentType: "hourly", hourlyRate: 400, positionsCount: 6 },
+      { objectId: objectIds[1], title: "Слесарь", workSchedule: "5/2", paymentType: "hourly", hourlyRate: 350, positionsCount: 3 },
       
       // ОП Соликамск СКРУ-3
-      { objectId: objectIds[1], title: "Менеджер", workSchedule: "5/2", paymentType: "salary", monthlySalary: 55000, positionsCount: 2 },
-      { objectId: objectIds[1], title: "Уборщик производственных и служебных помещений", workSchedule: "5/2", paymentType: "hourly", hourlyRate: 250, positionsCount: 3 },
-      { objectId: objectIds[1], title: "Оператор", workSchedule: "2/2", paymentType: "hourly", hourlyRate: 400, positionsCount: 8 },
+      { objectId: objectIds[2], title: "Менеджер", workSchedule: "5/2", paymentType: "salary", monthlySalary: 55000, positionsCount: 2 },
+      { objectId: objectIds[2], title: "Уборщик производственных и служебных помещений", workSchedule: "5/2", paymentType: "hourly", hourlyRate: 250, positionsCount: 3 },
+      { objectId: objectIds[2], title: "Оператор", workSchedule: "2/2", paymentType: "hourly", hourlyRate: 400, positionsCount: 8 },
       
       // УПГП Урай
-      { objectId: objectIds[2], title: "Инженер", workSchedule: "5/2", paymentType: "salary", monthlySalary: 75000, positionsCount: 3 },
-      { objectId: objectIds[2], title: "Оператор установки", workSchedule: "2/2", paymentType: "hourly", hourlyRate: 450, positionsCount: 12 },
-      { objectId: objectIds[2], title: "Слесарь-ремонтник", workSchedule: "5/2", paymentType: "hourly", hourlyRate: 380, positionsCount: 4 },
+      { objectId: objectIds[3], title: "Инженер", workSchedule: "5/2", paymentType: "salary", monthlySalary: 75000, positionsCount: 3 },
+      { objectId: objectIds[3], title: "Оператор установки", workSchedule: "2/2", paymentType: "hourly", hourlyRate: 450, positionsCount: 12 },
+      { objectId: objectIds[3], title: "Слесарь-ремонтник", workSchedule: "5/2", paymentType: "hourly", hourlyRate: 380, positionsCount: 4 },
       
       // УПГП Белозерное
-      { objectId: objectIds[3], title: "Инженер", workSchedule: "5/2", paymentType: "salary", monthlySalary: 75000, positionsCount: 2 },
-      { objectId: objectIds[3], title: "Оператор установки", workSchedule: "2/2", paymentType: "hourly", hourlyRate: 450, positionsCount: 8 },
-      { objectId: objectIds[3], title: "Электромонтер", workSchedule: "5/2", paymentType: "hourly", hourlyRate: 400, positionsCount: 3 },
+      { objectId: objectIds[4], title: "Инженер", workSchedule: "5/2", paymentType: "salary", monthlySalary: 75000, positionsCount: 2 },
+      { objectId: objectIds[4], title: "Оператор установки", workSchedule: "2/2", paymentType: "hourly", hourlyRate: 450, positionsCount: 8 },
+      { objectId: objectIds[4], title: "Электромонтер", workSchedule: "5/2", paymentType: "hourly", hourlyRate: 400, positionsCount: 3 },
     ];
 
     samplePositions.forEach(pos => {
@@ -221,22 +236,29 @@ export class MemStorage implements IStorage {
 
     // Create sample employees and assign to objects - based on imported data
     const sampleEmployees = [
+      // ПортЭнерго (тестовый объект)
+      { name: "Петров Сергей Иванович", position: "Менеджер", status: "active" as const, workSchedule: "5/2" as const, objectId: objectIds[0], hireDate: "2024-01-10" },
+      { name: "Смирнова Елена Александровна", position: "Инженер-энергетик", status: "active" as const, workSchedule: "5/2" as const, objectId: objectIds[0], hireDate: "2024-02-15" },
+      { name: "Козлов Дмитрий Петрович", position: "Электромонтер", status: "active" as const, workSchedule: "2/2" as const, objectId: objectIds[0], hireDate: "2024-03-01" },
+      { name: "Волкова Анна Сергеевна", position: "Слесарь-ремонтник", status: "active" as const, workSchedule: "5/2" as const, objectId: objectIds[0], hireDate: "2024-04-10" },
+      { name: "Морозов Алексей Владимирович", position: "Электромонтер", status: "fired" as const, workSchedule: "2/2" as const, objectId: objectIds[0], hireDate: "2023-12-15", terminationDate: "2025-08-20" },
+      
       // ОП Соликамск СКРУ-1
-      { name: "Иванова Ольга Анатольевна", position: "Менеджер", status: "active" as const, workSchedule: "5/2" as const, objectId: objectIds[0], hireDate: "2024-01-15" },
-      { name: "Хамиджанова Мукаддам", position: "Уборщик производственных и служебных помещений", status: "active" as const, workSchedule: "5/2" as const, objectId: objectIds[0], hireDate: "2024-02-01" },
-      { name: "Артемова Марина Владимировна", position: "Оператор", status: "active" as const, workSchedule: "2/2" as const, objectId: objectIds[0], hireDate: "2024-03-10" },
+      { name: "Иванова Ольга Анатольевна", position: "Менеджер", status: "active" as const, workSchedule: "5/2" as const, objectId: objectIds[1], hireDate: "2024-01-15" },
+      { name: "Хамиджанова Мукаддам", position: "Уборщик производственных и служебных помещений", status: "active" as const, workSchedule: "5/2" as const, objectId: objectIds[1], hireDate: "2024-02-01" },
+      { name: "Артемова Марина Владимировна", position: "Оператор", status: "active" as const, workSchedule: "2/2" as const, objectId: objectIds[1], hireDate: "2024-03-10" },
       
       // ОП Соликамск СКРУ-3
-      { name: "Баранова Наталья Павловна (Внеш.совм.)", position: "Менеджер", status: "active" as const, workSchedule: "5/2" as const, objectId: objectIds[1], hireDate: "2024-01-20" },
-      { name: "Исахонова Иродахон Хасанбой Кизи", position: "Уборщик производственных и служебных помещений", status: "not_registered" as const, workSchedule: "5/2" as const, objectId: objectIds[1], hireDate: null },
+      { name: "Баранова Наталья Павловна (Внеш.совм.)", position: "Менеджер", status: "active" as const, workSchedule: "5/2" as const, objectId: objectIds[2], hireDate: "2024-01-20" },
+      { name: "Исахонова Иродахон Хасанбой Кизи", position: "Уборщик производственных и служебных помещений", status: "not_registered" as const, workSchedule: "5/2" as const, objectId: objectIds[2], hireDate: null },
       
       // УПГП Урай
-      { name: "Вардзар Лариса Федоровна", position: "Инженер", status: "active" as const, workSchedule: "5/2" as const, objectId: objectIds[2], hireDate: "2023-11-15" },
-      { name: "Коншин Михаил Викторович", position: "Оператор установки", status: "active" as const, workSchedule: "2/2" as const, objectId: objectIds[2], hireDate: "2024-04-01" },
+      { name: "Вардзар Лариса Федоровна", position: "Инженер", status: "active" as const, workSchedule: "5/2" as const, objectId: objectIds[3], hireDate: "2023-11-15" },
+      { name: "Коншин Михаил Викторович", position: "Оператор установки", status: "active" as const, workSchedule: "2/2" as const, objectId: objectIds[3], hireDate: "2024-04-01" },
       
       // УПГП Белозерное
-      { name: "Петрова Елена Сергеевна", position: "Инженер", status: "active" as const, workSchedule: "5/2" as const, objectId: objectIds[3], hireDate: "2024-05-10" },
-      { name: "Сидоров Максим Александрович", position: "Электромонтер", status: "fired" as const, workSchedule: "5/2" as const, objectId: objectIds[3], hireDate: "2023-12-01", terminationDate: "2025-08-10" },
+      { name: "Петрова Елена Сергеевна", position: "Инженер", status: "active" as const, workSchedule: "5/2" as const, objectId: objectIds[4], hireDate: "2024-05-10" },
+      { name: "Сидоров Максим Александрович", position: "Электромонтер", status: "fired" as const, workSchedule: "5/2" as const, objectId: objectIds[4], hireDate: "2023-12-01", terminationDate: "2025-08-10" },
     ];
 
     sampleEmployees.forEach(emp => {
