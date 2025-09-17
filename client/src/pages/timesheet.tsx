@@ -23,7 +23,13 @@ type TimesheetRow = {
 };
 
 export default function Timesheet() {
-  const [selectedMonth, setSelectedMonth] = useState("2025-08");
+  // Автоматически устанавливать текущий месяц
+  const getCurrentMonth = () => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  };
+  
+  const [selectedMonth, setSelectedMonth] = useState(getCurrentMonth());
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -49,7 +55,8 @@ export default function Timesheet() {
 
   const { data: positions = [], isLoading: isPositionsLoading } = useQuery<Position[]>({
     queryKey: ["/api/positions", selectedObjectId],
-    queryFn: () => fetch(selectedObjectId ? `/api/positions?objectId=${selectedObjectId}` : "/api/positions").then(r => r.json()),
+    enabled: !!selectedObjectId,
+    queryFn: () => fetch(`/api/positions?objectId=${selectedObjectId}`).then(r => r.json()),
   });
 
   const updateTimeEntryMutation = useMutation({
@@ -142,17 +149,19 @@ export default function Timesheet() {
 
   const timesheetRows = createTimesheetRows();
 
-  // Separate rows into active and part-time workers  
+  // Разделить на три секции: активные сотрудники, подработчики, вакансии  
   const activeEmployeeRows = timesheetRows.filter(row => 
-    (row.type === 'employee' && (row.employee?.status === "active" || row.employee?.status === "fired")) ||
-    row.type === 'vacancy'
+    row.type === 'employee' && (row.employee?.status === "active" || row.employee?.status === "fired")
   );
   const partTimeEmployeeRows = timesheetRows.filter(row => 
     row.type === 'employee' && row.employee?.status === "not_registered"
   );
+  const vacancyRows = timesheetRows.filter(row => 
+    row.type === 'vacancy'
+  );
 
   // Keep old variables for compatibility
-  const activeEmployees = activeEmployeeRows.filter(row => row.type === 'employee').map(row => row.employee!);
+  const activeEmployees = activeEmployeeRows.map(row => row.employee!);
   const partTimeEmployees = partTimeEmployeeRows.map(row => row.employee!);
 
   const getTimeEntry = (employeeId: string, date: string) => {
@@ -783,16 +792,16 @@ export default function Timesheet() {
 
             {/* Body - Active Employees Section */}
             <tbody>
-              {/* Active Employees & Vacancies Header */}
+              {/* Active Employees Header */}
               {activeEmployeeRows.length > 0 && (
                 <tr className="bg-blue-50 dark:bg-blue-950/20">
                   <td colSpan={days.length + 3} className="p-2 font-semibold text-sm text-blue-800 dark:text-blue-200">
-                    Активные сотрудники и вакансии
+                    Активные сотрудники
                   </td>
                 </tr>
               )}
               
-              {/* Active Employees & Vacancies Rows */}
+              {/* Active Employees Rows */}
               {activeEmployeeRows.map((row) => {
                 const totalHours = getRowTotalHours(row);
                 const plannedHours = getRowPlannedHours(row);
@@ -861,11 +870,11 @@ export default function Timesheet() {
                 );
               })}
               
-              {/* Active Employees & Vacancies Subtotal */}
+              {/* Active Employees Subtotal */}
               {activeEmployeeRows.length > 0 && (
                 <tr className="bg-blue-100 dark:bg-blue-900/30 border-t-2 border-blue-300">
                   <td className="sticky left-0 z-10 bg-blue-100 dark:bg-blue-900/30 border-r p-1 font-bold text-blue-800 dark:text-blue-200">
-                    <div className="text-[10px]">Итого активные:</div>
+                    <div className="text-[10px]">Итого активные: {activeEmployeeRows.length} чел.</div>
                   </td>
                   {days.map((day) => (
                     <td key={day.date} className="p-0 bg-blue-100 dark:bg-blue-900/30"></td>
@@ -953,7 +962,7 @@ export default function Timesheet() {
               {partTimeEmployees.length > 0 && (
                 <tr className="bg-orange-100 dark:bg-orange-900/30 border-t-2 border-orange-300">
                   <td className="sticky left-0 z-10 bg-orange-100 dark:bg-orange-900/30 border-r p-1 font-bold text-orange-800 dark:text-orange-200">
-                    <div className="text-[10px]">Итого подработка:</div>
+                    <div className="text-[10px]">Итого подработка: {partTimeEmployees.length} чел.</div>
                   </td>
                   {days.map((day) => (
                     <td key={day.date} className="p-0 bg-orange-100 dark:bg-orange-900/30"></td>
@@ -967,7 +976,76 @@ export default function Timesheet() {
                 </tr>
               )}
 
+              {/* Vacancies Header */}
+              {vacancyRows.length > 0 && (
+                <tr className="bg-gray-50 dark:bg-gray-950/20">
+                  <td colSpan={days.length + 3} className="p-2 font-semibold text-sm text-gray-700 dark:text-gray-300">
+                    Вакансии
+                  </td>
+                </tr>
+              )}
+              
+              {/* Vacancies Rows */}
+              {vacancyRows.map((row) => {
+                const totalHours = getRowTotalHours(row);
+                const plannedHours = getRowPlannedHours(row);
 
+                return (
+                  <tr 
+                    key={row.id} 
+                    className="hover:bg-muted/30 bg-gray-50 dark:bg-gray-900/20"
+                  >
+                    <td className="sticky left-0 z-10 bg-background border-r p-1 font-medium">
+                      <div className="text-[10px] truncate max-w-28 text-orange-600 font-semibold" title={row.name}>
+                        {row.name}
+                      </div>
+                      <div className="text-[8px] truncate text-orange-500">
+                        {row.positionTitle}
+                      </div>
+                    </td>
+                    {days.map((day) => {
+                      return (
+                        <td key={day.date} className="p-0">
+                          <TimesheetCell
+                            value=""
+                            qualityScore={3}
+                            isLocked={true}
+                            isTerminated={false}
+                            employeeId=""
+                            date={day.date}
+                            isPartTime={false}
+                            onChange={() => {}}
+                          />
+                        </td>
+                      );
+                    })}
+                    <td className="border-r p-1 text-center font-bold bg-primary/5">
+                      <div className="text-[9px]">{totalHours}</div>
+                    </td>
+                    <td className="border-r p-1 text-center font-bold bg-green-50 dark:bg-green-950/20">
+                      <div className="text-[9px]">{plannedHours}</div>
+                    </td>
+                  </tr>
+                );
+              })}
+              
+              {/* Vacancies Subtotal */}
+              {vacancyRows.length > 0 && (
+                <tr className="bg-gray-100 dark:bg-gray-900/30 border-t-2 border-gray-300">
+                  <td className="sticky left-0 z-10 bg-gray-100 dark:bg-gray-900/30 border-r p-1 font-bold text-gray-800 dark:text-gray-200">
+                    <div className="text-[10px]">Итого вакансии: {vacancyRows.length} шт.</div>
+                  </td>
+                  {days.map((day) => (
+                    <td key={day.date} className="p-0 bg-gray-100 dark:bg-gray-900/30"></td>
+                  ))}
+                  <td className="border-r p-1 text-center font-bold bg-gray-200 dark:bg-gray-800/50 text-gray-800 dark:text-gray-200">
+                    <div className="text-[10px]">{getGroupTotalHours(vacancyRows)}</div>
+                  </td>
+                  <td className="border-r p-1 text-center font-bold bg-green-100 dark:bg-green-800/50 text-green-800 dark:text-green-200">
+                    <div className="text-[10px]">{getGroupPlannedHours(vacancyRows)}</div>
+                  </td>
+                </tr>
+              )}
 
               {/* Overall Total Row */}
               <tr className="bg-gray-200 dark:bg-gray-800 border-t-4 border-gray-400">
@@ -978,10 +1056,10 @@ export default function Timesheet() {
                   <td key={day.date} className="p-0 bg-gray-200 dark:bg-gray-800"></td>
                 ))}
                 <td className="border-r p-1 text-center font-bold bg-gray-300 dark:bg-gray-700 text-gray-800 dark:text-gray-200">
-                  <div className="text-[11px]">{getGroupTotalHours([...activeEmployeeRows, ...partTimeEmployeeRows])}</div>
+                  <div className="text-[11px]">{getGroupTotalHours([...activeEmployeeRows, ...partTimeEmployeeRows, ...vacancyRows])}</div>
                 </td>
                 <td className="border-r p-1 text-center font-bold bg-green-200 dark:bg-green-700 text-green-800 dark:text-green-200">
-                  <div className="text-[11px]">{getGroupPlannedHours([...activeEmployeeRows, ...partTimeEmployeeRows])}</div>
+                  <div className="text-[11px]">{getGroupPlannedHours([...activeEmployeeRows, ...partTimeEmployeeRows, ...vacancyRows])}</div>
                 </td>
               </tr>
             </tbody>

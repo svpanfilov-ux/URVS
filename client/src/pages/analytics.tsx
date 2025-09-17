@@ -36,15 +36,18 @@ export default function Analytics() {
   // Загружаем дополнительные данные для синхронизации
   const { data: positions = [] } = useQuery<any[]>({
     queryKey: ["/api/positions"],
+    enabled: user?.role === "economist",
+    queryFn: () => fetch("/api/positions").then(r => r.json()),
   });
 
   const { data: timeEntries = [] } = useQuery<any[]>({
     queryKey: ["/api/time-entries/2025-08"],
+    enabled: user?.role === "economist",
   });
 
   // Расчет реальной аналитики на основе импортированных данных
   const generateAnalytics = (): ObjectAnalytics[] => {
-    return objects.filter(obj => obj.isActive).map(object => {
+    return objects.filter(obj => obj.status === "active").map(object => {
       const objectEmployees = employees.filter(emp => emp.objectId === object.id);
       const activeCount = objectEmployees.filter(emp => emp.status === "active").length;
       const objectPositions = positions.filter(pos => pos.objectId === object.id);
@@ -143,7 +146,7 @@ export default function Analytics() {
     }).format(amount);
   };
 
-  if (user?.role !== "director" && user?.role !== "hr_economist") {
+  if (user?.role !== "economist") {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">

@@ -40,10 +40,8 @@ export default function Dashboard() {
 
   const { data: positions = [] } = useQuery<Position[]>({
     queryKey: ["/api/positions", selectedObjectId],
-    queryFn: () => {
-      const url = selectedObjectId ? `/api/positions?objectId=${selectedObjectId}` : '/api/positions';
-      return fetch(url).then(res => res.json());
-    },
+    enabled: !!selectedObjectId,
+    queryFn: () => fetch(`/api/positions?objectId=${selectedObjectId}`).then(res => res.json()),
   });
 
   const { data: timeEntries = [] } = useQuery<TimeEntry[]>({

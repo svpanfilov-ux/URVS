@@ -30,6 +30,8 @@ export default function Reports() {
 
   const { data: positions = [] } = useQuery<Position[]>({
     queryKey: ["/api/positions"],
+    enabled: user?.role === "economist",
+    queryFn: () => fetch("/api/positions").then(r => r.json()),
   });
 
   const { data: timeEntries = [] } = useQuery<TimeEntry[]>({
@@ -85,7 +87,7 @@ export default function Reports() {
       totalEmployees,
       totalHours: actualHours,
       totalPositions: positions.length,
-      totalObjects: objects.filter(obj => obj.isActive).length
+      totalObjects: objects.filter(obj => obj.status === "active").length
     };
   };
 
@@ -169,7 +171,7 @@ export default function Reports() {
                   </tr>
                 </thead>
                 <tbody className="bg-background divide-y divide-border">
-                  {objects.filter(obj => obj.isActive).map((object, index) => {
+                  {objects.filter(obj => obj.status === "active").map((object, index) => {
                     const objectEmployees = employees.filter(emp => emp.objectId === object.id && emp.status === "active");
                     const objectPositions = positions.filter(pos => pos.objectId === object.id);
                     const vacancies = Math.max(0, objectPositions.reduce((sum, pos) => sum + pos.positionsCount, 0) - objectEmployees.length);
@@ -193,7 +195,7 @@ export default function Reports() {
                       </tr>
                     );
                   })}
-                  {objects.filter(obj => obj.isActive).length === 0 && (
+                  {objects.filter(obj => obj.status === "active").length === 0 && (
                     <tr>
                       <td colSpan={8} className="px-6 py-4 text-center text-muted-foreground">
                         Нет активных объектов

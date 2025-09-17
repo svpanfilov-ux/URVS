@@ -52,7 +52,8 @@ export default function Employees() {
 
   const { data: positions = [], isLoading: isPositionsLoading } = useQuery<Position[]>({
     queryKey: ["/api/positions", selectedObjectId],
-    queryFn: () => fetch(selectedObjectId ? `/api/positions?objectId=${selectedObjectId}` : "/api/positions").then(r => r.json()),
+    enabled: !!selectedObjectId,
+    queryFn: () => fetch(`/api/positions?objectId=${selectedObjectId}`).then(r => r.json()),
   });
 
   // Create combined rows for employees and vacancies

@@ -36,7 +36,14 @@ export default function Staffing() {
   });
 
   const { data: positions = [], isLoading } = useQuery<Position[]>({
-    queryKey: ["/api/positions"],
+    queryKey: isManager ? ["/api/positions", selectedObjectId] : ["/api/positions"],
+    enabled: !isManager || !!selectedObjectId,
+    queryFn: () => {
+      const url = isManager && selectedObjectId 
+        ? `/api/positions?objectId=${selectedObjectId}` 
+        : '/api/positions';
+      return fetch(url).then(r => r.json());
+    },
   });
 
   const { data: users = [] } = useQuery<User[]>({
