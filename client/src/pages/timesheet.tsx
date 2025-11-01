@@ -64,7 +64,6 @@ export default function Timesheet() {
   const { data: periodStatus } = useQuery<TimesheetPeriod | { status: string; reportStatus: string | null }>({
     queryKey: ["/api/timesheet-periods", selectedObjectId, selectedMonth],
     enabled: !!selectedObjectId,
-    queryFn: () => fetch(`/api/timesheet-periods/${selectedObjectId}/${selectedMonth}`).then(r => r.json()),
   });
 
   const isPeriodClosed = periodStatus?.status === "closed";
