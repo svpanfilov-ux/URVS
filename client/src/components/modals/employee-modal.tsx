@@ -39,6 +39,7 @@ const employeeSchema = z.object({
   paymentType: z.enum(["hourly", "salary"]),
   hourlyRate: z.number().optional(),
   monthlySalary: z.number().optional(),
+  paymentMethod: z.enum(["card", "cash"]),
   terminationDate: z.string().optional(),
 });
 
@@ -77,6 +78,7 @@ export function EmployeeModal({ isOpen, onClose, onSave, employee }: EmployeeMod
       paymentType: "hourly",
       hourlyRate: undefined,
       monthlySalary: undefined,
+      paymentMethod: "card",
       terminationDate: "",
     },
   });
@@ -108,6 +110,7 @@ export function EmployeeModal({ isOpen, onClose, onSave, employee }: EmployeeMod
         paymentType: (employee.paymentType || "hourly") as "hourly" | "salary",
         hourlyRate: employee.hourlyRate || undefined,
         monthlySalary: employee.monthlySalary || undefined,
+        paymentMethod: (employee.paymentMethod || "card") as "card" | "cash",
         terminationDate: employee.terminationDate || "",
       });
       setShowTerminationDate(employee.status === "fired");
@@ -122,6 +125,7 @@ export function EmployeeModal({ isOpen, onClose, onSave, employee }: EmployeeMod
         paymentType: "hourly",
         hourlyRate: undefined,
         monthlySalary: undefined,
+        paymentMethod: "card",
         terminationDate: "",
       });
       setShowTerminationDate(false);
@@ -399,6 +403,31 @@ export function EmployeeModal({ isOpen, onClose, onSave, employee }: EmployeeMod
                 )}
               />
             )}
+
+            <FormField
+              control={form.control}
+              name="paymentMethod"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Способ выплаты *</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger data-testid="select-payment-method">
+                        <SelectValue placeholder="Выберите способ выплаты" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="card">На карту</SelectItem>
+                      <SelectItem value="cash">Ведомость</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                  <p className="text-sm text-muted-foreground">
+                    Используется при формировании отчёта по зарплате
+                  </p>
+                </FormItem>
+              )}
+            />
 
             {showTerminationDate && (
               <FormField
