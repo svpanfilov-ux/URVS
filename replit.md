@@ -50,8 +50,14 @@ Preferred communication style: Simple, everyday language.
   - **Director**: Executive-level analytics and reporting
   - **Group Manager**: Team-specific access and management functions
 - **Authentication System**: Interactive login interface with visual role cards, real-time validation, and Zustand for state management with localStorage persistence.
+- **Employee Assignment System**: Two-type employee assignment with automatic data population:
+  - **Active (штатный)**: Occupies vacancy from staffing schedule, reduces vacancy count, participates in planned and actual payroll
+  - **Part-time (подработчик)**: Does not occupy vacancy, counted only in actual payroll
+  - **Auto-fill from positions**: Work schedule, payment type, and salary/rate automatically populated from selected position
+  - **Role-based access**: Managers can add only to their object, economists to any object
+  - **Position validation**: Only positions from staffing schedule can be selected
 - **Timesheet Module**: Full CRUD operations for time entries, smart cell management (future date locking, terminated employee status), data entry validation (hours or status letters), bulk operations, and context menus. Includes section-based layout (Active Employees, Contract Work) with subtotals, planned hours calculation, and management of fired employees with visual indicators.
-- **Employee Management Module**: Unified table view for all employees, status filtering, search, status badges, and CSV import/export.
+- **Employee Management Module**: Unified table view for all employees with integrated vacancy tracking, status filtering, search, status badges, and CSV import/export. Assignment form with object selection, position picker from staffing schedule, automatic data population (work schedule, payment type, rates), and role-based access control.
 - **Staffing Schedule Module**: Tabular display of positions per shift, enhanced statistics, and position management.
 - **Analytics Dashboard**: 
   - **For Economists**: Comprehensive ФОТ analytics with graphical visualization (planned vs actual payroll, employee status distribution, hours comparison charts)
@@ -59,7 +65,7 @@ Preferred communication style: Simple, everyday language.
   - **Financial Metrics**: Budget vs. actual comparisons, employee efficiency tracking, dynamic statistics (monthly norm hours, actual hours, deviation)
   - **Visual Components**: Recharts integration for bar charts, pie charts, and progress indicators
 - **UI/UX Decisions**: Responsive design, dark theme support, color-coded interfaces (e.g., timesheet cell quality, employee status badges), and consistent styling using shadcn/ui.
-- **Data Models**: Users (authentication, roles), Employees (records, status, termination dates), Time Entries (daily hours, quality ratings, day types), Reports (payroll reports), Settings (application configuration).
+- **Data Models**: Users (authentication, roles), Employees (records, status, termination dates, payment info from positions), Time Entries (daily hours, quality ratings, day types), Reports (payroll reports), Settings (application configuration), Positions (staffing schedule with payment details).
 - **Business Logic Highlights**:
     - Timesheet rules: current reporting period editable, future dates locked, automatic "У" status post-termination, quality scoring (1-4), status codes (О, Б, НН, У).
     - Bulk fill operations based on source cell values and employee work schedules (e.g., 5/2, 2/2).
