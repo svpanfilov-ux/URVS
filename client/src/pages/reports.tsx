@@ -13,6 +13,7 @@ import { ru } from "date-fns/locale";
 import { Eye, Send, FileText, AlertTriangle, Lock, Calendar } from "lucide-react";
 import { Object as ObjectType, Employee, Position, TimeEntry, TimesheetPeriod } from "@shared/schema";
 import { TimesheetReport } from "@/components/timesheet-report";
+import { EconomistReportsControl } from "@/components/economist-reports-control";
 
 export default function Reports() {
   const { toast } = useToast();
@@ -185,72 +186,16 @@ export default function Reports() {
     );
   };
 
-  // Director view - simplified read-only reports table
-  // Economist gets director-level view (read-only reports)
+  // Economist view - reports control and approval
   if (user?.role === "economist") {
     return (
       <div className="space-y-6">
         <div>
-          <h2 className="text-2xl font-semibold text-foreground mb-2">История отчётов</h2>
-          <p className="text-muted-foreground">Просмотр отчётов от всех объектов</p>
+          <h2 className="text-2xl font-semibold text-foreground mb-2">Контроль отчётов</h2>
+          <p className="text-muted-foreground">Управление отчётами от всех объектов</p>
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Отчёты по объектам</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-muted/50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Объект</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Менеджер</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Месяц</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Тип</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Сотрудников</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Вакансий</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Статус</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Дата и время отправки</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-background divide-y divide-border">
-                  {objects.filter(obj => obj.status === "active").map((object, index) => {
-                    const objectEmployees = employees.filter(emp => emp.objectId === object.id && emp.status === "active");
-                    const objectPositions = positions.filter(pos => pos.objectId === object.id);
-                    const vacancies = Math.max(0, objectPositions.reduce((sum, pos) => sum + pos.positionsCount, 0) - objectEmployees.length);
-                    
-                    return (
-                      <tr key={object.id} data-testid={`director-report-${index + 1}`}>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">{object.name}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
-                          {object.managerId ? employees.find(emp => emp.id === object.managerId)?.name || "Не назначен" : "Не назначен"}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">Август 2025</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
-                          {index % 2 === 0 ? "Аванс" : "Зарплата"}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">{objectEmployees.length}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">{vacancies}</td>
-                        <td className="px-6 py-4 whitespace-nowrap">{getStatusBadge("sent")}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
-                          {format(new Date(), "dd.MM.yyyy HH:mm", { locale: ru })}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                  {objects.filter(obj => obj.status === "active").length === 0 && (
-                    <tr>
-                      <td colSpan={8} className="px-6 py-4 text-center text-muted-foreground">
-                        Нет активных объектов
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
+        <EconomistReportsControl />
       </div>
     );
   }
