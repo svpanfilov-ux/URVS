@@ -13,13 +13,16 @@ import {
   type InsertObject,
   type Position,
   type InsertPosition,
+  type TimesheetPeriod,
+  type InsertTimesheetPeriod,
   users,
   employees,
   timeEntries,
   reports,
   settings,
   objects,
-  positions
+  positions,
+  timesheetPeriods
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { drizzle } from "drizzle-orm/neon-http";
@@ -71,6 +74,11 @@ export interface IStorage {
   createPosition(position: InsertPosition): Promise<Position>;
   updatePosition(id: string, position: Partial<InsertPosition>): Promise<Position | undefined>;
   deletePosition(id: string): Promise<boolean>;
+
+  // Timesheet Periods
+  getTimesheetPeriod(objectId: string, period: string): Promise<TimesheetPeriod | undefined>;
+  createTimesheetPeriod(timesheetPeriod: InsertTimesheetPeriod): Promise<TimesheetPeriod>;
+  updateTimesheetPeriod(id: string, timesheetPeriod: Partial<InsertTimesheetPeriod>): Promise<TimesheetPeriod | undefined>;
 }
 
 export class MemStorage implements IStorage {
@@ -81,6 +89,7 @@ export class MemStorage implements IStorage {
   private settings: Map<string, Setting>;
   private objects: Map<string, Object>;
   private positions: Map<string, Position>;
+  private timesheetPeriods: Map<string, TimesheetPeriod>;
 
   constructor() {
     this.users = new Map();
@@ -90,6 +99,7 @@ export class MemStorage implements IStorage {
     this.settings = new Map();
     this.objects = new Map();
     this.positions = new Map();
+    this.timesheetPeriods = new Map();
 
     // Initialize with demo data
     this.initializeDemoData();
@@ -617,6 +627,37 @@ export class MemStorage implements IStorage {
 
   async deletePosition(id: string): Promise<boolean> {
     return this.positions.delete(id);
+  }
+
+  // Timesheet Periods
+  async getTimesheetPeriod(objectId: string, period: string): Promise<TimesheetPeriod | undefined> {
+    return Array.from(this.timesheetPeriods.values()).find(
+      tp => tp.objectId === objectId && tp.period === period
+    );
+  }
+
+  async createTimesheetPeriod(insertPeriod: InsertTimesheetPeriod): Promise<TimesheetPeriod> {
+    const id = randomUUID();
+    const timesheetPeriod: TimesheetPeriod = {
+      ...insertPeriod,
+      id,
+      closedBy: insertPeriod.closedBy || null,
+      closedAt: insertPeriod.closedAt || null,
+      reportStatus: insertPeriod.reportStatus || null,
+      reportId: insertPeriod.reportId || null,
+      createdAt: new Date()
+    };
+    this.timesheetPeriods.set(id, timesheetPeriod);
+    return timesheetPeriod;
+  }
+
+  async updateTimesheetPeriod(id: string, updateData: Partial<InsertTimesheetPeriod>): Promise<TimesheetPeriod | undefined> {
+    const period = this.timesheetPeriods.get(id);
+    if (!period) return undefined;
+
+    const updatedPeriod = { ...period, ...updateData };
+    this.timesheetPeriods.set(id, updatedPeriod);
+    return updatedPeriod;
   }
 }
 

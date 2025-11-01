@@ -78,16 +78,16 @@ export const additionalPayments = pgTable("additional_payments", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-// Статусы табелей для контроля доступа
-export const timesheetStatus = pgTable("timesheet_status", {
+// Статусы периодов табеля для контроля доступа
+export const timesheetPeriods = pgTable("timesheet_periods", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   objectId: varchar("object_id").notNull().references(() => objects.id),
   period: text("period").notNull(), // YYYY-MM format
-  status: text("status").notNull().default("open"), // open, submitted, approved, locked
-  submittedBy: varchar("submitted_by").references(() => users.id),
-  approvedBy: varchar("approved_by").references(() => users.id),
-  submittedAt: timestamp("submitted_at"),
-  approvedAt: timestamp("approved_at"),
+  status: text("status").notNull().default("open"), // open (открыт для редактирования), closed (закрыт менеджером)
+  closedBy: varchar("closed_by").references(() => users.id), // кто закрыл период
+  closedAt: timestamp("closed_at"), // когда закрыт период
+  reportStatus: text("report_status"), // null (нет отчёта), draft (черновик), submitted (отправлен), approved (утверждён), rejected (отклонён)
+  reportId: varchar("report_id").references(() => reports.id), // связь с отчётом
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -187,11 +187,12 @@ export const insertAdditionalPaymentSchema = createInsertSchema(additionalPaymen
   type: z.enum(["sick_leave", "vacation", "bonus", "other"]),
 });
 
-export const insertTimesheetStatusSchema = createInsertSchema(timesheetStatus).omit({
+export const insertTimesheetPeriodSchema = createInsertSchema(timesheetPeriods).omit({
   id: true,
   createdAt: true,
 }).extend({
-  status: z.enum(["open", "submitted", "approved", "locked"]).default("open"),
+  status: z.enum(["open", "closed"]).default("open"),
+  reportStatus: z.enum(["draft", "submitted", "approved", "rejected"]).optional(),
 });
 
 // Types
@@ -222,8 +223,8 @@ export type InsertBudget = z.infer<typeof insertBudgetSchema>;
 export type AdditionalPayment = typeof additionalPayments.$inferSelect;
 export type InsertAdditionalPayment = z.infer<typeof insertAdditionalPaymentSchema>;
 
-export type TimesheetStatus = typeof timesheetStatus.$inferSelect;
-export type InsertTimesheetStatus = z.infer<typeof insertTimesheetStatusSchema>;
+export type TimesheetPeriod = typeof timesheetPeriods.$inferSelect;
+export type InsertTimesheetPeriod = z.infer<typeof insertTimesheetPeriodSchema>;
 
 // Additional types for frontend
 export interface DashboardStats {

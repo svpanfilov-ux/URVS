@@ -1,14 +1,15 @@
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { TimesheetCell } from "@/components/timesheet/timesheet-cell";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { format, getDaysInMonth, parseISO, isAfter } from "date-fns";
 import { ru } from "date-fns/locale";
-import { Wand2, Calendar } from "lucide-react";
-import { Employee, TimeEntry, Position } from "@shared/schema";
+import { Wand2, Calendar, Lock, LockOpen } from "lucide-react";
+import { Employee, TimeEntry, Position, TimesheetPeriod } from "@shared/schema";
 import { useObjectStore } from "@/lib/object-store";
 
 // Type for timesheet row that can be either an employee or a vacancy
@@ -59,6 +60,16 @@ export default function Timesheet() {
     queryFn: () => fetch(`/api/positions?objectId=${selectedObjectId}`).then(r => r.json()),
   });
 
+  // Get timesheet period status
+  const { data: periodStatus } = useQuery<TimesheetPeriod | { status: string; reportStatus: string | null }>({
+    queryKey: ["/api/timesheet-periods", selectedObjectId, selectedMonth],
+    enabled: !!selectedObjectId,
+    queryFn: () => fetch(`/api/timesheet-periods/${selectedObjectId}/${selectedMonth}`).then(r => r.json()),
+  });
+
+  const isPeriodClosed = periodStatus?.status === "closed";
+  const isReportApproved = periodStatus?.reportStatus === "approved";
+
   const updateTimeEntryMutation = useMutation({
     mutationFn: async (data: any) => {
       if (data.id) {
@@ -72,6 +83,36 @@ export default function Timesheet() {
     },
     onError: () => {
       toast({ title: "Ошибка при сохранении данных", variant: "destructive" });
+    },
+  });
+
+  const closePeriodMutation = useMutation({
+    mutationFn: async () => {
+      return await apiRequest("POST", `/api/timesheet-periods/${selectedObjectId}/${selectedMonth}/close`, {});
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/timesheet-periods", selectedObjectId, selectedMonth] });
+      toast({ title: "Период закрыт", description: "Табель больше не доступен для редактирования" });
+    },
+    onError: () => {
+      toast({ title: "Ошибка при закрытии периода", variant: "destructive" });
+    },
+  });
+
+  const reopenPeriodMutation = useMutation({
+    mutationFn: async () => {
+      return await apiRequest("POST", `/api/timesheet-periods/${selectedObjectId}/${selectedMonth}/reopen`, {});
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/timesheet-periods", selectedObjectId, selectedMonth] });
+      toast({ title: "Период открыт", description: "Табель снова доступен для редактирования" });
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: "Ошибка при открытии периода", 
+        description: error.message || "Невозможно открыть период",
+        variant: "destructive" 
+      });
     },
   });
 
@@ -178,6 +219,10 @@ export default function Timesheet() {
   };
 
   const isCellLocked = (date: string) => {
+    // If period is closed, all cells are locked
+    if (isPeriodClosed) return true;
+    
+    // Future dates are locked
     const cellDate = parseISO(date);
     const today = new Date();
     return isAfter(cellDate, today);
@@ -262,6 +307,9 @@ export default function Timesheet() {
   };
 
   const isRowCellLocked = (row: TimesheetRow, date: string): boolean => {
+    // If period is closed, all cells are locked
+    if (isPeriodClosed) return true;
+    
     // Vacancies are always locked
     if (row.type === 'vacancy') return true;
     
@@ -508,12 +556,21 @@ export default function Timesheet() {
   };
 
   const handleClosePeriod = () => {
-    toast({ 
-      title: "Период закрыт", 
-      description: `Данные табеля за ${format(new Date(selectedMonth + "-01"), "LLLL yyyy", { locale: ru })} зафиксированы`,
-      variant: "default"
-    });
+    closePeriodMutation.mutate();
   };
+
+  const handleReopenPeriod = () => {
+    reopenPeriodMutation.mutate();
+  };
+
+  // Check if current month is in the past or present (not future)
+  const canClosePeriod = useMemo(() => {
+    const [year, month] = selectedMonth.split('-').map(Number);
+    const selectedDate = new Date(year, month - 1);
+    const today = new Date();
+    const currentMonthStart = new Date(today.getFullYear(), today.getMonth());
+    return selectedDate <= currentMonthStart;
+  }, [selectedMonth]);
 
   const handleAutoFill = async () => {
     try {
@@ -712,7 +769,20 @@ export default function Timesheet() {
         <div className="flex items-center space-x-4">
           <Calendar className="h-8 w-8 text-primary" />
           <div>
-            <h1 className="text-2xl font-bold">Табель учёта рабочего времени</h1>
+            <div className="flex items-center gap-3">
+              <h1 className="text-2xl font-bold">Табель учёта рабочего времени</h1>
+              {isPeriodClosed && (
+                <Badge variant="secondary" className="bg-gray-200 dark:bg-gray-700">
+                  <Lock className="w-3 h-3 mr-1" />
+                  Период закрыт
+                </Badge>
+              )}
+              {isReportApproved && (
+                <Badge variant="default" className="bg-green-600">
+                  Отчёт утверждён
+                </Badge>
+              )}
+            </div>
             <p className="text-muted-foreground">Учёт рабочих часов и оценка качества работы</p>
           </div>
         </div>
@@ -722,25 +792,45 @@ export default function Timesheet() {
             onClick={handleClearAll} 
             variant="destructive" 
             size="sm"
-            disabled={bulkDeleteMutation.isPending}
+            disabled={bulkDeleteMutation.isPending || isPeriodClosed}
             data-testid="button-clear-all"
           >
             Очистить всё
           </Button>
           
-          <Button onClick={handleAutoFill} variant="outline" size="sm">
+          <Button 
+            onClick={handleAutoFill} 
+            variant="outline" 
+            size="sm"
+            disabled={isPeriodClosed}
+          >
             <Wand2 className="w-4 h-4 mr-2" />
             Автозаполнение
           </Button>
 
-          <Button 
-            onClick={handleClosePeriod} 
-            className="bg-orange-600 hover:bg-orange-700"
-            size="sm"
-            data-testid="button-close-period"
-          >
-            Закрыть период
-          </Button>
+          {!isPeriodClosed ? (
+            <Button 
+              onClick={handleClosePeriod} 
+              className="bg-orange-600 hover:bg-orange-700"
+              size="sm"
+              disabled={!canClosePeriod || closePeriodMutation.isPending}
+              data-testid="button-close-period"
+            >
+              <Lock className="w-4 h-4 mr-2" />
+              Закрыть период
+            </Button>
+          ) : (
+            <Button 
+              onClick={handleReopenPeriod} 
+              variant="outline"
+              size="sm"
+              disabled={isReportApproved || reopenPeriodMutation.isPending}
+              data-testid="button-reopen-period"
+            >
+              <LockOpen className="w-4 h-4 mr-2" />
+              Открыть период
+            </Button>
+          )}
           
           <Select value={selectedMonth} onValueChange={setSelectedMonth}>
             <SelectTrigger className="w-[180px]">

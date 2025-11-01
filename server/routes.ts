@@ -1,7 +1,7 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertUserSchema, insertEmployeeSchema, insertTimeEntrySchema, insertReportSchema, insertSettingSchema, insertObjectSchema, insertPositionSchema } from "@shared/schema";
+import { insertUserSchema, insertEmployeeSchema, insertTimeEntrySchema, insertReportSchema, insertSettingSchema, insertObjectSchema, insertPositionSchema, insertTimesheetPeriodSchema } from "@shared/schema";
 import { z } from "zod";
 import multer from "multer";
 import { randomUUID } from "crypto";
@@ -959,6 +959,120 @@ export async function registerRoutes(app: Express): Promise<Server> {
         message: "Ошибка при импорте сотрудников", 
         error: error instanceof Error ? error.message : "Неизвестная ошибка" 
       });
+    }
+  });
+
+  // Timesheet Periods API
+  // Get timesheet period status
+  app.get("/api/timesheet-periods/:objectId/:period", requireAuth, async (req, res) => {
+    try {
+      const { objectId, period } = req.params;
+      const timesheetPeriod = await storage.getTimesheetPeriod(objectId, period);
+      
+      if (!timesheetPeriod) {
+        // If period doesn't exist, return default open status
+        return res.json({
+          status: "open",
+          reportStatus: null,
+          closedAt: null,
+          closedBy: null
+        });
+      }
+      
+      res.json(timesheetPeriod);
+    } catch (error) {
+      console.error("Error fetching timesheet period:", error);
+      res.status(500).json({ message: "Ошибка при получении статуса периода" });
+    }
+  });
+
+  // Close timesheet period
+  app.post("/api/timesheet-periods/:objectId/:period/close", requireAuth, async (req, res) => {
+    try {
+      const { objectId, period } = req.params;
+      const userId = req.user.id;
+      
+      // Check if period already exists
+      let timesheetPeriod = await storage.getTimesheetPeriod(objectId, period);
+      
+      if (timesheetPeriod) {
+        if (timesheetPeriod.status === "closed") {
+          return res.status(400).json({ message: "Период уже закрыт" });
+        }
+        
+        // Update existing period to closed
+        const updated = await storage.updateTimesheetPeriod(timesheetPeriod.id, {
+          status: "closed",
+          closedBy: userId,
+          closedAt: new Date()
+        });
+        
+        res.json(updated);
+      } else {
+        // Create new period with closed status
+        const newPeriod = await storage.createTimesheetPeriod({
+          objectId,
+          period,
+          status: "closed",
+          closedBy: userId,
+          closedAt: new Date()
+        });
+        
+        res.json(newPeriod);
+      }
+    } catch (error) {
+      console.error("Error closing timesheet period:", error);
+      res.status(500).json({ message: "Ошибка при закрытии периода" });
+    }
+  });
+
+  // Reopen timesheet period
+  app.post("/api/timesheet-periods/:objectId/:period/reopen", requireAuth, async (req, res) => {
+    try {
+      const { objectId, period } = req.params;
+      
+      const timesheetPeriod = await storage.getTimesheetPeriod(objectId, period);
+      
+      if (!timesheetPeriod) {
+        return res.status(404).json({ message: "Период не найден" });
+      }
+      
+      if (timesheetPeriod.reportStatus === "approved") {
+        return res.status(400).json({ message: "Невозможно открыть период: отчёт утверждён" });
+      }
+      
+      const updated = await storage.updateTimesheetPeriod(timesheetPeriod.id, {
+        status: "open",
+        closedBy: null,
+        closedAt: null
+      });
+      
+      res.json(updated);
+    } catch (error) {
+      console.error("Error reopening timesheet period:", error);
+      res.status(500).json({ message: "Ошибка при открытии периода" });
+    }
+  });
+
+  // Update report status
+  app.put("/api/timesheet-periods/:id/report-status", requireAuth, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { reportStatus, reportId } = req.body;
+      
+      const updated = await storage.updateTimesheetPeriod(id, {
+        reportStatus,
+        reportId: reportId || null
+      });
+      
+      if (!updated) {
+        return res.status(404).json({ message: "Период не найден" });
+      }
+      
+      res.json(updated);
+    } catch (error) {
+      console.error("Error updating report status:", error);
+      res.status(500).json({ message: "Ошибка при обновлении статуса отчёта" });
     }
   });
 
