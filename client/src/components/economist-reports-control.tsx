@@ -68,18 +68,25 @@ export function EconomistReportsControl() {
   const monthOptions = generateMonthOptions();
 
   // Check if report is past deadline
-  const isPastDeadline = (period: string): boolean => {
+  const isPastDeadline = (period: string, reportStatus: string | null | undefined): boolean => {
     const [year, month] = period.split('-').map(Number);
     const now = new Date();
-    const periodDate = new Date(year, month - 1);
     
-    // Check if we're past the 15th (advance deadline) or last day (salary deadline)
-    if (now.getFullYear() === year && now.getMonth() === month - 1) {
-      return now.getDate() > 15; // Past advance deadline
+    // If report is already submitted or approved, it's not overdue
+    if (reportStatus && ["submitted", "approved"].includes(reportStatus)) {
+      return false;
     }
     
-    // If it's a past month, it's definitely past deadline
-    return now > periodDate;
+    // Get the last day of the period month
+    const lastDayOfMonth = new Date(year, month, 0);
+    
+    // If we're in a month after the period month, it's past deadline
+    if (now.getFullYear() > year || (now.getFullYear() === year && now.getMonth() >= month)) {
+      // If we're past the last day of the period month, it's overdue
+      return now > lastDayOfMonth;
+    }
+    
+    return false;
   };
 
   // Combine objects with their period status
@@ -88,7 +95,7 @@ export function EconomistReportsControl() {
     return {
       object: obj,
       period,
-      isPastDeadline: isPastDeadline(selectedPeriod),
+      isPastDeadline: isPastDeadline(selectedPeriod, period?.reportStatus),
     };
   });
 
@@ -295,7 +302,7 @@ export function EconomistReportsControl() {
                 return (
                   <TableRow 
                     key={object.id} 
-                    className={isPastDeadline && !period?.reportStatus ? "bg-yellow-50 dark:bg-yellow-950/20" : ""}
+                    className={isPastDeadline ? "bg-yellow-50 dark:bg-yellow-950/20" : ""}
                     data-testid={`row-object-${object.id}`}
                   >
                     <TableCell className="font-medium">{object.name}</TableCell>
@@ -311,8 +318,10 @@ export function EconomistReportsControl() {
                           <ReportIcon className="h-3 w-3" />
                           {reportStatus.text}
                         </Badge>
-                        {isPastDeadline && !period?.reportStatus && (
-                          <AlertCircle className="h-4 w-4 text-yellow-600" title="Просрочен" />
+                        {isPastDeadline && (
+                          <span title="Просрочен">
+                            <AlertCircle className="h-4 w-4 text-yellow-600" />
+                          </span>
                         )}
                       </div>
                     </TableCell>

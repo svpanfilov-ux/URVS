@@ -219,8 +219,26 @@ export default function Reports() {
     toast({ title: "Отчёт отправлен на утверждение", description: "Отчёт передан руководству для проверки" });
   };
 
+  const sendForApprovalMutation = useMutation({
+    mutationFn: async () => {
+      if (!periodStatus || !('id' in periodStatus)) {
+        throw new Error("Период не найден");
+      }
+      return await apiRequest("PUT", `/api/timesheet-periods/${periodStatus.id}/report-status`, {
+        reportStatus: "submitted"
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/timesheet-periods", selectedObjectId, reportMonth] });
+      toast({ title: "Отчёт отправлен на утверждение", description: "Отчёт передан руководству для проверки" });
+    },
+    onError: () => {
+      toast({ title: "Ошибка при отправке отчёта", variant: "destructive" });
+    },
+  });
+
   const handleSendForApproval = () => {
-    toast({ title: "Отчёт отправлен на утверждение", description: "Отчёт передан руководству для проверки" });
+    sendForApprovalMutation.mutate();
   };
 
   const handleRequestChanges = () => {

@@ -425,7 +425,7 @@ export class MemStorage implements IStorage {
       hourlyRate: insertEmployee.hourlyRate || null,
       monthlySalary: insertEmployee.monthlySalary || null,
       hireDate: insertEmployee.hireDate || null,
-      terminationDate: insertEmployee.terminationDate ?? null,
+      terminationDate: insertEmployee.terminationDate !== undefined ? insertEmployee.terminationDate : null,
       createdAt: new Date()
     };
     this.employees.set(id, employee);
@@ -650,12 +650,21 @@ export class MemStorage implements IStorage {
   async createTimesheetPeriod(insertPeriod: InsertTimesheetPeriod): Promise<TimesheetPeriod> {
     const id = randomUUID();
     const timesheetPeriod: TimesheetPeriod = {
-      ...insertPeriod,
       id,
+      objectId: insertPeriod.objectId,
+      period: insertPeriod.period,
+      status: insertPeriod.status || "open",
       closedBy: insertPeriod.closedBy || null,
       closedAt: insertPeriod.closedAt || null,
       reportStatus: insertPeriod.reportStatus || null,
       reportId: insertPeriod.reportId || null,
+      requestedBy: insertPeriod.requestedBy || null,
+      requestedAt: insertPeriod.requestedAt || null,
+      rejectionComment: insertPeriod.rejectionComment || null,
+      rejectedBy: insertPeriod.rejectedBy || null,
+      rejectedAt: insertPeriod.rejectedAt || null,
+      approvedBy: insertPeriod.approvedBy || null,
+      approvedAt: insertPeriod.approvedAt || null,
       createdAt: new Date()
     };
     this.timesheetPeriods.set(id, timesheetPeriod);
