@@ -230,6 +230,7 @@ export default function Reports() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/timesheet-periods", selectedObjectId, reportMonth] });
+      queryClient.invalidateQueries({ queryKey: ["/api/reports"] });
       toast({ title: "Отчёт отправлен на утверждение", description: "Отчёт передан руководству для проверки" });
     },
     onError: () => {
