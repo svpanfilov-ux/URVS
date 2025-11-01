@@ -86,8 +86,15 @@ export const timesheetPeriods = pgTable("timesheet_periods", {
   status: text("status").notNull().default("open"), // open (открыт для редактирования), closed (закрыт менеджером)
   closedBy: varchar("closed_by").references(() => users.id), // кто закрыл период
   closedAt: timestamp("closed_at"), // когда закрыт период
-  reportStatus: text("report_status"), // null (нет отчёта), draft (черновик), submitted (отправлен), approved (утверждён), rejected (отклонён)
+  reportStatus: text("report_status"), // null (нет отчёта), draft (черновик), requested (запрошен), submitted (отправлен), rejected (отклонён), approved (утверждён)
   reportId: varchar("report_id").references(() => reports.id), // связь с отчётом
+  requestedBy: varchar("requested_by").references(() => users.id), // кто запросил отчёт
+  requestedAt: timestamp("requested_at"), // когда запросили отчёт
+  rejectionComment: text("rejection_comment"), // комментарий при отклонении
+  rejectedBy: varchar("rejected_by").references(() => users.id), // кто отклонил
+  rejectedAt: timestamp("rejected_at"), // когда отклонили
+  approvedBy: varchar("approved_by").references(() => users.id), // кто утвердил
+  approvedAt: timestamp("approved_at"), // когда утвердили
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -192,7 +199,7 @@ export const insertTimesheetPeriodSchema = createInsertSchema(timesheetPeriods).
   createdAt: true,
 }).extend({
   status: z.enum(["open", "closed"]).default("open"),
-  reportStatus: z.enum(["draft", "submitted", "approved", "rejected"]).optional(),
+  reportStatus: z.enum(["draft", "requested", "submitted", "rejected", "approved"]).optional(),
 });
 
 // Types
