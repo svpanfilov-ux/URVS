@@ -77,6 +77,7 @@ export interface IStorage {
 
   // Timesheet Periods
   getTimesheetPeriod(objectId: string, period: string): Promise<TimesheetPeriod | undefined>;
+  getTimesheetPeriodById(id: string): Promise<TimesheetPeriod | undefined>;
   createTimesheetPeriod(timesheetPeriod: InsertTimesheetPeriod): Promise<TimesheetPeriod>;
   updateTimesheetPeriod(id: string, timesheetPeriod: Partial<InsertTimesheetPeriod>): Promise<TimesheetPeriod | undefined>;
 }
@@ -640,6 +641,10 @@ export class MemStorage implements IStorage {
     return Array.from(this.timesheetPeriods.values()).find(
       tp => tp.objectId === objectId && tp.period === period
     );
+  }
+
+  async getTimesheetPeriodById(id: string): Promise<TimesheetPeriod | undefined> {
+    return this.timesheetPeriods.get(id);
   }
 
   async createTimesheetPeriod(insertPeriod: InsertTimesheetPeriod): Promise<TimesheetPeriod> {

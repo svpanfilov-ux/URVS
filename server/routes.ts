@@ -1076,6 +1076,104 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Economist actions
+  // Request report (Запросить отчёт)
+  app.post("/api/timesheet-periods/:id/request", requireAuth, requireRole("economist"), async (req: AuthRequest, res) => {
+    try {
+      const { id } = req.params;
+      const userId = req.user!.id;
+      
+      const period = await storage.getTimesheetPeriodById(id);
+      if (!period) {
+        return res.status(404).json({ message: "Период не найден" });
+      }
+      
+      // Can only request if status is null, draft or rejected
+      if (period.reportStatus && !["draft", "rejected"].includes(period.reportStatus)) {
+        return res.status(400).json({ message: "Отчёт уже запрошен или утверждён" });
+      }
+      
+      const updated = await storage.updateTimesheetPeriod(id, {
+        reportStatus: "requested",
+        requestedBy: userId,
+        requestedAt: new Date()
+      });
+      
+      res.json(updated);
+    } catch (error) {
+      console.error("Error requesting report:", error);
+      res.status(500).json({ message: "Ошибка при запросе отчёта" });
+    }
+  });
+
+  // Reject report (Отклонить отчёт)
+  app.post("/api/timesheet-periods/:id/reject", requireAuth, requireRole("economist"), async (req: AuthRequest, res) => {
+    try {
+      const { id } = req.params;
+      const { comment } = req.body;
+      const userId = req.user!.id;
+      
+      if (!comment || comment.trim() === "") {
+        return res.status(400).json({ message: "Укажите причину отклонения" });
+      }
+      
+      const period = await storage.getTimesheetPeriodById(id);
+      if (!period) {
+        return res.status(404).json({ message: "Период не найден" });
+      }
+      
+      if (period.reportStatus !== "submitted") {
+        return res.status(400).json({ message: "Можно отклонить только отправленный отчёт" });
+      }
+      
+      // Reject report and reopen the timesheet for editing
+      const updated = await storage.updateTimesheetPeriod(id, {
+        reportStatus: "rejected",
+        rejectionComment: comment,
+        rejectedBy: userId,
+        rejectedAt: new Date(),
+        status: "open", // Reopen timesheet for corrections
+        closedBy: null,
+        closedAt: null
+      });
+      
+      res.json(updated);
+    } catch (error) {
+      console.error("Error rejecting report:", error);
+      res.status(500).json({ message: "Ошибка при отклонении отчёта" });
+    }
+  });
+
+  // Approve report (Утвердить отчёт)
+  app.post("/api/timesheet-periods/:id/approve", requireAuth, requireRole("economist"), async (req: AuthRequest, res) => {
+    try {
+      const { id } = req.params;
+      const userId = req.user!.id;
+      
+      const period = await storage.getTimesheetPeriodById(id);
+      if (!period) {
+        return res.status(404).json({ message: "Период не найден" });
+      }
+      
+      if (period.reportStatus !== "submitted") {
+        return res.status(400).json({ message: "Можно утвердить только отправленный отчёт" });
+      }
+      
+      // Approve report and lock timesheet permanently
+      const updated = await storage.updateTimesheetPeriod(id, {
+        reportStatus: "approved",
+        approvedBy: userId,
+        approvedAt: new Date(),
+        status: "closed", // Ensure timesheet remains closed
+      });
+      
+      res.json(updated);
+    } catch (error) {
+      console.error("Error approving report:", error);
+      res.status(500).json({ message: "Ошибка при утверждении отчёта" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
