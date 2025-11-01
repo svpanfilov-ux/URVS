@@ -6,15 +6,20 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
+import { useObjectStore } from "@/lib/object-store";
 import { format } from "date-fns";
 import { ru } from "date-fns/locale";
 import { Eye, Send, FileText, AlertTriangle } from "lucide-react";
 import { Object as ObjectType, Employee, Position, TimeEntry } from "@shared/schema";
+import { TimesheetReport } from "@/components/timesheet-report";
 
 export default function Reports() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const { selectedObjectId } = useObjectStore();
+  const [showReport, setShowReport] = useState(false);
+  const [reportMonth, setReportMonth] = useState("2025-08");
 
   const { data: reports = [] } = useQuery({
     queryKey: ["/api/reports"],
@@ -29,13 +34,14 @@ export default function Reports() {
   });
 
   const { data: positions = [] } = useQuery<Position[]>({
-    queryKey: ["/api/positions"],
-    enabled: user?.role === "economist",
-    queryFn: () => fetch("/api/positions").then(r => r.json()),
+    queryKey: ["/api/positions", selectedObjectId],
+    enabled: !!selectedObjectId,
+    queryFn: () => fetch(`/api/positions?objectId=${selectedObjectId}`).then(r => r.json()),
   });
 
   const { data: timeEntries = [] } = useQuery<TimeEntry[]>({
-    queryKey: ["/api/time-entries/2025-08"],
+    queryKey: ["/api/time-entries", reportMonth],
+    queryFn: () => fetch(`/api/time-entries/${reportMonth}`).then(r => r.json()),
   });
 
   const sendReportMutation = useMutation({
@@ -213,7 +219,21 @@ export default function Reports() {
 
   // Object Manager specific actions
   const handleGenerateReport = () => {
+    if (!selectedObjectId) {
+      toast({ 
+        title: "Ошибка", 
+        description: "Выберите объект для формирования отчёта",
+        variant: "destructive" 
+      });
+      return;
+    }
+    setShowReport(true);
     toast({ title: "Отчёт сформирован", description: "Отчёт готов к предпросмотру и отправке" });
+  };
+
+  const handleSendReport = () => {
+    setShowReport(false);
+    toast({ title: "Отчёт отправлен на утверждение", description: "Отчёт передан руководству для проверки" });
   };
 
   const handleSendForApproval = () => {
@@ -251,11 +271,11 @@ export default function Reports() {
               </Button>
               <Button 
                 variant="outline"
-                onClick={() => handlePreviewReport("current")}
+                onClick={() => setShowReport(false)}
                 data-testid="preview-report-button"
               >
                 <Eye className="h-4 w-4 mr-2" />
-                Предпросмотр
+                {showReport ? "Скрыть отчёт" : "Предпросмотр"}
               </Button>
               <Button 
                 onClick={handleSendForApproval}
@@ -276,6 +296,18 @@ export default function Reports() {
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {/* Timesheet Report Component */}
+      {showReport && selectedObjectId && user?.role === "manager" && (
+        <TimesheetReport
+          month={reportMonth}
+          employees={employees}
+          timeEntries={timeEntries}
+          positions={positions}
+          objectId={selectedObjectId}
+          onSendReport={handleSendReport}
+        />
       )}
 
       {/* Report Periods - only for non-directors */}
