@@ -78,16 +78,17 @@ Preferred communication style: Simple, everyday language.
   - **Approval Workflow**: Draft → Requested → Submitted → Approved/Rejected states with status badges
 - **Reports Control Module for Economists**: Comprehensive report management across all objects:
   - **Control Table**: Summary view of all objects with timesheet and report statuses
-  - **Report Statuses**: Not formed, Formed (not sent), Requested, Submitted (awaiting review), Under revision, Approved
+  - **Report Statuses**: Not formed, Formed (not sent), Requested, Submitted (awaiting review), Rejected, Approved
   - **Economist Actions**:
-    - "Request Report" button: Available for not formed or draft reports
-    - "Reject" button: Available for submitted reports, opens modal for rejection comment
+    - "Request Report" button: Available for not formed or draft reports, updates status to "requested"
+    - "Reject" button: Available for submitted reports, opens modal for mandatory rejection comment
     - "Approve" button: Available for submitted reports, locks timesheet permanently
   - **Timesheet Lock/Unlock Logic**:
-    - Rejection → Reopens timesheet for editing (status = "open")
-    - Approval → Locks timesheet permanently (status = "closed")
+    - Rejection → Reopens timesheet for editing (status = "open"), stores rejection comment and metadata
+    - Approval → Locks timesheet permanently (status = "closed"), prevents further edits
   - **Deadline Validation**: Highlights overdue reports (past last day of month) with yellow background and warning icon
-  - **Visual Indicators**: Color-coded status badges, icons for timesheet/report states, deadline warnings
+  - **Visual Indicators**: Color-coded status badges (gray/orange/blue/red/green), icons for timesheet/report states, deadline warnings
+  - **Workflow Synchronization**: Manager submission automatically updates timesheetPeriods.reportStatus to "submitted", enabling economist review with proper cache invalidation
 - **Data Models**: Users (authentication, roles), Employees (records, status, termination dates, payment info from positions), Time Entries (daily hours, quality ratings, day types), Reports (payroll reports), TimesheetPeriods (period status tracking: open/closed, report status: draft/submitted/approved/rejected), Settings (application configuration), Positions (staffing schedule with payment details).
 - **Business Logic Highlights**:
     - Timesheet rules: current reporting period editable, future dates locked, automatic "У" status post-termination, quality scoring (1-4), status codes (О, Б, НН, У).
