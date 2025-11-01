@@ -987,10 +987,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Close timesheet period
-  app.post("/api/timesheet-periods/:objectId/:period/close", requireAuth, async (req, res) => {
+  app.post("/api/timesheet-periods/:objectId/:period/close", requireAuth, async (req: AuthRequest, res) => {
     try {
       const { objectId, period } = req.params;
-      const userId = req.user.id;
+      const userId = req.user!.id;
       
       // Check if period already exists
       let timesheetPeriod = await storage.getTimesheetPeriod(objectId, period);

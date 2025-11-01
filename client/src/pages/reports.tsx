@@ -3,14 +3,15 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
 import { useObjectStore } from "@/lib/object-store";
 import { format } from "date-fns";
 import { ru } from "date-fns/locale";
-import { Eye, Send, FileText, AlertTriangle } from "lucide-react";
-import { Object as ObjectType, Employee, Position, TimeEntry } from "@shared/schema";
+import { Eye, Send, FileText, AlertTriangle, Lock, Calendar } from "lucide-react";
+import { Object as ObjectType, Employee, Position, TimeEntry, TimesheetPeriod } from "@shared/schema";
 import { TimesheetReport } from "@/components/timesheet-report";
 
 export default function Reports() {
@@ -19,7 +20,13 @@ export default function Reports() {
   const { user } = useAuth();
   const { selectedObjectId } = useObjectStore();
   const [showReport, setShowReport] = useState(false);
-  const [reportMonth, setReportMonth] = useState("2025-08");
+  
+  // Default to current month
+  const getCurrentMonth = () => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  };
+  const [reportMonth, setReportMonth] = useState(getCurrentMonth());
 
   const { data: reports = [] } = useQuery({
     queryKey: ["/api/reports"],
@@ -41,8 +48,40 @@ export default function Reports() {
 
   const { data: timeEntries = [] } = useQuery<TimeEntry[]>({
     queryKey: ["/api/time-entries", reportMonth],
-    queryFn: () => fetch(`/api/time-entries/${reportMonth}`).then(r => r.json()),
+    queryFn: async () => {
+      const [year, month] = reportMonth.split('-');
+      const daysInMonth = new Date(parseInt(year), parseInt(month), 0).getDate();
+      const startDate = `${reportMonth}-01`;
+      const endDate = `${reportMonth}-${String(daysInMonth).padStart(2, '0')}`;
+      const response = await fetch(`/api/time-entries?startDate=${startDate}&endDate=${endDate}`);
+      return response.json();
+    },
   });
+
+  // Get timesheet period status
+  const { data: periodStatus } = useQuery<TimesheetPeriod | { status: string; reportStatus: string | null }>({
+    queryKey: ["/api/timesheet-periods", selectedObjectId, reportMonth],
+    enabled: !!selectedObjectId && user?.role === "manager",
+    queryFn: () => fetch(`/api/timesheet-periods/${selectedObjectId}/${reportMonth}`).then(r => r.json()),
+  });
+
+  const isPeriodClosed = periodStatus?.status === "closed";
+  const reportStatus = periodStatus?.reportStatus;
+
+  // Generate month options for the last 12 months
+  const generateMonthOptions = () => {
+    const months = [];
+    const today = new Date();
+    for (let i = 0; i < 12; i++) {
+      const date = new Date(today.getFullYear(), today.getMonth() - i, 1);
+      const value = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      const label = format(date, "LLLL yyyy", { locale: ru });
+      months.push({ value, label });
+    }
+    return months;
+  };
+
+  const monthOptions = generateMonthOptions();
 
   const sendReportMutation = useMutation({
     mutationFn: async (reportId: string) => {
@@ -256,14 +295,61 @@ export default function Reports() {
       {user?.role === "manager" && (
         <Card>
           <CardHeader>
-            <CardTitle>Управление отчётами</CardTitle>
-            <p className="text-sm text-muted-foreground">Действия с отчётами объекта</p>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Управление отчётами</CardTitle>
+                <p className="text-sm text-muted-foreground">Действия с отчётами объекта</p>
+              </div>
+              
+              {/* Month Selector */}
+              <div className="flex items-center gap-2">
+                <Calendar className="w-4 h-4 text-muted-foreground" />
+                <Select value={reportMonth} onValueChange={setReportMonth}>
+                  <SelectTrigger className="w-[200px]" data-testid="select-month">
+                    <SelectValue placeholder="Выберите месяц" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {monthOptions.map(option => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
+            {/* Status indicators */}
+            <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
+              {!isPeriodClosed ? (
+                <div className="flex items-center gap-2 text-orange-600">
+                  <Lock className="w-4 h-4" />
+                  <span className="text-sm font-medium">Период не закрыт. Закройте табель, чтобы сформировать отчёт.</span>
+                </div>
+              ) : reportStatus === "approved" ? (
+                <div className="flex items-center gap-2 text-green-600">
+                  <Badge className="bg-green-600">Отчёт утверждён</Badge>
+                  <span className="text-sm">Редактирование недоступно</span>
+                </div>
+              ) : reportStatus === "submitted" ? (
+                <div className="flex items-center gap-2 text-blue-600">
+                  <Badge className="bg-blue-600">Отчёт отправлен</Badge>
+                  <span className="text-sm">Ожидает утверждения</span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 text-green-600">
+                  <Badge className="bg-green-600">Готов к формированию</Badge>
+                  <span className="text-sm">Период закрыт, можно создать отчёт</span>
+                </div>
+              )}
+            </div>
+
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <Button 
                 onClick={handleGenerateReport}
                 className="bg-blue-600 hover:bg-blue-700"
+                disabled={!isPeriodClosed || reportStatus === "approved"}
                 data-testid="generate-report-button"
               >
                 <FileText className="h-4 w-4 mr-2" />
@@ -271,7 +357,8 @@ export default function Reports() {
               </Button>
               <Button 
                 variant="outline"
-                onClick={() => setShowReport(false)}
+                onClick={() => setShowReport(!showReport)}
+                disabled={!showReport && !isPeriodClosed}
                 data-testid="preview-report-button"
               >
                 <Eye className="h-4 w-4 mr-2" />
@@ -280,18 +367,20 @@ export default function Reports() {
               <Button 
                 onClick={handleSendForApproval}
                 className="bg-green-600 hover:bg-green-700"
+                disabled={!showReport || reportStatus === "approved" || reportStatus === "submitted"}
                 data-testid="send-approval-button"
               >
                 <Send className="h-4 w-4 mr-2" />
                 На утверждение
               </Button>
               <Button 
-                variant="destructive"
+                variant="outline"
                 onClick={handleRequestChanges}
+                disabled={reportStatus !== "draft" && reportStatus !== null}
                 data-testid="request-changes-button"
               >
                 <AlertTriangle className="h-4 w-4 mr-2" />
-                Запросить изменения
+                Редактировать
               </Button>
             </div>
           </CardContent>

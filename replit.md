@@ -57,6 +57,8 @@ Preferred communication style: Simple, everyday language.
   - **Role-based access**: Managers can add only to their object, economists to any object
   - **Position validation**: Only positions from staffing schedule can be selected
 - **Timesheet Module**: Full CRUD operations for time entries, smart cell management (future date locking, terminated employee status), data entry validation (hours or status letters), bulk operations, and context menus. Includes section-based layout (Active Employees, Contract Work) with subtotals, planned hours calculation, and management of fired employees with visual indicators.
+  - **Period Management**: Managers can close/reopen timesheet periods. Closed periods lock all cells (read-only with gray background). Only current/past months can be closed. Approved reports prevent period reopening.
+  - **Visual Indicators**: Status badges show period state ("Период закрыт", "Отчёт утверждён"). Lock icons on buttons indicate period closure.
 - **Employee Management Module**: Unified table view for all employees with integrated vacancy tracking, status filtering, search, status badges, and CSV import/export. Assignment form with object selection, position picker from staffing schedule, automatic data population (work schedule, payment type, rates), and role-based access control.
 - **Staffing Schedule Module**: Tabular display of positions per shift, enhanced statistics, and position management.
 - **Analytics Dashboard**: 
@@ -65,7 +67,16 @@ Preferred communication style: Simple, everyday language.
   - **Financial Metrics**: Budget vs. actual comparisons, employee efficiency tracking, dynamic statistics (monthly norm hours, actual hours, deviation)
   - **Visual Components**: Recharts integration for bar charts, pie charts, and progress indicators
 - **UI/UX Decisions**: Responsive design, dark theme support, color-coded interfaces (e.g., timesheet cell quality, employee status badges), and consistent styling using shadcn/ui.
-- **Data Models**: Users (authentication, roles), Employees (records, status, termination dates, payment info from positions), Time Entries (daily hours, quality ratings, day types), Reports (payroll reports), Settings (application configuration), Positions (staffing schedule with payment details).
+- **Reports Module for Managers**: Month-based report generation with period status validation:
+  - **Month Selector**: Choose reporting period from last 12 months
+  - **Status-Based Workflow**: 
+    - Period NOT closed → Shows warning "Период не закрыт. Закройте табель, чтобы сформировать отчёт" and disables report generation
+    - Period closed, no report → Shows "Готов к формированию" with enabled report button
+    - Report submitted → Shows "Отчёт отправлен" with approval pending status
+    - Report approved → Shows "Отчёт утверждён" with read-only mode, prevents editing
+  - **Report Generation**: Creates timesheet report with per-employee payroll calculations, payment method splitting (card/ledger), and period splitting (advance/salary)
+  - **Approval Workflow**: Draft → Submitted → Approved/Rejected states with status badges
+- **Data Models**: Users (authentication, roles), Employees (records, status, termination dates, payment info from positions), Time Entries (daily hours, quality ratings, day types), Reports (payroll reports), TimesheetPeriods (period status tracking: open/closed, report status: draft/submitted/approved/rejected), Settings (application configuration), Positions (staffing schedule with payment details).
 - **Business Logic Highlights**:
     - Timesheet rules: current reporting period editable, future dates locked, automatic "У" status post-termination, quality scoring (1-4), status codes (О, Б, НН, У).
     - Bulk fill operations based on source cell values and employee work schedules (e.g., 5/2, 2/2).

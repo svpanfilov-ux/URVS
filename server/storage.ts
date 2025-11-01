@@ -275,9 +275,10 @@ export class MemStorage implements IStorage {
       const employee: Employee = {
         id: randomUUID(),
         ...emp,
-        objectId: emp.objectId || null,
-        hireDate: emp.hireDate || null,
-        terminationDate: emp.terminationDate || null,
+        paymentType: "hourly",
+        hourlyRate: 300,
+        monthlySalary: null,
+        paymentMethod: "card",
         createdAt: new Date()
       };
       this.employees.set(employee.id, employee);
@@ -412,11 +413,16 @@ export class MemStorage implements IStorage {
   async createEmployee(insertEmployee: InsertEmployee): Promise<Employee> {
     const id = randomUUID();
     const employee: Employee = { 
-      ...insertEmployee, 
       id,
+      name: insertEmployee.name,
+      position: insertEmployee.position,
       status: insertEmployee.status || "active",
       workSchedule: insertEmployee.workSchedule || "5/2",
-      objectId: insertEmployee.objectId || null,
+      objectId: insertEmployee.objectId,
+      paymentType: insertEmployee.paymentType || "hourly",
+      paymentMethod: insertEmployee.paymentMethod || "card",
+      hourlyRate: insertEmployee.hourlyRate || null,
+      monthlySalary: insertEmployee.monthlySalary || null,
       hireDate: insertEmployee.hireDate || null,
       terminationDate: insertEmployee.terminationDate ?? null,
       createdAt: new Date()
