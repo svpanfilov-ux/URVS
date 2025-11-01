@@ -23,6 +23,7 @@ export const employees = pgTable("employees", {
   paymentType: text("payment_type").notNull().default("hourly"), // hourly, salary
   hourlyRate: integer("hourly_rate"), // rate per hour in rubles (from position)
   monthlySalary: integer("monthly_salary"), // monthly salary in rubles (from position)
+  paymentMethod: text("payment_method").notNull().default("card"), // card (на карту), cash (ведомость)
   hireDate: text("hire_date"), // дата приема
   terminationDate: text("termination_date"), // дата увольнения
   createdAt: timestamp("created_at").defaultNow(),
