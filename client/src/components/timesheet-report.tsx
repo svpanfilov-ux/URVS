@@ -88,19 +88,7 @@ export function TimesheetReport({
     regular.sort(sortByName);
     
     // Объединяем: менеджер → администраторы → остальные
-    const sorted = [...manager, ...administrators, ...regular];
-    
-    // Отладочная информация
-    console.log('[TimesheetReport] Сортировка сотрудников:', {
-      objectManagerName,
-      total: emps.length,
-      manager: manager.length,
-      administrators: administrators.length,
-      regular: regular.length,
-      sorted: sorted.map(e => ({ name: e.name, position: e.position }))
-    });
-    
-    return sorted;
+    return [...manager, ...administrators, ...regular];
   };
 
   const staffEmployees = sortStaffEmployees(unsortedStaffEmployees);
