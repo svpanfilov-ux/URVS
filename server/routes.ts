@@ -969,6 +969,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { objectId, period } = req.params;
       const timesheetPeriod = await storage.getTimesheetPeriod(objectId, period);
       
+      console.log(`[GET PERIOD] Object: ${objectId}, Period: ${period}, Found: ${!!timesheetPeriod}, ReportStatus: ${timesheetPeriod?.reportStatus || 'none'}`);
+      
       if (!timesheetPeriod) {
         // If period doesn't exist, return default open status
         return res.json({
@@ -1060,14 +1062,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { id } = req.params;
       const { reportStatus, reportId } = req.body;
       
+      console.log(`[REPORT STATUS UPDATE] Period ID: ${id}, New Status: ${reportStatus}`);
+      
       const updated = await storage.updateTimesheetPeriod(id, {
         reportStatus,
         reportId: reportId || null
       });
       
       if (!updated) {
+        console.log(`[REPORT STATUS UPDATE] Period not found: ${id}`);
         return res.status(404).json({ message: "Период не найден" });
       }
+      
+      console.log(`[REPORT STATUS UPDATE] Success! Period: ${updated.objectId}/${updated.periodMonth}, Status: ${updated.reportStatus}`);
       
       res.json(updated);
     } catch (error) {
