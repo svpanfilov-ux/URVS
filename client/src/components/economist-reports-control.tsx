@@ -37,7 +37,7 @@ export function EconomistReportsControl() {
   });
 
   // Fetch period statuses for all objects
-  const { data: allPeriods = [] } = useQuery<TimesheetPeriod[]>({
+  const { data: allPeriods = [], refetch: refetchPeriods } = useQuery<TimesheetPeriod[]>({
     queryKey: ["/api/timesheet-periods/all", selectedPeriod],
     queryFn: async () => {
       const token = localStorage.getItem("auth_token");
@@ -59,8 +59,9 @@ export function EconomistReportsControl() {
       return results.filter(Boolean);
     },
     enabled: objects.length > 0,
+    gcTime: 0, // Не кешировать вообще
     staleTime: 0, // Данные устаревают сразу
-    refetchInterval: 5000, // Автоматическое обновление каждые 5 секунд
+    refetchOnMount: "always", // Всегда загружать при монтировании
     refetchOnWindowFocus: true, // Обновление при возврате на вкладку
   });
 
