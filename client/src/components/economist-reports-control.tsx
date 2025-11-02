@@ -45,17 +45,25 @@ export function EconomistReportsControl() {
         throw new Error("No auth token");
       }
 
+      console.log(`[ECONOMIST] Fetching periods for ${objects.length} objects, period: ${selectedPeriod}`);
+
       // Fetch periods for each object with authorization header
-      const promises = objects.map(obj =>
-        fetch(`/api/timesheet-periods/${obj.id}/${selectedPeriod}`, {
+      const promises = objects.map(obj => {
+        console.log(`[ECONOMIST] Fetching period for object: ${obj.name} (${obj.id})`);
+        return fetch(`/api/timesheet-periods/${obj.id}/${selectedPeriod}`, {
           headers: {
             'Authorization': `Bearer ${token}`,
           },
         })
           .then(r => r.json())
-          .catch(() => null)
-      );
+          .then(data => {
+            console.log(`[ECONOMIST] Received period for ${obj.name}:`, data);
+            return data;
+          })
+          .catch(() => null);
+      });
       const results = await Promise.all(promises);
+      console.log(`[ECONOMIST] All periods fetched:`, results);
       return results.filter(Boolean);
     },
     enabled: objects.length > 0,
