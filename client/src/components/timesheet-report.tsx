@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -13,7 +13,7 @@ import {
 import { Employee, TimeEntry, Position } from "@shared/schema";
 import { calculatePlannedHours, calculateSalary } from "@/lib/payroll-calculations";
 import { getDaysInMonth } from "date-fns";
-import { AlertTriangle, CheckCircle } from "lucide-react";
+import { AlertTriangle, CheckCircle, ChevronDown, ChevronRight } from "lucide-react";
 
 interface TimesheetReportProps {
   month: string; // Format: "YYYY-MM"
@@ -49,17 +49,27 @@ export function TimesheetReport({
   const [year, monthNum] = month.split("-").map(Number);
   const daysInMonth = getDaysInMonth(new Date(year, monthNum - 1));
 
-  // Фильтр сотрудников по объекту и только активные
-  const objectEmployees = employees.filter(emp => 
+  const [vacanciesExpanded, setVacanciesExpanded] = useState(false);
+
+  // Фильтр сотрудников по объекту: штатные и подработчики
+  const staffEmployees = employees.filter(emp => 
     emp.objectId === objectId && 
     emp.status === "active" &&
     emp.name && // Исключаем записи без имени
     emp.id // Исключаем записи без ID
   );
 
-  // Расчёт данных отчёта для каждого сотрудника
-  const reportData: EmployeeReportRow[] = useMemo(() => {
-    return objectEmployees.map(employee => {
+  const partTimeEmployees = employees.filter(emp => 
+    emp.objectId === objectId && 
+    emp.status === "not_registered" &&
+    emp.name && 
+    emp.id
+  );
+
+  const objectEmployees = [...staffEmployees, ...partTimeEmployees];
+
+  // Функция для расчёта данных одного сотрудника
+  const calculateEmployeeRow = (employee: Employee): EmployeeReportRow => {
       // Расчёт плановых часов по графику
       const plannedHours = calculatePlannedHours(employee.workSchedule, year, monthNum);
 
@@ -76,7 +86,8 @@ export function TimesheetReport({
         const dateStr = `${year}-${String(monthNum).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
         const entry = employeeEntries.find(e => e.date === dateStr);
         
-        if (entry && typeof entry.hours === "number") {
+        // Учитываем только числовые значения в диапазоне 0-24 (без буквенных кодов)
+        if (entry && typeof entry.hours === "number" && entry.hours >= 0 && entry.hours <= 24) {
           totalActualHours += entry.hours;
           hoursByDay.push({ day, hours: entry.hours });
           
@@ -111,23 +122,46 @@ export function TimesheetReport({
       // Валидация: actualHours >= plannedHours
       const isValid = totalActualHours >= plannedHours;
 
-      return {
-        employeeId: employee.id,
-        name: employee.name,
-        position: employee.position,
-        paymentType: employee.paymentType,
-        rate: employee.paymentType === "salary" ? (employee.monthlySalary || 0) : (employee.hourlyRate || 0),
-        plannedHours,
-        actualHours: totalActualHours,
-        plannedSalary,
-        totalSalary,
-        advanceSalary,
-        mainSalary,
-        paymentMethod: employee.paymentMethod || "card",
-        isValid,
-      };
-    });
-  }, [objectEmployees, timeEntries, year, monthNum, daysInMonth]);
+    return {
+      employeeId: employee.id,
+      name: employee.name,
+      position: employee.position,
+      paymentType: employee.paymentType,
+      rate: employee.paymentType === "salary" ? (employee.monthlySalary || 0) : (employee.hourlyRate || 0),
+      plannedHours,
+      actualHours: totalActualHours,
+      plannedSalary,
+      totalSalary,
+      advanceSalary,
+      mainSalary,
+      paymentMethod: employee.paymentMethod || "card",
+      isValid,
+    };
+  };
+
+  // Расчёт данных отчёта для каждой группы
+  const staffReportData: EmployeeReportRow[] = useMemo(() => {
+    return staffEmployees.map(calculateEmployeeRow);
+  }, [staffEmployees, timeEntries, year, monthNum, daysInMonth]);
+
+  const partTimeReportData: EmployeeReportRow[] = useMemo(() => {
+    return partTimeEmployees.map(calculateEmployeeRow);
+  }, [partTimeEmployees, timeEntries, year, monthNum, daysInMonth]);
+
+  const reportData = useMemo(() => {
+    return [...staffReportData, ...partTimeReportData];
+  }, [staffReportData, partTimeReportData]);
+
+  // Функция для расчёта промежуточных итогов
+  const calculateSubtotals = (data: EmployeeReportRow[]) => {
+    return {
+      hours: data.reduce((sum, row) => sum + row.actualHours, 0),
+      fot: data.reduce((sum, row) => sum + row.totalSalary, 0),
+    };
+  };
+
+  const staffSubtotals = useMemo(() => calculateSubtotals(staffReportData), [staffReportData]);
+  const partTimeSubtotals = useMemo(() => calculateSubtotals(partTimeReportData), [partTimeReportData]);
 
   // Итоговые суммы
   const totals = useMemo(() => {
@@ -205,42 +239,109 @@ export function TimesheetReport({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {reportData.map((row) => (
-                <TableRow key={row.employeeId} data-testid={`report-row-${row.employeeId}`}>
-                  <TableCell className="font-medium">{row.name}</TableCell>
-                  <TableCell>{row.position}</TableCell>
-                  <TableCell>
-                    {row.paymentType === "salary" 
-                      ? `${row.rate.toLocaleString()} ₽/мес` 
-                      : `${row.rate.toLocaleString()} ₽/ч`}
-                  </TableCell>
-                  <TableCell className="text-right">{row.plannedHours}</TableCell>
-                  <TableCell 
-                    className={`text-right ${!row.isValid ? 'text-red-600 font-semibold' : 'text-green-600'}`}
-                    data-testid={`text-actual-hours-${row.employeeId}`}
-                  >
-                    {row.actualHours}
-                  </TableCell>
-                  <TableCell className="text-right font-semibold">
-                    {row.totalSalary.toLocaleString()} ₽
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {row.advanceSalary.toLocaleString()} ₽
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {row.mainSalary.toLocaleString()} ₽
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline">
-                      {row.paymentMethod === "card" ? "На карту" : "Ведомость"}
-                    </Badge>
-                  </TableCell>
-                </TableRow>
-              ))}
+              {/* Секция: Штатные сотрудники */}
+              {staffReportData.length > 0 && (
+                <>
+                  <TableRow className="bg-blue-50 dark:bg-blue-950/20">
+                    <TableCell colSpan={9} className="font-semibold text-blue-800 dark:text-blue-200">
+                      Штатные сотрудники
+                    </TableCell>
+                  </TableRow>
+                  {staffReportData.map((row) => (
+                    <TableRow key={row.employeeId} data-testid={`report-row-${row.employeeId}`}>
+                      <TableCell className="font-medium">{row.name}</TableCell>
+                      <TableCell>{row.position}</TableCell>
+                      <TableCell>
+                        {row.paymentType === "salary" 
+                          ? `${row.rate.toLocaleString()} ₽/мес` 
+                          : `${row.rate.toLocaleString()} ₽/ч`}
+                      </TableCell>
+                      <TableCell className="text-right">{row.plannedHours}</TableCell>
+                      <TableCell 
+                        className={`text-right ${!row.isValid ? 'text-red-600 font-semibold' : 'text-green-600'}`}
+                        data-testid={`text-actual-hours-${row.employeeId}`}
+                      >
+                        {row.actualHours}
+                      </TableCell>
+                      <TableCell className="text-right font-semibold">
+                        {row.totalSalary.toLocaleString()} ₽
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {row.advanceSalary.toLocaleString()} ₽
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {row.mainSalary.toLocaleString()} ₽
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline">
+                          {row.paymentMethod === "card" ? "На карту" : "Ведомость"}
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {/* Промежуточные итоги для штатных */}
+                  <TableRow className="bg-blue-100 dark:bg-blue-900/30 font-semibold">
+                    <TableCell colSpan={4}>Итого (Штатные):</TableCell>
+                    <TableCell className="text-right">{staffSubtotals.hours} ч</TableCell>
+                    <TableCell className="text-right">{staffSubtotals.fot.toLocaleString()} ₽</TableCell>
+                    <TableCell colSpan={3}></TableCell>
+                  </TableRow>
+                </>
+              )}
+
+              {/* Секция: Подработчики */}
+              {partTimeReportData.length > 0 && (
+                <>
+                  <TableRow className="bg-orange-50 dark:bg-orange-950/20">
+                    <TableCell colSpan={9} className="font-semibold text-orange-800 dark:text-orange-200">
+                      Подработчики
+                    </TableCell>
+                  </TableRow>
+                  {partTimeReportData.map((row) => (
+                    <TableRow key={row.employeeId} data-testid={`report-row-${row.employeeId}`}>
+                      <TableCell className="font-medium">{row.name}</TableCell>
+                      <TableCell>{row.position}</TableCell>
+                      <TableCell>
+                        {row.paymentType === "salary" 
+                          ? `${row.rate.toLocaleString()} ₽/мес` 
+                          : `${row.rate.toLocaleString()} ₽/ч`}
+                      </TableCell>
+                      <TableCell className="text-right">{row.plannedHours}</TableCell>
+                      <TableCell 
+                        className={`text-right ${!row.isValid ? 'text-red-600 font-semibold' : 'text-green-600'}`}
+                        data-testid={`text-actual-hours-${row.employeeId}`}
+                      >
+                        {row.actualHours}
+                      </TableCell>
+                      <TableCell className="text-right font-semibold">
+                        {row.totalSalary.toLocaleString()} ₽
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {row.advanceSalary.toLocaleString()} ₽
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {row.mainSalary.toLocaleString()} ₽
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline">
+                          {row.paymentMethod === "card" ? "На карту" : "Ведомость"}
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {/* Промежуточные итоги для подработчиков */}
+                  <TableRow className="bg-orange-100 dark:bg-orange-900/30 font-semibold">
+                    <TableCell colSpan={4}>Итого (Подработчики):</TableCell>
+                    <TableCell className="text-right">{partTimeSubtotals.hours} ч</TableCell>
+                    <TableCell className="text-right">{partTimeSubtotals.fot.toLocaleString()} ₽</TableCell>
+                    <TableCell colSpan={3}></TableCell>
+                  </TableRow>
+                </>
+              )}
               
-              {/* Итоговая строка */}
+              {/* Общая итоговая строка */}
               <TableRow className="bg-muted font-bold">
-                <TableCell colSpan={3}>ИТОГО:</TableCell>
+                <TableCell colSpan={3}>ВСЕГО:</TableCell>
                 <TableCell className="text-right">{totals.plannedHours}</TableCell>
                 <TableCell 
                   className={`text-right ${!allEmployeesValid ? 'text-red-600' : 'text-green-600'}`}

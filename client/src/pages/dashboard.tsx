@@ -654,7 +654,7 @@ export default function Dashboard() {
                     <RechartsPieChart>
                       <Pie
                         data={[
-                          { name: 'Активные', value: activeEmployees },
+                          { name: 'Штатные', value: activeEmployees },
                           { name: 'Уволенные', value: firedEmployees },
                           { name: 'Договорники', value: contractEmployees },
                           { name: 'Новые', value: hiredThisMonth.length }

@@ -9,7 +9,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { format, getDaysInMonth, parseISO, isAfter } from "date-fns";
 import { ru } from "date-fns/locale";
 import { Wand2, Calendar, Lock, LockOpen, ChevronDown, ChevronRight } from "lucide-react";
-import { Employee, TimeEntry, Position, TimesheetPeriod } from "@shared/schema";
+import { Employee, TimeEntry, Position, TimesheetPeriod, Object as ObjectType, User } from "@shared/schema";
 import { useObjectStore } from "@/lib/object-store";
 
 // Type for timesheet row that can be either an employee or a vacancy
@@ -36,6 +36,19 @@ export default function Timesheet() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { selectedObjectId } = useObjectStore();
+
+  // Fetch objects to get manager information
+  const { data: objects = [] } = useQuery<ObjectType[]>({
+    queryKey: ["/api/objects"],
+  });
+
+  const { data: users = [] } = useQuery<User[]>({
+    queryKey: ["/api/users"],
+  });
+
+  const currentObject = objects.find(obj => obj.id === selectedObjectId);
+  const objectManager = users.find(u => u.id === currentObject?.managerId);
+  const objectManagerName = objectManager?.name;
 
   const { data: employees = [] } = useQuery<Employee[]>({
     queryKey: ["/api/employees", selectedObjectId],
@@ -190,98 +203,112 @@ export default function Timesheet() {
 
   const timesheetRows = createTimesheetRows();
 
-  // Функция для группировки сотрудников с явным связыванием замен
-  const groupActiveEmployeesWithReplacements = (rows: TimesheetRow[]): TimesheetRow[] => {
+  // Функция для группировки и сортировки сотрудников
+  const groupActiveEmployeesWithReplacements = (rows: TimesheetRow[], managerName?: string): TimesheetRow[] => {
     // Фильтруем только активных и уволенных сотрудников
     const employeeRows = rows.filter(row => 
       row.type === 'employee' && (row.employee?.status === "active" || row.employee?.status === "fired")
     );
     
-    // Группируем по должностям
-    const byPosition = new Map<string, TimesheetRow[]>();
+    // Категоризуем сотрудников
+    const manager: TimesheetRow[] = [];
+    const administrators: TimesheetRow[] = [];
+    const regular: TimesheetRow[] = [];
+    
     employeeRows.forEach(row => {
-      const position = row.positionTitle;
-      if (!byPosition.has(position)) {
-        byPosition.set(position, []);
+      // Проверяем, является ли сотрудник менеджером объекта (сравниваем по имени)
+      if (managerName && row.employee?.name === managerName) {
+        manager.push(row);
       }
-      byPosition.get(position)!.push(row);
+      // Проверяем, является ли должность администратором
+      else if (row.positionTitle.toLowerCase().includes('администратор')) {
+        administrators.push(row);
+      }
+      // Все остальные
+      else {
+        regular.push(row);
+      }
     });
     
-    // Обрабатываем каждую группу должности
-    const result: TimesheetRow[] = [];
-    const sortedPositions = Array.from(byPosition.keys()).sort((a, b) => a.localeCompare(b, 'ru'));
+    // Сортируем администраторов и обычных сотрудников по алфавиту
+    const sortByName = (a: TimesheetRow, b: TimesheetRow) => a.name.localeCompare(b.name, 'ru');
+    administrators.sort(sortByName);
+    regular.sort(sortByName);
     
-    sortedPositions.forEach(position => {
-      const positionEmployees = byPosition.get(position)!;
+    // Объединяем: менеджер → администраторы → остальные
+    const sortedEmployees = [...manager, ...administrators, ...regular];
+    
+    // Теперь применяем логику замен для отсортированного списка
+    const result: TimesheetRow[] = [];
+    const processed = new Set<string>();
+    
+    sortedEmployees.forEach(row => {
+      if (processed.has(row.id)) return;
       
-      // Разделяем на уволенных в текущем периоде и остальных
-      const firedInPeriod = positionEmployees.filter(row => 
-        row.employee?.status === "fired" && 
-        row.employee?.terminationDate?.substring(0, 7) === selectedMonth
-      );
-      
-      const active = positionEmployees.filter(row => row.employee?.status === "active");
-      const firedOutsidePeriod = positionEmployees.filter(row => 
-        row.employee?.status === "fired" && 
-        row.employee?.terminationDate?.substring(0, 7) !== selectedMonth
-      );
-      
-      // Для каждого уволенного в периоде, пытаемся найти замену
-      const processed = new Set<string>();
-      
-      firedInPeriod.forEach(firedRow => {
-        result.push(firedRow);
-        processed.add(firedRow.id);
+      // Если сотрудник уволен в текущем периоде
+      if (row.employee?.status === "fired" && 
+          row.employee?.terminationDate?.substring(0, 7) === selectedMonth) {
+        result.push(row);
+        processed.add(row.id);
         
-        // Ищем замену: активного сотрудника, принятого в том же месяце
-        const replacement = active.find(activeRow => 
-          !processed.has(activeRow.id) &&
-          activeRow.employee?.hireDate?.substring(0, 7) === selectedMonth
+        // Ищем замену: активного сотрудника на той же должности, принятого в том же месяце
+        const replacement = sortedEmployees.find(otherRow => 
+          !processed.has(otherRow.id) &&
+          otherRow.employee?.status === "active" &&
+          otherRow.positionTitle === row.positionTitle &&
+          otherRow.employee?.hireDate?.substring(0, 7) === selectedMonth
         );
         
         if (replacement) {
           result.push(replacement);
           processed.add(replacement.id);
         }
-      });
-      
-      // Добавляем остальных активных сотрудников
-      active.forEach(row => {
-        if (!processed.has(row.id)) {
-          result.push(row);
-          processed.add(row.id);
-        }
-      });
-      
-      // Добавляем уволенных вне периода
-      firedOutsidePeriod.forEach(row => {
-        if (!processed.has(row.id)) {
-          result.push(row);
-        }
-      });
+      } 
+      // Активные сотрудники
+      else if (row.employee?.status === "active") {
+        result.push(row);
+        processed.add(row.id);
+      }
+    });
+    
+    // Добавляем уволенных вне периода в конец
+    sortedEmployees.forEach(row => {
+      if (!processed.has(row.id) && 
+          row.employee?.status === "fired" && 
+          row.employee?.terminationDate?.substring(0, 7) !== selectedMonth) {
+        result.push(row);
+      }
     });
     
     return result;
   };
   
-  // Разделить на три секции: активные сотрудники, подработчики, вакансии  
-  const activeEmployeeRows = groupActiveEmployeesWithReplacements(timesheetRows);
+  // Разделить на три секции: штатные сотрудники, подработчики, вакансии  
+  const activeEmployeeRows = groupActiveEmployeesWithReplacements(timesheetRows, objectManagerName);
     
   const partTimeEmployeeRows = timesheetRows
     .filter(row => 
       row.type === 'employee' && row.employee?.status === "not_registered"
     )
     .sort((a, b) => {
-      // Сортировка по должности, затем по имени
-      if (a.positionTitle !== b.positionTitle) {
-        return a.positionTitle.localeCompare(b.positionTitle, 'ru');
-      }
+      // Сортировка только по имени (ФИО)
       return a.name.localeCompare(b.name, 'ru');
     });
     
   const vacancyRows = timesheetRows
     .filter(row => row.type === 'vacancy')
-    .sort((a, b) => a.positionTitle.localeCompare(b.positionTitle, 'ru'));
+    .sort((a, b) => {
+      // Сортировка по должности, затем по номеру вакансии
+      if (a.positionTitle !== b.positionTitle) {
+        return a.positionTitle.localeCompare(b.positionTitle, 'ru');
+      }
+      // Извлекаем номер вакансии из id (vacancy-{positionId}-{index})
+      const getVacancyNumber = (id: string) => {
+        const parts = id.split('-');
+        return parseInt(parts[parts.length - 1] || '0', 10);
+      };
+      return getVacancyNumber(a.id) - getVacancyNumber(b.id);
+    });
 
   // Keep old variables for compatibility
   const activeEmployees = activeEmployeeRows.map(row => row.employee!);
@@ -374,7 +401,11 @@ export default function Timesheet() {
     if (row.type === 'vacancy') return 0;
     const entries = timeEntriesMap.get(row.id) || [];
     return entries
-      .filter((entry: TimeEntry) => typeof entry.hours === 'number')
+      .filter((entry: TimeEntry) => 
+        typeof entry.hours === 'number' && 
+        entry.hours >= 0 && 
+        entry.hours <= 24
+      )
       .reduce((sum: number, entry: TimeEntry) => sum + (entry.hours || 0), 0);
   };
 
@@ -984,7 +1015,7 @@ export default function Timesheet() {
               {activeEmployeeRows.length > 0 && (
                 <tr className="bg-blue-50 dark:bg-blue-950/20">
                   <td colSpan={days.length + 4} className="p-2 font-semibold text-sm text-blue-800 dark:text-blue-200">
-                    Активные сотрудники
+                    Штатные сотрудники
                   </td>
                 </tr>
               )}
