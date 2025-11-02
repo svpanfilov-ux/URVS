@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Textarea } from "@/components/ui/textarea";
 import { format } from "date-fns";
 import { ru } from "date-fns/locale";
-import { CheckCircle, XCircle, Send, AlertCircle, Lock, Calendar, Download, FileSpreadsheet } from "lucide-react";
+import { CheckCircle, XCircle, Send, AlertCircle, Lock, Calendar, ArrowUpFromLine, FileSpreadsheet } from "lucide-react";
 import { Object as ObjectType, TimesheetPeriod } from "@shared/schema";
 import * as XLSX from "xlsx";
 
@@ -504,7 +504,7 @@ export function EconomistReportsControl() {
               disabled={selectedReports.size === 0}
               data-testid="button-export-selected"
             >
-              <FileSpreadsheet className="h-4 w-4 mr-2" />
+              <ArrowUpFromLine className="h-4 w-4 mr-2" />
               Экспорт выбранных ({selectedReports.size})
             </Button>
             <Button 
@@ -514,7 +514,7 @@ export function EconomistReportsControl() {
               disabled={objectStatuses.length === 0}
               data-testid="button-export-all"
             >
-              <Download className="h-4 w-4 mr-2" />
+              <ArrowUpFromLine className="h-4 w-4 mr-2" />
               Экспорт всех ({objectStatuses.length})
             </Button>
           </div>

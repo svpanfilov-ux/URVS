@@ -25,7 +25,7 @@ type EmployeeRow = {
   status: string;
 };
 import { useObjectStore } from "@/lib/object-store";
-import { Plus, Upload, Download, Edit, Trash2, Search, FileSpreadsheet } from "lucide-react";
+import { Plus, Upload, ArrowDownToLine, ArrowUpFromLine, Edit, Trash2, Search, FileSpreadsheet } from "lucide-react";
 
 export default function Employees() {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -433,21 +433,24 @@ export default function Employees() {
             <Plus className="h-4 w-4 mr-2" />
             Добавить сотрудника
           </Button>
-          <Button 
-            onClick={handleImportCSV}
-            variant="outline"
-            disabled={isImporting}
-            data-testid="import-csv"
-          >
-            <FileSpreadsheet className="h-4 w-4 mr-2" />
-            {isImporting ? "Импорт CSV..." : "Импорт CSV"}
-          </Button>
+          {/* Импорт доступен только экономисту */}
+          {user?.role === "economist" && (
+            <Button 
+              onClick={handleImportCSV}
+              variant="outline"
+              disabled={isImporting}
+              data-testid="import-csv"
+            >
+              <ArrowDownToLine className="h-4 w-4 mr-2" />
+              {isImporting ? "Импорт CSV..." : "Импорт CSV"}
+            </Button>
+          )}
           <Button 
             onClick={handleExportCSV}
             variant="outline"
             data-testid="export-csv"
           >
-            <Download className="h-4 w-4 mr-2" />
+            <ArrowUpFromLine className="h-4 w-4 mr-2" />
             Экспорт CSV
           </Button>
         </div>
