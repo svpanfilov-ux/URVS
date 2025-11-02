@@ -1172,55 +1172,55 @@ export default function Timesheet() {
         </div>
       </div>
 
-        {/* Legend - Compact */}
-        <div className="w-56 bg-muted/30 rounded-lg p-3 flex-shrink-0 text-xs">
-          <h3 className="font-semibold mb-2 text-xs">Обозначения:</h3>
-          <div className="space-y-1.5">
-            <div className="flex items-center space-x-1.5">
-              <div className="w-5 h-5 bg-blue-100 dark:bg-blue-900/30 border rounded text-center text-blue-800 dark:text-blue-200 text-[10px] font-bold flex items-center justify-center">Б</div>
-              <span className="text-[11px]">Больничный</span>
-            </div>
-            <div className="flex items-center space-x-1.5">
-              <div className="w-5 h-5 bg-purple-100 dark:bg-purple-900/30 border rounded text-center text-purple-800 dark:text-purple-200 text-[10px] font-bold flex items-center justify-center">О</div>
-              <span className="text-[11px]">Отпуск</span>
-            </div>
-            <div className="flex items-center space-x-1.5">
-              <div className="w-5 h-5 bg-gray-200 dark:bg-gray-700 border rounded text-center text-gray-700 dark:text-gray-300 text-[10px] font-bold flex items-center justify-center">НН</div>
-              <span className="text-[11px]">Прогул</span>
-            </div>
-            <div className="flex items-center space-x-1.5">
-              <div className="w-5 h-5 bg-red-100 dark:bg-red-900/30 border rounded text-center text-red-800 dark:text-red-200 text-[10px] font-bold flex items-center justify-center">У</div>
-              <span className="text-[11px]">Уволен</span>
-            </div>
+      {/* Legend - Compact */}
+      <div className="w-56 bg-muted/30 rounded-lg p-3 flex-shrink-0 text-xs">
+        <h3 className="font-semibold mb-2 text-xs">Обозначения:</h3>
+        <div className="space-y-1.5">
+          <div className="flex items-center space-x-1.5">
+            <div className="w-5 h-5 bg-blue-100 dark:bg-blue-900/30 border rounded text-center text-blue-800 dark:text-blue-200 text-[10px] font-bold flex items-center justify-center">Б</div>
+            <span className="text-[11px]">Больничный</span>
           </div>
-          
-          <h4 className="font-semibold mt-3 mb-2 text-xs">Оценки:</h4>
-          <div className="space-y-1.5">
-            <div className="flex items-center space-x-1.5">
-              <div className="w-5 h-5 bg-red-100 dark:bg-red-900/30 border rounded text-center text-red-800 dark:text-red-200 text-[10px] font-bold flex items-center justify-center">1</div>
-              <span className="text-[11px]">Плохо</span>
-            </div>
-            <div className="flex items-center space-x-1.5">
-              <div className="w-5 h-5 bg-orange-100 dark:bg-orange-900/30 border rounded text-center text-orange-800 dark:text-orange-200 text-[10px] font-bold flex items-center justify-center">2</div>
-              <span className="text-[11px]">Удовлетв.</span>
-            </div>
-            <div className="flex items-center space-x-1.5">
-              <div className="w-5 h-5 bg-yellow-100 dark:bg-yellow-900/30 border rounded text-center text-yellow-800 dark:text-yellow-200 text-[10px] font-bold flex items-center justify-center">3</div>
-              <span className="text-[11px]">Хорошо</span>
-            </div>
-            <div className="flex items-center space-x-1.5">
-              <div className="w-5 h-5 bg-green-100 dark:bg-green-900/30 border rounded text-center text-green-800 dark:text-green-200 text-[10px] font-bold flex items-center justify-center">4</div>
-              <span className="text-[11px]">Отлично</span>
-            </div>
+          <div className="flex items-center space-x-1.5">
+            <div className="w-5 h-5 bg-purple-100 dark:bg-purple-900/30 border rounded text-center text-purple-800 dark:text-purple-200 text-[10px] font-bold flex items-center justify-center">О</div>
+            <span className="text-[11px]">Отпуск</span>
           </div>
-          
-          <div className="text-[10px] text-muted-foreground mt-3 space-y-1">
-            <div>• 1-24 — часы</div>
-            <div>• Пр. кн. мыши — оценка</div>
-            <div>• Enter — сохранить</div>
+          <div className="flex items-center space-x-1.5">
+            <div className="w-5 h-5 bg-gray-200 dark:bg-gray-700 border rounded text-center text-gray-700 dark:text-gray-300 text-[10px] font-bold flex items-center justify-center">НН</div>
+            <span className="text-[11px]">Прогул</span>
+          </div>
+          <div className="flex items-center space-x-1.5">
+            <div className="w-5 h-5 bg-red-100 dark:bg-red-900/30 border rounded text-center text-red-800 dark:text-red-200 text-[10px] font-bold flex items-center justify-center">У</div>
+            <span className="text-[11px]">Уволен</span>
           </div>
         </div>
+        
+        <h4 className="font-semibold mt-3 mb-2 text-xs">Оценки:</h4>
+        <div className="space-y-1.5">
+          <div className="flex items-center space-x-1.5">
+            <div className="w-5 h-5 bg-red-100 dark:bg-red-900/30 border rounded text-center text-red-800 dark:text-red-200 text-[10px] font-bold flex items-center justify-center">1</div>
+            <span className="text-[11px]">Плохо</span>
+          </div>
+          <div className="flex items-center space-x-1.5">
+            <div className="w-5 h-5 bg-orange-100 dark:bg-orange-900/30 border rounded text-center text-orange-800 dark:text-orange-200 text-[10px] font-bold flex items-center justify-center">2</div>
+            <span className="text-[11px]">Удовлетв.</span>
+          </div>
+          <div className="flex items-center space-x-1.5">
+            <div className="w-5 h-5 bg-yellow-100 dark:bg-yellow-900/30 border rounded text-center text-yellow-800 dark:text-yellow-200 text-[10px] font-bold flex items-center justify-center">3</div>
+            <span className="text-[11px]">Хорошо</span>
+          </div>
+          <div className="flex items-center space-x-1.5">
+            <div className="w-5 h-5 bg-green-100 dark:bg-green-900/30 border rounded text-center text-green-800 dark:text-green-200 text-[10px] font-bold flex items-center justify-center">4</div>
+            <span className="text-[11px]">Отлично</span>
+          </div>
+        </div>
+        
+        <div className="text-[10px] text-muted-foreground mt-3 space-y-1">
+          <div>• 1-24 — часы</div>
+          <div>• Пр. кн. мыши — оценка</div>
+          <div>• Enter — сохранить</div>
+        </div>
       </div>
+    </div>
     </div>
   );
 }
