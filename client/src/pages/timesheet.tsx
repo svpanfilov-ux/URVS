@@ -861,10 +861,12 @@ export default function Timesheet() {
         </div>
       </div>
 
-      {/* Timesheet Table */}
-      <div className="overflow-hidden border rounded-lg bg-background">
-        <div className="w-full">
-          <table className="w-full border-collapse text-[10px] table-fixed">
+      {/* Timesheet Table and Legend Container */}
+      <div className="flex gap-4">
+        {/* Timesheet Table */}
+        <div className="flex-1 overflow-hidden border rounded-lg bg-background">
+          <div className="w-full">
+            <table className="w-full border-collapse text-[10px] table-fixed">
             {/* Header */}
             <thead>
               <tr>
@@ -1171,9 +1173,9 @@ export default function Timesheet() {
       </div>
 
       {/* Legend */}
-      <div className="bg-muted/30 rounded-lg p-4">
-        <h3 className="font-semibold mb-3">Обозначения:</h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+      <div className="w-80 bg-muted/30 rounded-lg p-4 flex-shrink-0">
+          <h3 className="font-semibold mb-3 text-sm">Обозначения:</h3>
+          <div className="space-y-2 text-sm">
           <div className="flex items-center space-x-2">
             <div className="w-6 h-6 bg-blue-100 dark:bg-blue-900/30 border rounded text-center text-blue-800 dark:text-blue-200 text-xs font-bold">Б</div>
             <span>Больничный</span>
@@ -1194,7 +1196,7 @@ export default function Timesheet() {
         <div className="mt-4 space-y-3">
           <div>
             <h4 className="font-medium text-sm mb-2">Оценки качества работы:</h4>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+            <div className="grid grid-cols-2 gap-2">
               <div className="flex items-center space-x-2">
                 <div className="w-6 h-6 bg-red-100 dark:bg-red-900/30 border rounded text-center text-red-800 dark:text-red-200 text-xs font-bold flex items-center justify-center">1</div>
                 <span className="text-xs">Плохо</span>
@@ -1220,6 +1222,7 @@ export default function Timesheet() {
           </div>
         </div>
       </div>
+    </div>
     </div>
   );
 }
