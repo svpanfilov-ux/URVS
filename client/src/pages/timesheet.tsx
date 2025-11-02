@@ -864,9 +864,9 @@ export default function Timesheet() {
       {/* Timesheet Table and Legend Container */}
       <div className="flex gap-3">
         {/* Timesheet Table */}
-        <div className="flex-1 overflow-hidden border rounded-lg bg-background">
-          <div className="w-full">
-            <table className="w-full border-collapse text-[10px] table-fixed">
+        <div className="flex-1 overflow-x-auto border rounded-lg bg-background">
+          <div className="min-w-full">
+            <table className="w-full border-collapse text-[10px] table-fixed min-w-[1200px]">
             {/* Header */}
             <thead>
               <tr>
