@@ -39,7 +39,7 @@ export function EconomistReportsControl() {
   console.log(`[ECONOMIST DEBUG] objects.length = ${objects.length}, selectedPeriod = ${selectedPeriod}`);
 
   // Fetch period statuses for all objects
-  const { data: allPeriods = [], refetch: refetchPeriods, isLoading: periodsLoading } = useQuery<TimesheetPeriod[]>({
+  const { data: allPeriods = [], refetch: refetchPeriods, isLoading: periodsLoading, error: periodsError } = useQuery<TimesheetPeriod[]>({
     queryKey: ["/api/timesheet-periods/all", selectedPeriod],
     queryFn: async () => {
       console.log(`[ECONOMIST queryFn] Starting - objects.length = ${objects.length}`);
@@ -50,8 +50,11 @@ export function EconomistReportsControl() {
         return [];
       }
       
-      const token = localStorage.getItem("auth_token");
+      const authStorage = localStorage.getItem('auth-storage');
+      const token = authStorage ? JSON.parse(authStorage).state?.token : null;
+      console.log(`[ECONOMIST queryFn] Token exists: ${!!token}`);
       if (!token) {
+        console.error(`[ECONOMIST queryFn] No auth token found!`);
         throw new Error("No auth token");
       }
 
@@ -82,7 +85,7 @@ export function EconomistReportsControl() {
     refetchOnWindowFocus: true, // Обновление при возврате на вкладку
   });
 
-  console.log(`[ECONOMIST DEBUG] periodsLoading = ${periodsLoading}, allPeriods.length = ${allPeriods.length}`);
+  console.log(`[ECONOMIST DEBUG] periodsLoading = ${periodsLoading}, allPeriods.length = ${allPeriods.length}, error:`, periodsError);
 
   // Refetch periods when objects load or period changes
   useEffect(() => {
