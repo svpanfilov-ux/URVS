@@ -40,9 +40,18 @@ export function EconomistReportsControl() {
   const { data: allPeriods = [] } = useQuery<TimesheetPeriod[]>({
     queryKey: ["/api/timesheet-periods/all", selectedPeriod],
     queryFn: async () => {
-      // Fetch periods for each object
+      const token = localStorage.getItem("auth_token");
+      if (!token) {
+        throw new Error("No auth token");
+      }
+
+      // Fetch periods for each object with authorization header
       const promises = objects.map(obj =>
-        fetch(`/api/timesheet-periods/${obj.id}/${selectedPeriod}`)
+        fetch(`/api/timesheet-periods/${obj.id}/${selectedPeriod}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        })
           .then(r => r.json())
           .catch(() => null)
       );
