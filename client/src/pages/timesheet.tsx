@@ -863,32 +863,35 @@ export default function Timesheet() {
       </div>
 
       {/* Timesheet Table */}
-      <div className="overflow-x-auto border rounded-lg bg-background">
-        <table className="w-full border-collapse text-[10px] table-fixed min-w-[1200px]">
+      <div className="border rounded-lg bg-background">
+        <table className="w-full border-collapse text-[10px]">
             {/* Header */}
             <thead>
               <tr>
-                <th className="sticky left-0 z-10 bg-background border-r border-b p-1 text-left w-32">
-                  <div className="text-[9px] font-medium truncate">Сотрудник</div>
+                <th className="sticky left-0 z-20 bg-background border-r border-b p-1 text-left w-36">
+                  <div className="text-[9px] font-medium truncate">Должность</div>
+                </th>
+                <th className="sticky left-36 z-20 bg-background border-r border-b p-1 text-left w-40">
+                  <div className="text-[9px] font-medium truncate">ФИО сотрудника</div>
                 </th>
                 {days.map((day) => (
                   <th 
                     key={day.day}
-                    className={`border-b border-r p-0.5 text-center w-7 ${
+                    className={`border-b border-r p-0.5 text-center w-6 ${
                       day.isWeekend ? 'bg-red-50 dark:bg-red-950/20' : 'bg-gray-50 dark:bg-gray-950/50'
                     }`}
                   >
-                    <div className="text-[8px] font-medium">{day.dayOfWeek}</div>
-                    <div className="text-[9px] font-bold">{day.day}</div>
+                    <div className="text-[7px] font-medium">{day.dayOfWeek.slice(0,2)}</div>
+                    <div className="text-[8px] font-bold">{day.day}</div>
                   </th>
                 ))}
-                <th className="border-b p-1 text-center bg-primary/5 w-12">
-                  <div className="text-[8px]">Итого</div>
-                  <div className="text-[9px] font-bold">час</div>
+                <th className="border-b p-1 text-center bg-primary/5 w-10">
+                  <div className="text-[7px]">Итого</div>
+                  <div className="text-[8px] font-bold">час</div>
                 </th>
-                <th className="border-b p-1 text-center bg-green-50 dark:bg-green-950/20 w-12">
-                  <div className="text-[8px]">План</div>
-                  <div className="text-[9px] font-bold">час</div>
+                <th className="border-b p-1 text-center bg-green-50 dark:bg-green-950/20 w-10">
+                  <div className="text-[7px]">План</div>
+                  <div className="text-[8px] font-bold">час</div>
                 </th>
               </tr>
             </thead>
@@ -898,7 +901,7 @@ export default function Timesheet() {
               {/* Active Employees Header */}
               {activeEmployeeRows.length > 0 && (
                 <tr className="bg-blue-50 dark:bg-blue-950/20">
-                  <td colSpan={days.length + 3} className="p-2 font-semibold text-sm text-blue-800 dark:text-blue-200">
+                  <td colSpan={days.length + 4} className="p-2 font-semibold text-sm text-blue-800 dark:text-blue-200">
                     Активные сотрудники
                   </td>
                 </tr>
@@ -918,16 +921,18 @@ export default function Timesheet() {
                       insufficientHours ? "border-b-2 border-red-500" : ""
                     } ${isVacancy ? "bg-gray-50 dark:bg-gray-900/20" : ""}`}
                   >
-                    <td className="sticky left-0 z-10 bg-background border-r p-1 font-medium">
-                      <div className={`text-[10px] truncate max-w-28 ${
+                    <td className="sticky left-0 z-20 bg-background border-r p-1 font-medium">
+                      <div className={`text-[9px] truncate ${
+                        insufficientHours ? "text-red-500 font-semibold" : "text-muted-foreground"
+                      } ${isVacancy ? "text-orange-500" : ""}`} title={row.positionTitle}>
+                        {row.positionTitle}
+                      </div>
+                    </td>
+                    <td className="sticky left-36 z-20 bg-background border-r p-1 font-medium">
+                      <div className={`text-[9px] truncate ${
                         insufficientHours ? "text-red-600 font-bold" : ""
                       } ${isVacancy ? "text-orange-600 font-semibold" : ""}`} title={row.name}>
                         {row.name}{row.employee?.status === "fired" ? " (уволен)" : ""}
-                      </div>
-                      <div className={`text-[8px] truncate ${
-                        insufficientHours ? "text-red-500 font-semibold" : "text-muted-foreground"
-                      } ${isVacancy ? "text-orange-500" : ""}`}>
-                        {row.positionTitle}
                       </div>
                     </td>
                     {days.map((day) => {
@@ -976,7 +981,7 @@ export default function Timesheet() {
               {/* Active Employees Subtotal */}
               {activeEmployeeRows.length > 0 && (
                 <tr className="bg-blue-100 dark:bg-blue-900/30 border-t-2 border-blue-300">
-                  <td className="sticky left-0 z-10 bg-blue-100 dark:bg-blue-900/30 border-r p-1 font-bold text-blue-800 dark:text-blue-200">
+                  <td colSpan={2} className="sticky left-0 z-10 bg-blue-100 dark:bg-blue-900/30 border-r p-1 font-bold text-blue-800 dark:text-blue-200">
                     <div className="text-[10px]">Итого активные: {activeEmployeeRows.length} чел.</div>
                   </td>
                   {days.map((day) => (
@@ -994,7 +999,7 @@ export default function Timesheet() {
               {/* Part-time Employees Header */}
               {partTimeEmployees.length > 0 && (
                 <tr className="bg-orange-50 dark:bg-orange-950/20">
-                  <td colSpan={days.length + 3} className="p-2 font-semibold text-sm text-orange-800 dark:text-orange-200">
+                  <td colSpan={days.length + 4} className="p-2 font-semibold text-sm text-orange-800 dark:text-orange-200">
                     Подработка
                   </td>
                 </tr>
@@ -1015,16 +1020,16 @@ export default function Timesheet() {
                       insufficientHours ? "border-b-2 border-red-500" : ""
                     }`}
                   >
-                    <td className="sticky left-0 z-10 bg-background border-r p-1 font-medium">
-                      <div className={`text-[10px] truncate max-w-28 ${
+                    <td className="sticky left-0 z-20 bg-background border-r p-1 font-medium">
+                      <div className={`text-[9px] truncate text-muted-foreground`} title={employee.position}>
+                        {employee.position}
+                      </div>
+                    </td>
+                    <td className="sticky left-36 z-20 bg-background border-r p-1 font-medium">
+                      <div className={`text-[9px] truncate ${
                         insufficientHours ? "text-red-600 font-bold" : ""
                       }`} title={employee.name}>
                         {employee.name}{employee.status === "fired" ? " (уволен)" : ""}
-                      </div>
-                      <div className={`text-[8px] truncate ${
-                        insufficientHours ? "text-red-500 font-semibold" : "text-muted-foreground"
-                      }`}>
-                        {employee.position}
                       </div>
                     </td>
                     {days.map((day) => {
@@ -1064,7 +1069,7 @@ export default function Timesheet() {
               {/* Part-time Employees Subtotal */}
               {partTimeEmployees.length > 0 && (
                 <tr className="bg-orange-100 dark:bg-orange-900/30 border-t-2 border-orange-300">
-                  <td className="sticky left-0 z-10 bg-orange-100 dark:bg-orange-900/30 border-r p-1 font-bold text-orange-800 dark:text-orange-200">
+                  <td colSpan={2} className="sticky left-0 z-10 bg-orange-100 dark:bg-orange-900/30 border-r p-1 font-bold text-orange-800 dark:text-orange-200">
                     <div className="text-[10px]">Итого подработка: {partTimeEmployees.length} чел.</div>
                   </td>
                   {days.map((day) => (
@@ -1085,7 +1090,7 @@ export default function Timesheet() {
                   className="bg-gray-50 dark:bg-gray-950/20 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-900/40"
                   onClick={() => setVacanciesExpanded(!vacanciesExpanded)}
                 >
-                  <td colSpan={days.length + 3} className="p-2 font-semibold text-sm text-gray-700 dark:text-gray-300">
+                  <td colSpan={days.length + 4} className="p-2 font-semibold text-sm text-gray-700 dark:text-gray-300">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <span>Вакансии</span>
@@ -1113,12 +1118,14 @@ export default function Timesheet() {
                     key={row.id} 
                     className="hover:bg-muted/30 bg-gray-50 dark:bg-gray-900/20"
                   >
-                    <td className="sticky left-0 z-10 bg-background border-r p-1 font-medium">
-                      <div className="text-[10px] truncate max-w-28 text-orange-600 font-semibold" title={row.name}>
-                        {row.name}
-                      </div>
-                      <div className="text-[8px] truncate text-orange-500">
+                    <td className="sticky left-0 z-20 bg-background border-r p-1 font-medium">
+                      <div className="text-[9px] truncate text-orange-500" title={row.positionTitle}>
                         {row.positionTitle}
+                      </div>
+                    </td>
+                    <td className="sticky left-36 z-20 bg-background border-r p-1 font-medium">
+                      <div className="text-[9px] truncate text-orange-600 font-semibold" title={row.name}>
+                        {row.name}
                       </div>
                     </td>
                     {days.map((day) => {
@@ -1150,7 +1157,7 @@ export default function Timesheet() {
               {/* Vacancies Subtotal */}
               {vacanciesExpanded && vacancyRows.length > 0 && (
                 <tr className="bg-gray-100 dark:bg-gray-900/30 border-t-2 border-gray-300">
-                  <td className="sticky left-0 z-10 bg-gray-100 dark:bg-gray-900/30 border-r p-1 font-bold text-gray-800 dark:text-gray-200">
+                  <td colSpan={2} className="sticky left-0 z-10 bg-gray-100 dark:bg-gray-900/30 border-r p-1 font-bold text-gray-800 dark:text-gray-200">
                     <div className="text-[10px]">Итого вакансии: {vacancyRows.length} шт.</div>
                   </td>
                   {days.map((day) => (
@@ -1167,7 +1174,7 @@ export default function Timesheet() {
 
               {/* Overall Total Row */}
               <tr className="bg-gray-200 dark:bg-gray-800 border-t-4 border-gray-400">
-                <td className="sticky left-0 z-10 bg-gray-200 dark:bg-gray-800 border-r p-1 font-bold text-gray-800 dark:text-gray-200">
+                <td colSpan={2} className="sticky left-0 z-10 bg-gray-200 dark:bg-gray-800 border-r p-1 font-bold text-gray-800 dark:text-gray-200">
                   <div className="text-[11px]">ОБЩИЙ ИТОГ:</div>
                 </td>
                 {days.map((day) => (
