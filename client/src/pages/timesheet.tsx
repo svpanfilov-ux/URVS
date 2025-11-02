@@ -190,27 +190,82 @@ export default function Timesheet() {
 
   const timesheetRows = createTimesheetRows();
 
-  // Разделить на три секции: активные сотрудники, подработчики, вакансии  
-  const activeEmployeeRows = timesheetRows
-    .filter(row => 
+  // Функция для группировки сотрудников с явным связыванием замен
+  const groupActiveEmployeesWithReplacements = (rows: TimesheetRow[]): TimesheetRow[] => {
+    // Фильтруем только активных и уволенных сотрудников
+    const employeeRows = rows.filter(row => 
       row.type === 'employee' && (row.employee?.status === "active" || row.employee?.status === "fired")
-    )
-    .sort((a, b) => {
-      // Сортировка по должности, затем по имени
-      if (a.positionTitle !== b.positionTitle) {
-        return a.positionTitle.localeCompare(b.positionTitle, 'ru');
+    );
+    
+    // Группируем по должностям
+    const byPosition = new Map<string, TimesheetRow[]>();
+    employeeRows.forEach(row => {
+      const position = row.positionTitle;
+      if (!byPosition.has(position)) {
+        byPosition.set(position, []);
       }
-      
-      // Для сотрудников с одной должностью: уволенные сначала, затем их замены (по дате приема)
-      const aFired = a.employee?.status === "fired" && a.employee?.terminationDate?.substring(0, 7) === selectedMonth;
-      const bFired = b.employee?.status === "fired" && b.employee?.terminationDate?.substring(0, 7) === selectedMonth;
-      
-      if (aFired && !bFired) return -1; // уволенный перед активным
-      if (!aFired && bFired) return 1;  // активный после уволенного
-      
-      // Если оба уволены или оба активные, сортировать по имени
-      return a.name.localeCompare(b.name, 'ru');
+      byPosition.get(position)!.push(row);
     });
+    
+    // Обрабатываем каждую группу должности
+    const result: TimesheetRow[] = [];
+    const sortedPositions = Array.from(byPosition.keys()).sort((a, b) => a.localeCompare(b, 'ru'));
+    
+    sortedPositions.forEach(position => {
+      const positionEmployees = byPosition.get(position)!;
+      
+      // Разделяем на уволенных в текущем периоде и остальных
+      const firedInPeriod = positionEmployees.filter(row => 
+        row.employee?.status === "fired" && 
+        row.employee?.terminationDate?.substring(0, 7) === selectedMonth
+      );
+      
+      const active = positionEmployees.filter(row => row.employee?.status === "active");
+      const firedOutsidePeriod = positionEmployees.filter(row => 
+        row.employee?.status === "fired" && 
+        row.employee?.terminationDate?.substring(0, 7) !== selectedMonth
+      );
+      
+      // Для каждого уволенного в периоде, пытаемся найти замену
+      const processed = new Set<string>();
+      
+      firedInPeriod.forEach(firedRow => {
+        result.push(firedRow);
+        processed.add(firedRow.id);
+        
+        // Ищем замену: активного сотрудника, принятого в том же месяце
+        const replacement = active.find(activeRow => 
+          !processed.has(activeRow.id) &&
+          activeRow.employee?.hireDate?.substring(0, 7) === selectedMonth
+        );
+        
+        if (replacement) {
+          result.push(replacement);
+          processed.add(replacement.id);
+        }
+      });
+      
+      // Добавляем остальных активных сотрудников
+      active.forEach(row => {
+        if (!processed.has(row.id)) {
+          result.push(row);
+          processed.add(row.id);
+        }
+      });
+      
+      // Добавляем уволенных вне периода
+      firedOutsidePeriod.forEach(row => {
+        if (!processed.has(row.id)) {
+          result.push(row);
+        }
+      });
+    });
+    
+    return result;
+  };
+  
+  // Разделить на три секции: активные сотрудники, подработчики, вакансии  
+  const activeEmployeeRows = groupActiveEmployeesWithReplacements(timesheetRows);
     
   const partTimeEmployeeRows = timesheetRows
     .filter(row => 
