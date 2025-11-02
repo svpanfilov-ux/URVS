@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -11,8 +12,9 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Textarea } from "@/components/ui/textarea";
 import { format } from "date-fns";
 import { ru } from "date-fns/locale";
-import { CheckCircle, XCircle, Send, AlertCircle, Lock, Calendar } from "lucide-react";
+import { CheckCircle, XCircle, Send, AlertCircle, Lock, Calendar, Download, FileSpreadsheet } from "lucide-react";
 import { Object as ObjectType, TimesheetPeriod } from "@shared/schema";
+import * as XLSX from "xlsx";
 
 interface ObjectReportStatus {
   object: ObjectType;
@@ -91,6 +93,192 @@ export function EconomistReportsControl() {
   };
 
   const monthOptions = generateMonthOptions();
+
+  // Selected reports for export
+  const [selectedReports, setSelectedReports] = useState<Set<string>>(new Set());
+
+  // Toggle single report selection
+  const toggleReportSelection = (objectId: string) => {
+    const newSelected = new Set(selectedReports);
+    if (newSelected.has(objectId)) {
+      newSelected.delete(objectId);
+    } else {
+      newSelected.add(objectId);
+    }
+    setSelectedReports(newSelected);
+  };
+
+  // Toggle select all/none
+  const toggleSelectAll = () => {
+    if (selectedReports.size === objectStatuses.length) {
+      setSelectedReports(new Set());
+    } else {
+      setSelectedReports(new Set(objectStatuses.map(s => s.object.id)));
+    }
+  };
+
+  // Export functions
+  const exportToExcel = async (objectIds: string[]) => {
+    try {
+      // Get auth token
+      const authStorage = localStorage.getItem('auth-storage');
+      const token = authStorage ? JSON.parse(authStorage).state?.token : null;
+      if (!token) {
+        toast({ 
+          title: "Ошибка авторизации", 
+          description: "Токен не найден",
+          variant: "destructive" 
+        });
+        return;
+      }
+
+      // Fetch reports data for selected objects
+      const reportsPromises = objectIds.map(async (objectId) => {
+        try {
+          const response = await fetch(`/api/reports/${objectId}/${selectedPeriod}`, {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+            },
+          });
+          if (!response.ok) return null;
+          const report = await response.json();
+          return { objectId, report };
+        } catch (error) {
+          console.error(`Failed to fetch report for ${objectId}:`, error);
+          return null;
+        }
+      });
+
+      const reportsData = (await Promise.all(reportsPromises)).filter(Boolean);
+
+      if (reportsData.length === 0) {
+        toast({ 
+          title: "Нет данных для экспорта", 
+          description: "Выбранные отчёты недоступны",
+          variant: "destructive" 
+        });
+        return;
+      }
+
+      // Create workbook
+      const wb = XLSX.utils.book_new();
+
+      // Add a sheet for each report
+      reportsData.forEach(({ objectId, report }: any) => {
+        const object = objects.find(o => o.id === objectId);
+        if (!object || !report?.data) return;
+
+        const reportData = JSON.parse(report.data);
+        const sheetData: any[][] = [];
+
+        // Header
+        sheetData.push([`Отчёт по объекту: ${object.name}`]);
+        sheetData.push([`Период: ${selectedPeriod}`]);
+        sheetData.push([]); // Empty row
+
+        // Table header
+        sheetData.push([
+          "ФИО",
+          "Должность",
+          "Ставка/Оклад",
+          "План (ч)",
+          "Факт (ч)",
+          "Всего (₽)",
+          "Аванс (₽)",
+          "ЗП (₽)",
+          "Способ выплаты"
+        ]);
+
+        // Table rows
+        if (reportData.employees && Array.isArray(reportData.employees)) {
+          reportData.employees.forEach((emp: any) => {
+            sheetData.push([
+              emp.name || "",
+              emp.position || "",
+              emp.paymentType === "salary" 
+                ? `${emp.rate?.toLocaleString() || 0} ₽/мес`
+                : `${emp.rate?.toLocaleString() || 0} ₽/ч`,
+              emp.plannedHours || 0,
+              emp.actualHours || 0,
+              emp.totalSalary || 0,
+              emp.advanceSalary || 0,
+              emp.mainSalary || 0,
+              emp.paymentMethod === "card" ? "Карта" : "Ведомость"
+            ]);
+          });
+        }
+
+        // Totals
+        if (reportData.totals) {
+          sheetData.push([]); // Empty row
+          sheetData.push([
+            "ИТОГО:",
+            "",
+            "",
+            reportData.totals.plannedHours || 0,
+            reportData.totals.actualHours || 0,
+            reportData.totals.actualFOT || 0,
+            (reportData.totals.advanceCard || 0) + (reportData.totals.advanceCash || 0),
+            (reportData.totals.salaryCard || 0) + (reportData.totals.salaryCash || 0),
+            ""
+          ]);
+        }
+
+        const ws = XLSX.utils.aoa_to_sheet(sheetData);
+        
+        // Set column widths
+        ws['!cols'] = [
+          { wch: 30 }, // ФИО
+          { wch: 25 }, // Должность
+          { wch: 15 }, // Ставка
+          { wch: 10 }, // План
+          { wch: 10 }, // Факт
+          { wch: 12 }, // Всего
+          { wch: 12 }, // Аванс
+          { wch: 12 }, // ЗП
+          { wch: 15 }, // Способ выплаты
+        ];
+
+        XLSX.utils.book_append_sheet(wb, ws, object.name.substring(0, 31)); // Excel sheet name limit
+      });
+
+      // Download file
+      const fileName = objectIds.length === 1 
+        ? `Отчёт_${objects.find(o => o.id === objectIds[0])?.name}_${selectedPeriod}.xlsx`
+        : `Отчёты_${selectedPeriod}.xlsx`;
+      
+      XLSX.writeFile(wb, fileName);
+
+      toast({ 
+        title: "Экспорт завершён", 
+        description: `Загружено ${reportsData.length} отчёт(ов)` 
+      });
+    } catch (error) {
+      console.error("Export error:", error);
+      toast({ 
+        title: "Ошибка экспорта", 
+        description: "Не удалось экспортировать отчёты",
+        variant: "destructive" 
+      });
+    }
+  };
+
+  const handleExportSelected = () => {
+    if (selectedReports.size === 0) {
+      toast({ 
+        title: "Выберите отчёты", 
+        description: "Отметьте отчёты для экспорта",
+        variant: "destructive" 
+      });
+      return;
+    }
+    exportToExcel(Array.from(selectedReports));
+  };
+
+  const handleExportAll = () => {
+    const allObjectIds = objectStatuses.map(s => s.object.id);
+    exportToExcel(allObjectIds);
+  };
 
   // Check if report is past deadline
   const isPastDeadline = (period: string, reportStatus: string | null | undefined): boolean => {
@@ -288,7 +476,7 @@ export function EconomistReportsControl() {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between mb-4">
             <CardTitle className="flex items-center gap-2">
               <Calendar className="h-5 w-5" />
               Контроль отчётов по объектам
@@ -306,11 +494,42 @@ export function EconomistReportsControl() {
               </SelectContent>
             </Select>
           </div>
+          
+          {/* Export buttons */}
+          <div className="flex gap-2 flex-wrap">
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={handleExportSelected}
+              disabled={selectedReports.size === 0}
+              data-testid="button-export-selected"
+            >
+              <FileSpreadsheet className="h-4 w-4 mr-2" />
+              Экспорт выбранных ({selectedReports.size})
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={handleExportAll}
+              disabled={objectStatuses.length === 0}
+              data-testid="button-export-all"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Экспорт всех ({objectStatuses.length})
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-12">
+                  <Checkbox
+                    checked={selectedReports.size === objectStatuses.length && objectStatuses.length > 0}
+                    onCheckedChange={toggleSelectAll}
+                    data-testid="checkbox-select-all"
+                  />
+                </TableHead>
                 <TableHead>Объект</TableHead>
                 <TableHead>Статус табеля</TableHead>
                 <TableHead>Статус отчёта</TableHead>
@@ -330,6 +549,13 @@ export function EconomistReportsControl() {
                     className={isPastDeadline ? "bg-yellow-50 dark:bg-yellow-950/20" : ""}
                     data-testid={`row-object-${object.id}`}
                   >
+                    <TableCell>
+                      <Checkbox
+                        checked={selectedReports.has(object.id)}
+                        onCheckedChange={() => toggleReportSelection(object.id)}
+                        data-testid={`checkbox-${object.id}`}
+                      />
+                    </TableCell>
                     <TableCell className="font-medium">{object.name}</TableCell>
                     <TableCell>
                       <Badge variant={timesheetStatus.variant} className="gap-1" data-testid={`badge-timesheet-${object.id}`}>
@@ -395,7 +621,7 @@ export function EconomistReportsControl() {
               })}
               {objectStatuses.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
                     Нет данных для отображения
                   </TableCell>
                 </TableRow>
