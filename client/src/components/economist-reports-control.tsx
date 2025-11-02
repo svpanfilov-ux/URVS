@@ -59,6 +59,9 @@ export function EconomistReportsControl() {
       return results.filter(Boolean);
     },
     enabled: objects.length > 0,
+    staleTime: 0, // Данные устаревают сразу
+    refetchInterval: 5000, // Автоматическое обновление каждые 5 секунд
+    refetchOnWindowFocus: true, // Обновление при возврате на вкладку
   });
 
   // Generate month options for the last 12 months
