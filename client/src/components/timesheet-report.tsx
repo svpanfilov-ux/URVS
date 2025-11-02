@@ -51,8 +51,13 @@ export function TimesheetReport({
   const [year, monthNum] = month.split("-").map(Number);
   const daysInMonth = getDaysInMonth(new Date(year, monthNum - 1));
 
-  // Фильтр сотрудников по объекту
-  const objectEmployees = employees.filter(emp => emp.objectId === objectId);
+  // Фильтр сотрудников по объекту и только активные
+  const objectEmployees = employees.filter(emp => 
+    emp.objectId === objectId && 
+    emp.status === "active" &&
+    emp.name && // Исключаем записи без имени
+    emp.id // Исключаем записи без ID
+  );
 
   // Расчёт данных отчёта для каждого сотрудника
   const reportData: EmployeeReportRow[] = useMemo(() => {
