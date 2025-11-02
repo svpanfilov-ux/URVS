@@ -145,6 +145,8 @@ export const insertEmployeeSchema = createInsertSchema(employees).omit({
 }).extend({
   status: z.enum(["active", "not_registered", "fired"]).default("active"),
   workSchedule: z.enum(["5/2", "2/2", "3/3", "6/1", "вахта"]).default("5/2"),
+  paymentType: z.enum(["hourly", "salary"]).default("hourly"),
+  paymentMethod: z.enum(["card", "cash"]).default("card"),
 });
 
 export const insertTimeEntrySchema = createInsertSchema(timeEntries).omit({

@@ -16,17 +16,25 @@ export function Header() {
     queryKey: ["/api/objects"],
   });
 
-  const activeObjects = objects.filter(obj => obj.status === "active");
-  
-  // Автоматический выбор ПортЭнерго для менеджеров в тестовом режиме
-  useEffect(() => {
-    if (user?.role === "manager" && !selectedObjectId && activeObjects.length > 0) {
-      const portEnergo = activeObjects.find(obj => obj.name === "ПортЭнерго");
-      if (portEnergo) {
-        setSelectedObjectId(portEnergo.id);
-      }
+  // Фильтрация объектов по роли
+  const availableObjects = objects.filter(obj => {
+    if (obj.status !== "active") return false;
+    
+    // Менеджер видит только закреплённые за ним объекты
+    if (user?.role === "manager") {
+      return obj.managerId === user.id;
     }
-  }, [user, selectedObjectId, activeObjects, setSelectedObjectId]);
+    
+    // Экономист и другие роли видят все объекты
+    return true;
+  });
+  
+  // Автоматический выбор первого доступного объекта для менеджера
+  useEffect(() => {
+    if (user?.role === "manager" && !selectedObjectId && availableObjects.length > 0) {
+      setSelectedObjectId(availableObjects[0].id);
+    }
+  }, [user, selectedObjectId, availableObjects, setSelectedObjectId]);
 
   return (
     <header className="bg-card shadow-lg">
@@ -51,7 +59,7 @@ export function Header() {
                     <SelectValue placeholder="Выберите объект" />
                   </SelectTrigger>
                   <SelectContent className="w-64">
-                    {activeObjects.map((object) => (
+                    {availableObjects.map((object) => (
                       <SelectItem key={object.id} value={object.id}>
                         {object.name}
                       </SelectItem>

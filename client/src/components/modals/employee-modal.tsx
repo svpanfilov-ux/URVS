@@ -40,19 +40,28 @@ const employeeSchema = z.object({
   hourlyRate: z.number().optional(),
   monthlySalary: z.number().optional(),
   paymentMethod: z.enum(["card", "cash"]),
+  hireDate: z.string().optional(),
   terminationDate: z.string().optional(),
 });
 
 type EmployeeFormData = z.infer<typeof employeeSchema>;
+
+type VacancyData = {
+  objectId: string;
+  position?: Position;
+  positionTitle: string;
+  workSchedule: string;
+};
 
 interface EmployeeModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (data: EmployeeFormData) => void;
   employee?: Employee | null;
+  vacancyData?: VacancyData | null;
 }
 
-export function EmployeeModal({ isOpen, onClose, onSave, employee }: EmployeeModalProps) {
+export function EmployeeModal({ isOpen, onClose, onSave, employee, vacancyData }: EmployeeModalProps) {
   const [showTerminationDate, setShowTerminationDate] = useState(false);
   const { user } = useAuth();
   const { selectedObjectId } = useObjectStore();
@@ -79,6 +88,7 @@ export function EmployeeModal({ isOpen, onClose, onSave, employee }: EmployeeMod
       hourlyRate: undefined,
       monthlySalary: undefined,
       paymentMethod: "card",
+      hireDate: "",
       terminationDate: "",
     },
   });
@@ -91,6 +101,14 @@ export function EmployeeModal({ isOpen, onClose, onSave, employee }: EmployeeMod
     enabled: !!watchObjectId,
     queryFn: () => fetch(`/api/positions?objectId=${watchObjectId}`).then(r => r.json()),
   });
+
+  // Создаём уникальный список позиций по названию для селекта
+  const uniquePositions = positions.reduce((acc, pos) => {
+    if (!acc.find(p => p.title === pos.title)) {
+      acc.push(pos);
+    }
+    return acc;
+  }, [] as Position[]);
 
   // Автозаполнение при первом открытии для менеджера
   useEffect(() => {
@@ -111,9 +129,27 @@ export function EmployeeModal({ isOpen, onClose, onSave, employee }: EmployeeMod
         hourlyRate: employee.hourlyRate || undefined,
         monthlySalary: employee.monthlySalary || undefined,
         paymentMethod: (employee.paymentMethod || "card") as "card" | "cash",
+        hireDate: employee.hireDate || "",
         terminationDate: employee.terminationDate || "",
       });
       setShowTerminationDate(employee.status === "fired");
+    } else if (vacancyData) {
+      // Предзаполнение для найма на вакансию
+      const today = new Date().toISOString().split('T')[0];
+      form.reset({
+        name: "",
+        objectId: vacancyData.objectId,
+        position: vacancyData.positionTitle,
+        status: "active",
+        workSchedule: (vacancyData.workSchedule || "5/2") as "5/2" | "2/2" | "3/3" | "6/1" | "вахта (7/0)",
+        paymentType: (vacancyData.position?.paymentType || "hourly") as "hourly" | "salary",
+        hourlyRate: vacancyData.position?.hourlyRate || undefined,
+        monthlySalary: vacancyData.position?.monthlySalary || undefined,
+        paymentMethod: "card",
+        hireDate: today,
+        terminationDate: "",
+      });
+      setShowTerminationDate(false);
     } else {
       const defaultObjectId = user?.role === "manager" && selectedObjectId ? selectedObjectId : "";
       form.reset({
@@ -126,18 +162,19 @@ export function EmployeeModal({ isOpen, onClose, onSave, employee }: EmployeeMod
         hourlyRate: undefined,
         monthlySalary: undefined,
         paymentMethod: "card",
+        hireDate: "",
         terminationDate: "",
       });
       setShowTerminationDate(false);
     }
-  }, [employee, form, isOpen, user, selectedObjectId]);
+  }, [employee, vacancyData, form, isOpen, user, selectedObjectId]);
 
   const watchStatus = form.watch("status");
   const watchPosition = form.watch("position");
 
   // Автоматическое заполнение данных из должности
   useEffect(() => {
-    if (watchPosition && positions.length > 0) {
+    if (watchPosition && positions.length > 0 && !vacancyData) {
       const selectedPosition = positions.find(p => p.title === watchPosition);
       if (selectedPosition) {
         // Всегда обновляем данные из выбранной должности
@@ -152,7 +189,7 @@ export function EmployeeModal({ isOpen, onClose, onSave, employee }: EmployeeMod
         }
       }
     }
-  }, [watchPosition, positions, form]);
+  }, [watchPosition, positions, form, vacancyData]);
 
   useEffect(() => {
     setShowTerminationDate(watchStatus === "fired");
@@ -255,7 +292,7 @@ export function EmployeeModal({ isOpen, onClose, onSave, employee }: EmployeeMod
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {positions.map(pos => (
+                      {uniquePositions.map(pos => (
                         <SelectItem key={pos.id} value={pos.title}>
                           {pos.title} ({pos.paymentType === "salary" 
                             ? `${pos.monthlySalary} ₽/мес` 
@@ -424,6 +461,27 @@ export function EmployeeModal({ isOpen, onClose, onSave, employee }: EmployeeMod
                   <FormMessage />
                   <p className="text-sm text-muted-foreground">
                     Используется при формировании отчёта по зарплате
+                  </p>
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="hireDate"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Дата приёма</FormLabel>
+                  <FormControl>
+                    <Input 
+                      type="date" 
+                      data-testid="input-hire-date"
+                      {...field} 
+                    />
+                  </FormControl>
+                  <FormMessage />
+                  <p className="text-sm text-muted-foreground">
+                    Дата начала работы сотрудника
                   </p>
                 </FormItem>
               )}

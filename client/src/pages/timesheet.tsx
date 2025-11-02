@@ -217,9 +217,19 @@ export default function Timesheet() {
     return cellDate >= terminationDate;
   };
 
-  const isCellLocked = (date: string) => {
+  const isBeforeHireDate = (employee: Employee, date: string) => {
+    if (!employee.hireDate) return false;
+    const cellDate = parseISO(date);
+    const hireDate = parseISO(employee.hireDate);
+    return cellDate < hireDate;
+  };
+
+  const isCellLocked = (date: string, employee?: Employee) => {
     // If period is closed, all cells are locked
     if (isPeriodClosed) return true;
+    
+    // Days before hire date are locked
+    if (employee && isBeforeHireDate(employee, date)) return true;
     
     // Future dates are locked
     const cellDate = parseISO(date);
@@ -313,7 +323,7 @@ export default function Timesheet() {
     if (row.type === 'vacancy') return true;
     
     // Normal lock logic for employees
-    return isCellLocked(date) || (row.employee ? isCellTerminated(row.employee, date) : false);
+    return isCellLocked(date, row.employee) || (row.employee ? isCellTerminated(row.employee, date) : false);
   };
 
   const handleCellChange = (employeeId: string, date: string, value: string | number, qualityScore?: number) => {
@@ -383,7 +393,10 @@ export default function Timesheet() {
   // Clear all data for current month
   const handleClearAll = () => {
     const entriesToDelete = timeEntries
-      .filter((entry: TimeEntry) => !isCellLocked(entry.date))
+      .filter((entry: TimeEntry) => {
+        const employee = employees.find(emp => emp.id === entry.employeeId);
+        return !isCellLocked(entry.date, employee);
+      })
       .map((entry: TimeEntry) => entry.id);
     
     if (entriesToDelete.length > 0) {
@@ -393,9 +406,10 @@ export default function Timesheet() {
 
   // Clear row data for specific employee
   const handleClearRow = (employeeId: string) => {
+    const employee = employees.find(emp => emp.id === employeeId);
     const entriesToDelete = timeEntries
       .filter((entry: TimeEntry) => 
-        entry.employeeId === employeeId && !isCellLocked(entry.date)
+        entry.employeeId === employeeId && !isCellLocked(entry.date, employee)
       )
       .map((entry: TimeEntry) => entry.id);
     
@@ -415,7 +429,7 @@ export default function Timesheet() {
     const entriesToCreate = [];
     for (let i = fromIndex; i < days.length; i++) {
       const day = days[i];
-      if (isCellLocked(day.date) || isCellTerminated(employee, day.date)) continue;
+      if (isCellLocked(day.date, employee) || isCellTerminated(employee, day.date)) continue;
       
       const existingEntry = getTimeEntry(employeeId, day.date);
       if (!existingEntry) {
@@ -445,7 +459,7 @@ export default function Timesheet() {
     if (workSchedule === "5/2") {
       // Fill weekdays only
       for (const day of days) {
-        if (isCellLocked(day.date) || isCellTerminated(employee, day.date) || day.isWeekend) continue;
+        if (isCellLocked(day.date, employee) || isCellTerminated(employee, day.date) || day.isWeekend) continue;
         
         const existingEntry = getTimeEntry(employeeId, day.date);
         if (!existingEntry) {
@@ -464,7 +478,7 @@ export default function Timesheet() {
       let dayCount = 0;
 
       for (const day of days) {
-        if (isCellLocked(day.date) || isCellTerminated(employee, day.date)) continue;
+        if (isCellLocked(day.date, employee) || isCellTerminated(employee, day.date)) continue;
 
         const existingEntry = getTimeEntry(employeeId, day.date);
         if (!existingEntry && dayCount < 2 && isWorkDay) {
@@ -489,7 +503,7 @@ export default function Timesheet() {
       let dayCount = 0;
 
       for (const day of days) {
-        if (isCellLocked(day.date) || isCellTerminated(employee, day.date)) continue;
+        if (isCellLocked(day.date, employee) || isCellTerminated(employee, day.date)) continue;
 
         const existingEntry = getTimeEntry(employeeId, day.date);
         if (!existingEntry && dayCount < 3 && isWorkDay) {
@@ -513,7 +527,7 @@ export default function Timesheet() {
       let dayCount = 0;
 
       for (const day of days) {
-        if (isCellLocked(day.date) || isCellTerminated(employee, day.date)) continue;
+        if (isCellLocked(day.date, employee) || isCellTerminated(employee, day.date)) continue;
 
         const existingEntry = getTimeEntry(employeeId, day.date);
         if (!existingEntry && dayCount < 6) {
@@ -534,7 +548,7 @@ export default function Timesheet() {
     } else if (workSchedule === "вахта (7/0)") {
       // Вахта: все дни рабочие
       for (const day of days) {
-        if (isCellLocked(day.date) || isCellTerminated(employee, day.date)) continue;
+        if (isCellLocked(day.date, employee) || isCellTerminated(employee, day.date)) continue;
         
         const existingEntry = getTimeEntry(employeeId, day.date);
         if (!existingEntry) {
@@ -618,7 +632,7 @@ export default function Timesheet() {
           const lastWorkEntry = prevEntries.filter((entry: any) => entry.hours !== null).pop();
           if (lastWorkEntry) {
             for (const day of days) {
-              if (isCellLocked(day.date) || isCellTerminated(employee, day.date) || day.isWeekend) continue;
+              if (isCellLocked(day.date, employee) || isCellTerminated(employee, day.date) || day.isWeekend) continue;
               
               const existingEntry = getTimeEntry(employee.id, day.date);
               if (!existingEntry) {
@@ -643,7 +657,7 @@ export default function Timesheet() {
             const lastWorkEntry = lastTwoWeeks.filter((entry: any) => entry.hours !== null).pop();
             if (lastWorkEntry) {
               for (const day of days) {
-                if (isCellLocked(day.date) || isCellTerminated(employee, day.date)) continue;
+                if (isCellLocked(day.date, employee) || isCellTerminated(employee, day.date)) continue;
                 
                 const existingEntry = getTimeEntry(employee.id, day.date);
                 if (!existingEntry && dayCount < 2 && isWorkDay) {
@@ -672,7 +686,7 @@ export default function Timesheet() {
             let dayCount = 0;
             
             for (const day of days) {
-              if (isCellLocked(day.date) || isCellTerminated(employee, day.date)) continue;
+              if (isCellLocked(day.date, employee) || isCellTerminated(employee, day.date)) continue;
               
               const existingEntry = getTimeEntry(employee.id, day.date);
               if (!existingEntry && dayCount < 3 && isWorkDay) {
@@ -699,7 +713,7 @@ export default function Timesheet() {
             let dayCount = 0;
             
             for (const day of days) {
-              if (isCellLocked(day.date) || isCellTerminated(employee, day.date)) continue;
+              if (isCellLocked(day.date, employee) || isCellTerminated(employee, day.date)) continue;
               
               const existingEntry = getTimeEntry(employee.id, day.date);
               if (!existingEntry && dayCount < 6) {
@@ -723,7 +737,7 @@ export default function Timesheet() {
           const lastWorkEntry = prevEntries.filter((entry: any) => entry.hours !== null).pop();
           if (lastWorkEntry) {
             for (const day of days) {
-              if (isCellLocked(day.date) || isCellTerminated(employee, day.date)) continue;
+              if (isCellLocked(day.date, employee) || isCellTerminated(employee, day.date)) continue;
               
               const existingEntry = getTimeEntry(employee.id, day.date);
               if (!existingEntry) {
@@ -1016,7 +1030,7 @@ export default function Timesheet() {
                     {days.map((day) => {
                       const entry = getTimeEntry(employee.id, day.date);
                       const isTerminated = isCellTerminated(employee, day.date);
-                      const isLocked = isCellLocked(day.date);
+                      const isLocked = isCellLocked(day.date, employee);
                       
                       return (
                         <td key={day.date} className="p-0">

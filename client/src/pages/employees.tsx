@@ -30,6 +30,7 @@ import { Plus, Upload, Download, Edit, Trash2, Search, FileSpreadsheet } from "l
 export default function Employees() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
+  const [vacancyData, setVacancyData] = useState<EmployeeRow | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [isImporting, setIsImporting] = useState(false);
@@ -220,6 +221,12 @@ export default function Employees() {
     }
   };
 
+  const handleHireVacancy = (vacancy: EmployeeRow) => {
+    setVacancyData(vacancy);
+    setEditingEmployee(null);
+    setIsModalOpen(true);
+  };
+
   const handleExportCSV = () => {
     window.open("/api/employees/export/csv", "_blank");
   };
@@ -388,9 +395,16 @@ export default function Employees() {
                           </Button>
                         </div>
                       ) : (
-                        <div className="text-xs text-orange-500 dark:text-orange-400">
-                          Требуется найм
-                        </div>
+                        <Button
+                          variant="default"
+                          size="sm"
+                          onClick={() => handleHireVacancy(row)}
+                          className="bg-green-600 hover:bg-green-700"
+                          data-testid={`hire-vacancy-${row.id}`}
+                        >
+                          <Plus className="h-4 w-4 mr-2" />
+                          Нанять
+                        </Button>
                       )}
                     </td>
                   </tr>
@@ -505,9 +519,11 @@ export default function Employees() {
         onClose={() => {
           setIsModalOpen(false);
           setEditingEmployee(null);
+          setVacancyData(null);
         }}
         onSave={handleSaveEmployee}
         employee={editingEmployee}
+        vacancyData={vacancyData}
       />
     </div>
   );

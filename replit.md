@@ -29,6 +29,26 @@ This project is a comprehensive workforce management system (УРВС - Упра
   - **Additional Fix**: Removed `enabled: objects.length > 0` condition that blocked query execution, replaced with early return in queryFn
   - **Result**: Economist now sees updated report statuses immediately after manager submission with proper cache invalidation
 
+### Vacancy Hiring Workflow ✅
+- **Hire Button on Vacancies**: Added "Нанять" (Hire) button to vacancy rows in employee table
+  - Button appears with green styling and Plus icon
+  - Replaces "Требуется найм" text on vacancy rows
+- **Pre-filled Hiring Form**: Clicking "Нанять" opens employee modal with auto-populated fields:
+  - Object ID (locked for managers to their assigned object)
+  - Position title from vacancy
+  - Work schedule from position
+  - Payment type and rates from position
+  - Hire date set to current date
+- **Hire Date Field**: Added hire date input field to employee form
+  - Type: date input with calendar picker
+  - Automatically set to today's date when hiring from vacancy
+  - Stored in employees.hireDate database field
+  - Used for timesheet validation (cells before hire date are locked)
+- **Schema Validation**: Enhanced insertEmployeeSchema with strict enum validation
+  - paymentType: enum("hourly", "salary") with default "hourly"
+  - paymentMethod: enum("card", "cash") with default "card"
+  - Prevents form submission errors from invalid enum values
+
 # User Preferences
 
 Preferred communication style: Simple, everyday language.
