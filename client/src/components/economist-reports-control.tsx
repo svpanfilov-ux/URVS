@@ -36,47 +36,32 @@ export function EconomistReportsControl() {
     queryKey: ["/api/objects"],
   });
 
-  console.log(`[ECONOMIST DEBUG] objects.length = ${objects.length}, selectedPeriod = ${selectedPeriod}`);
-
   // Fetch period statuses for all objects
-  const { data: allPeriods = [], refetch: refetchPeriods, isLoading: periodsLoading, error: periodsError } = useQuery<TimesheetPeriod[]>({
+  const { data: allPeriods = [], refetch: refetchPeriods } = useQuery<TimesheetPeriod[]>({
     queryKey: ["/api/timesheet-periods/all", selectedPeriod],
     queryFn: async () => {
-      console.log(`[ECONOMIST queryFn] Starting - objects.length = ${objects.length}`);
-      
       // Return empty array if no objects yet
       if (objects.length === 0) {
-        console.log(`[ECONOMIST queryFn] No objects yet, returning []`);
         return [];
       }
       
       const authStorage = localStorage.getItem('auth-storage');
       const token = authStorage ? JSON.parse(authStorage).state?.token : null;
-      console.log(`[ECONOMIST queryFn] Token exists: ${!!token}`);
       if (!token) {
-        console.error(`[ECONOMIST queryFn] No auth token found!`);
         throw new Error("No auth token");
       }
 
-      console.log(`[ECONOMIST] Fetching periods for ${objects.length} objects, period: ${selectedPeriod}`);
-
       // Fetch periods for each object with authorization header
-      const promises = objects.map(obj => {
-        console.log(`[ECONOMIST] Fetching period for object: ${obj.name} (${obj.id})`);
-        return fetch(`/api/timesheet-periods/${obj.id}/${selectedPeriod}`, {
+      const promises = objects.map(obj =>
+        fetch(`/api/timesheet-periods/${obj.id}/${selectedPeriod}`, {
           headers: {
             'Authorization': `Bearer ${token}`,
           },
         })
           .then(r => r.json())
-          .then(data => {
-            console.log(`[ECONOMIST] Received period for ${obj.name}:`, data);
-            return data;
-          })
-          .catch(() => null);
-      });
+          .catch(() => null)
+      );
       const results = await Promise.all(promises);
-      console.log(`[ECONOMIST] All periods fetched:`, results);
       return results.filter(Boolean);
     },
     gcTime: 0, // Не кешировать вообще
@@ -85,12 +70,9 @@ export function EconomistReportsControl() {
     refetchOnWindowFocus: true, // Обновление при возврате на вкладку
   });
 
-  console.log(`[ECONOMIST DEBUG] periodsLoading = ${periodsLoading}, allPeriods.length = ${allPeriods.length}, error:`, periodsError);
-
   // Refetch periods when objects load or period changes
   useEffect(() => {
     if (objects.length > 0) {
-      console.log(`[ECONOMIST useEffect] Triggering refetch for ${objects.length} objects, period: ${selectedPeriod}`);
       refetchPeriods();
     }
   }, [objects.length, selectedPeriod, refetchPeriods]);

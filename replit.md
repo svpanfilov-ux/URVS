@@ -11,7 +11,11 @@ This project is a comprehensive workforce management system (УРВС - Упра
 
 ## Recent Fixes (November 2, 2024)
 - **Employee Filtering in Reports**: Fixed issue where fired employees appeared in reports - now only active employees with valid data are included
-- **Report Status Synchronization**: Fixed cache invalidation so economist sees updated report status immediately after manager submission - added `queryClient.invalidateQueries({ queryKey: ["/api/timesheet-periods/all", reportMonth] })` to manager's send for approval mutation
+- **Report Status Synchronization (Critical Fix)**: Fixed economist reports control component not fetching period data due to incorrect auth token retrieval
+  - **Root Cause**: Component was looking for token under wrong localStorage key (`"auth_token"` instead of `"auth-storage"`)
+  - **Solution**: Updated to use correct Zustand auth storage: `const authStorage = localStorage.getItem('auth-storage'); const token = authStorage ? JSON.parse(authStorage).state?.token : null;`
+  - **Additional Fix**: Removed `enabled: objects.length > 0` condition that blocked query execution, replaced with early return in queryFn
+  - **Result**: Economist now sees updated report statuses immediately after manager submission with proper cache invalidation
 
 # User Preferences
 
