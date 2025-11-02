@@ -861,12 +861,9 @@ export default function Timesheet() {
         </div>
       </div>
 
-      {/* Timesheet Table and Legend Container */}
-      <div className="flex gap-3">
-        {/* Timesheet Table */}
-        <div className="flex-1 overflow-x-auto border rounded-lg bg-background">
-          <div className="min-w-full">
-            <table className="w-full border-collapse text-[10px] table-fixed min-w-[1200px]">
+      {/* Timesheet Table */}
+      <div className="overflow-x-auto border rounded-lg bg-background">
+        <table className="w-full border-collapse text-[10px] table-fixed min-w-[1200px]">
             {/* Header */}
             <thead>
               <tr>
@@ -1168,12 +1165,11 @@ export default function Timesheet() {
                 </td>
               </tr>
             </tbody>
-          </table>
-        </div>
+        </table>
       </div>
 
       {/* Legend - Compact */}
-      <div className="w-56 bg-muted/30 rounded-lg p-3 flex-shrink-0 text-xs">
+      <div className="w-56 bg-muted/30 rounded-lg p-3 text-xs">
         <h3 className="font-semibold mb-2 text-xs">Обозначения:</h3>
         <div className="space-y-1.5">
           <div className="flex items-center space-x-1.5">
@@ -1220,7 +1216,6 @@ export default function Timesheet() {
           <div>• Enter — сохранить</div>
         </div>
       </div>
-    </div>
     </div>
   );
 }
