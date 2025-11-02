@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { Employee, Position } from "@shared/schema";
 import type { Object as ObjectType } from "@shared/schema";
+import { useAuth } from "@/lib/auth";
 
 // Type for employee/vacancy row in the table
 type EmployeeRow = {
@@ -35,7 +36,8 @@ export default function Employees() {
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { selectedObjectId } = useObjectStore();
+  const { selectedObjectId, setSelectedObjectId } = useObjectStore();
+  const { user } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: employees = [], isLoading } = useQuery<Employee[]>({
@@ -50,6 +52,17 @@ export default function Employees() {
     queryKey: ["/api/objects"],
   });
 
+  // Auto-select object for manager on page load
+  useEffect(() => {
+    if (user?.role === 'manager' && objects.length > 0 && !selectedObjectId) {
+      // Find the object managed by this user
+      const managedObject = objects.find(obj => obj.managerId === user.id);
+      if (managedObject) {
+        setSelectedObjectId(managedObject.id);
+      }
+    }
+  }, [user, objects, selectedObjectId, setSelectedObjectId]);
+
   const { data: positions = [], isLoading: isPositionsLoading } = useQuery<Position[]>({
     queryKey: ["/api/positions", selectedObjectId],
     enabled: !!selectedObjectId,
@@ -59,6 +72,7 @@ export default function Employees() {
   // Create combined rows for employees and vacancies
   const createEmployeeRows = (): EmployeeRow[] => {
     const rows: EmployeeRow[] = [];
+    const processedEmployeeIds = new Set<string>();
     
     // Filter positions based on selected object if manager role
     const filteredPositions = positions.filter(position => {
@@ -82,6 +96,7 @@ export default function Employees() {
       
       // Add employee rows for assigned employees
       assignedEmployees.forEach(employee => {
+        processedEmployeeIds.add(employee.id);
         rows.push({
           id: employee.id,
           type: 'employee',
@@ -107,6 +122,22 @@ export default function Employees() {
           objectId: position.objectId,
           workSchedule: position.workSchedule || '5/2',
           status: 'vacancy'
+        });
+      }
+    });
+
+    // Add employees without positions (not in staffing schedule)
+    employees.forEach(employee => {
+      if (!processedEmployeeIds.has(employee.id) && employee.status !== 'fired') {
+        rows.push({
+          id: employee.id,
+          type: 'employee',
+          employee,
+          name: employee.name,
+          positionTitle: employee.position || 'Не указано',
+          objectId: employee.objectId || '',
+          workSchedule: employee.workSchedule || '5/2',
+          status: employee.status
         });
       }
     });
