@@ -8,7 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { format, getDaysInMonth, parseISO, isAfter } from "date-fns";
 import { ru } from "date-fns/locale";
-import { Wand2, Calendar, Lock, LockOpen } from "lucide-react";
+import { Wand2, Calendar, Lock, LockOpen, ChevronDown, ChevronRight } from "lucide-react";
 import { Employee, TimeEntry, Position, TimesheetPeriod } from "@shared/schema";
 import { useObjectStore } from "@/lib/object-store";
 
@@ -31,6 +31,7 @@ export default function Timesheet() {
   };
   
   const [selectedMonth, setSelectedMonth] = useState(getCurrentMonth());
+  const [vacanciesExpanded, setVacanciesExpanded] = useState(false);
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -1080,15 +1081,30 @@ export default function Timesheet() {
 
               {/* Vacancies Header */}
               {vacancyRows.length > 0 && (
-                <tr className="bg-gray-50 dark:bg-gray-950/20">
+                <tr 
+                  className="bg-gray-50 dark:bg-gray-950/20 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-900/40"
+                  onClick={() => setVacanciesExpanded(!vacanciesExpanded)}
+                >
                   <td colSpan={days.length + 3} className="p-2 font-semibold text-sm text-gray-700 dark:text-gray-300">
-                    Вакансии
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span>Вакансии</span>
+                        <span className="text-xs font-normal text-muted-foreground">
+                          ({vacancyRows.length} {vacancyRows.length === 1 ? 'вакансия' : vacancyRows.length < 5 ? 'вакансии' : 'вакансий'})
+                        </span>
+                      </div>
+                      {vacanciesExpanded ? (
+                        <ChevronDown className="w-4 h-4" />
+                      ) : (
+                        <ChevronRight className="w-4 h-4" />
+                      )}
+                    </div>
                   </td>
                 </tr>
               )}
               
               {/* Vacancies Rows */}
-              {vacancyRows.map((row) => {
+              {vacanciesExpanded && vacancyRows.map((row) => {
                 const totalHours = getRowTotalHours(row);
                 const plannedHours = getRowPlannedHours(row);
 
@@ -1132,7 +1148,7 @@ export default function Timesheet() {
               })}
               
               {/* Vacancies Subtotal */}
-              {vacancyRows.length > 0 && (
+              {vacanciesExpanded && vacancyRows.length > 0 && (
                 <tr className="bg-gray-100 dark:bg-gray-900/30 border-t-2 border-gray-300">
                   <td className="sticky left-0 z-10 bg-gray-100 dark:bg-gray-900/30 border-r p-1 font-bold text-gray-800 dark:text-gray-200">
                     <div className="text-[10px]">Итого вакансии: {vacancyRows.length} шт.</div>
