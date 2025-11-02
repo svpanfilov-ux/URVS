@@ -200,6 +200,15 @@ export default function Timesheet() {
       if (a.positionTitle !== b.positionTitle) {
         return a.positionTitle.localeCompare(b.positionTitle, 'ru');
       }
+      
+      // Для сотрудников с одной должностью: уволенные сначала, затем их замены (по дате приема)
+      const aFired = a.employee?.status === "fired" && a.employee?.terminationDate?.substring(0, 7) === selectedMonth;
+      const bFired = b.employee?.status === "fired" && b.employee?.terminationDate?.substring(0, 7) === selectedMonth;
+      
+      if (aFired && !bFired) return -1; // уволенный перед активным
+      if (!aFired && bFired) return 1;  // активный после уволенного
+      
+      // Если оба уволены или оба активные, сортировать по имени
       return a.name.localeCompare(b.name, 'ru');
     });
     
