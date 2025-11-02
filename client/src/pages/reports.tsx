@@ -11,7 +11,7 @@ import { useObjectStore } from "@/lib/object-store";
 import { format } from "date-fns";
 import { ru } from "date-fns/locale";
 import { Eye, Send, FileText, AlertTriangle, Lock, Calendar } from "lucide-react";
-import { Object as ObjectType, Employee, Position, TimeEntry, TimesheetPeriod } from "@shared/schema";
+import { Object as ObjectType, Employee, Position, TimeEntry, TimesheetPeriod, User } from "@shared/schema";
 import { TimesheetReport } from "@/components/timesheet-report";
 import { EconomistReportsControl } from "@/components/economist-reports-control";
 
@@ -35,6 +35,10 @@ export default function Reports() {
 
   const { data: objects = [] } = useQuery<ObjectType[]>({
     queryKey: ["/api/objects"],
+  });
+
+  const { data: users = [] } = useQuery<User[]>({
+    queryKey: ["/api/users"],
   });
 
   const { data: employees = [] } = useQuery<Employee[]>({
@@ -67,6 +71,11 @@ export default function Reports() {
 
   const isPeriodClosed = periodStatus?.status === "closed";
   const reportStatus = periodStatus?.reportStatus;
+
+  // Получаем имя менеджера объекта для сортировки
+  const currentObject = objects.find(obj => obj.id === selectedObjectId);
+  const objectManager = users.find(u => u.id === currentObject?.managerId);
+  const objectManagerName = objectManager?.name;
 
   // Generate month options for the last 12 months
   const generateMonthOptions = () => {
@@ -356,6 +365,7 @@ export default function Reports() {
           timeEntries={timeEntries}
           positions={positions}
           objectId={selectedObjectId}
+          objectManagerName={objectManagerName}
         />
       )}
 

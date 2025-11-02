@@ -21,6 +21,7 @@ interface TimesheetReportProps {
   timeEntries: TimeEntry[];
   positions: Position[];
   objectId: string;
+  objectManagerName?: string; // Имя менеджера объекта для сортировки
 }
 
 interface EmployeeReportRow {
@@ -45,6 +46,7 @@ export function TimesheetReport({
   timeEntries,
   positions,
   objectId,
+  objectManagerName,
 }: TimesheetReportProps) {
   const [year, monthNum] = month.split("-").map(Number);
   const daysInMonth = getDaysInMonth(new Date(year, monthNum - 1));
@@ -52,19 +54,51 @@ export function TimesheetReport({
   const [vacanciesExpanded, setVacanciesExpanded] = useState(false);
 
   // Фильтр сотрудников по объекту: штатные и подработчики
-  const staffEmployees = employees.filter(emp => 
+  const unsortedStaffEmployees = employees.filter(emp => 
     emp.objectId === objectId && 
     emp.status === "active" &&
     emp.name && // Исключаем записи без имени
     emp.id // Исключаем записи без ID
   );
 
+  // Сортировка штатных сотрудников: менеджер → администраторы → остальные
+  const sortStaffEmployees = (emps: Employee[]): Employee[] => {
+    const manager: Employee[] = [];
+    const administrators: Employee[] = [];
+    const regular: Employee[] = [];
+    
+    emps.forEach(emp => {
+      // Проверяем, является ли сотрудник менеджером объекта
+      if (objectManagerName && emp.name === objectManagerName) {
+        manager.push(emp);
+      }
+      // Проверяем, является ли должность администратором
+      else if (emp.position?.toLowerCase().includes('администратор')) {
+        administrators.push(emp);
+      }
+      // Все остальные
+      else {
+        regular.push(emp);
+      }
+    });
+    
+    // Сортируем администраторов и обычных по алфавиту
+    const sortByName = (a: Employee, b: Employee) => a.name.localeCompare(b.name, 'ru');
+    administrators.sort(sortByName);
+    regular.sort(sortByName);
+    
+    // Объединяем: менеджер → администраторы → остальные
+    return [...manager, ...administrators, ...regular];
+  };
+
+  const staffEmployees = sortStaffEmployees(unsortedStaffEmployees);
+
   const partTimeEmployees = employees.filter(emp => 
     emp.objectId === objectId && 
     emp.status === "not_registered" &&
     emp.name && 
     emp.id
-  );
+  ).sort((a, b) => a.name.localeCompare(b.name, 'ru'));
 
   const objectEmployees = [...staffEmployees, ...partTimeEmployees];
 
