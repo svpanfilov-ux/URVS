@@ -861,10 +861,12 @@ export default function Timesheet() {
         </div>
       </div>
 
-      {/* Timesheet Table */}
-      <div className="overflow-hidden border rounded-lg bg-background">
-        <div className="w-full">
-          <table className="w-full border-collapse text-[10px] table-fixed">
+      {/* Timesheet Table and Legend Container */}
+      <div className="flex gap-3">
+        {/* Timesheet Table */}
+        <div className="flex-1 overflow-hidden border rounded-lg bg-background">
+          <div className="w-full">
+            <table className="w-full border-collapse text-[10px] table-fixed">
             {/* Header */}
             <thead>
               <tr>
@@ -1170,53 +1172,52 @@ export default function Timesheet() {
         </div>
       </div>
 
-      {/* Legend */}
-      <div className="bg-muted/30 rounded-lg p-4">
-        <h3 className="font-semibold mb-3">Обозначения:</h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-          <div className="flex items-center space-x-2">
-            <div className="w-6 h-6 bg-blue-100 dark:bg-blue-900/30 border rounded text-center text-blue-800 dark:text-blue-200 text-xs font-bold">Б</div>
-            <span>Больничный</span>
-          </div>
-          <div className="flex items-center space-x-2">
-            <div className="w-6 h-6 bg-purple-100 dark:bg-purple-900/30 border rounded text-center text-purple-800 dark:text-purple-200 text-xs font-bold">О</div>
-            <span>Отпуск</span>
-          </div>
-          <div className="flex items-center space-x-2">
-            <div className="w-6 h-6 bg-gray-200 dark:bg-gray-700 border rounded text-center text-gray-700 dark:text-gray-300 text-xs font-bold">НН</div>
-            <span>Прогул</span>
-          </div>
-          <div className="flex items-center space-x-2">
-            <div className="w-6 h-6 bg-red-100 dark:bg-red-900/30 border rounded text-center text-red-800 dark:text-red-200 text-xs font-bold">У</div>
-            <span>Уволен</span>
-          </div>
-        </div>
-        <div className="mt-4 space-y-3">
-          <div>
-            <h4 className="font-medium text-sm mb-2">Оценки качества работы:</h4>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-              <div className="flex items-center space-x-2">
-                <div className="w-6 h-6 bg-red-100 dark:bg-red-900/30 border rounded text-center text-red-800 dark:text-red-200 text-xs font-bold flex items-center justify-center">1</div>
-                <span className="text-xs">Плохо</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <div className="w-6 h-6 bg-orange-100 dark:bg-orange-900/30 border rounded text-center text-orange-800 dark:text-orange-200 text-xs font-bold flex items-center justify-center">2</div>
-                <span className="text-xs">Удовлетв.</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <div className="w-6 h-6 bg-yellow-100 dark:bg-yellow-900/30 border rounded text-center text-yellow-800 dark:text-yellow-200 text-xs font-bold flex items-center justify-center">3</div>
-                <span className="text-xs">Хорошо</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <div className="w-6 h-6 bg-green-100 dark:bg-green-900/30 border rounded text-center text-green-800 dark:text-green-200 text-xs font-bold flex items-center justify-center">4</div>
-                <span className="text-xs">Отлично</span>
-              </div>
+      {/* Legend - Compact */}
+      <div className="w-56 bg-muted/30 rounded-lg p-3 flex-shrink-0 text-xs">
+          <h3 className="font-semibold mb-2 text-xs">Обозначения:</h3>
+          <div className="space-y-1.5">
+            <div className="flex items-center space-x-1.5">
+              <div className="w-5 h-5 bg-blue-100 dark:bg-blue-900/30 border rounded text-center text-blue-800 dark:text-blue-200 text-[10px] font-bold flex items-center justify-center">Б</div>
+              <span className="text-[11px]">Больничный</span>
+            </div>
+            <div className="flex items-center space-x-1.5">
+              <div className="w-5 h-5 bg-purple-100 dark:bg-purple-900/30 border rounded text-center text-purple-800 dark:text-purple-200 text-[10px] font-bold flex items-center justify-center">О</div>
+              <span className="text-[11px]">Отпуск</span>
+            </div>
+            <div className="flex items-center space-x-1.5">
+              <div className="w-5 h-5 bg-gray-200 dark:bg-gray-700 border rounded text-center text-gray-700 dark:text-gray-300 text-[10px] font-bold flex items-center justify-center">НН</div>
+              <span className="text-[11px]">Прогул</span>
+            </div>
+            <div className="flex items-center space-x-1.5">
+              <div className="w-5 h-5 bg-red-100 dark:bg-red-900/30 border rounded text-center text-red-800 dark:text-red-200 text-[10px] font-bold flex items-center justify-center">У</div>
+              <span className="text-[11px]">Уволен</span>
             </div>
           </div>
-          <div className="text-xs text-muted-foreground">
-            • Числа от 1 до 24 — количество рабочих часов<br/>
-            • Правый клик на числовой ячейке — изменение оценки качества работы<br/>
-            • Клик на ячейку для редактирования, Enter для сохранения, Escape для отмены
+          
+          <h4 className="font-semibold mt-3 mb-2 text-xs">Оценки:</h4>
+          <div className="space-y-1.5">
+            <div className="flex items-center space-x-1.5">
+              <div className="w-5 h-5 bg-red-100 dark:bg-red-900/30 border rounded text-center text-red-800 dark:text-red-200 text-[10px] font-bold flex items-center justify-center">1</div>
+              <span className="text-[11px]">Плохо</span>
+            </div>
+            <div className="flex items-center space-x-1.5">
+              <div className="w-5 h-5 bg-orange-100 dark:bg-orange-900/30 border rounded text-center text-orange-800 dark:text-orange-200 text-[10px] font-bold flex items-center justify-center">2</div>
+              <span className="text-[11px]">Удовлетв.</span>
+            </div>
+            <div className="flex items-center space-x-1.5">
+              <div className="w-5 h-5 bg-yellow-100 dark:bg-yellow-900/30 border rounded text-center text-yellow-800 dark:text-yellow-200 text-[10px] font-bold flex items-center justify-center">3</div>
+              <span className="text-[11px]">Хорошо</span>
+            </div>
+            <div className="flex items-center space-x-1.5">
+              <div className="w-5 h-5 bg-green-100 dark:bg-green-900/30 border rounded text-center text-green-800 dark:text-green-200 text-[10px] font-bold flex items-center justify-center">4</div>
+              <span className="text-[11px]">Отлично</span>
+            </div>
+          </div>
+          
+          <div className="text-[10px] text-muted-foreground mt-3 space-y-1">
+            <div>• 1-24 — часы</div>
+            <div>• ПКМ — оценка</div>
+            <div>• Enter — сохранить</div>
           </div>
         </div>
       </div>

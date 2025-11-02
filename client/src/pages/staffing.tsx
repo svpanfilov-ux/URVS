@@ -114,6 +114,7 @@ export default function Staffing() {
         objectId: position.objectId,
         title: position.title,
         workSchedule: position.workSchedule,
+        hoursPerShift: position.hoursPerShift || 8,
         paymentType: position.paymentType,
         hourlyRate: position.hourlyRate || "",
         monthlySalary: position.monthlySalary || "",
@@ -133,6 +134,7 @@ export default function Staffing() {
         hourlyRate: editData.hourlyRate ? Number(editData.hourlyRate) : null,
         monthlySalary: editData.monthlySalary ? Number(editData.monthlySalary) : null,
         positionsCount: Number(editData.positionsCount),
+        hoursPerShift: Number(editData.hoursPerShift) || 8,
       }
     });
 
@@ -159,6 +161,7 @@ export default function Staffing() {
         objectId: selectedObjectId || "",
         title: "",
         workSchedule: "5/2",
+        hoursPerShift: 8,
         paymentType: "salary",
         hourlyRate: "",
         monthlySalary: "",
@@ -179,7 +182,7 @@ export default function Staffing() {
       hourlyRate: editData.hourlyRate ? Number(editData.hourlyRate) : null,
       monthlySalary: editData.monthlySalary ? Number(editData.monthlySalary) : null,
       positionsCount: Number(editData.positionsCount),
-      hoursPerShift: 8,
+      hoursPerShift: Number(editData.hoursPerShift) || 8,
       isActive: true,
     });
 
@@ -429,6 +432,7 @@ export default function Staffing() {
                   <TableHead className="font-medium text-muted-foreground">Объект</TableHead>
                   <TableHead className="font-medium text-muted-foreground">Должность</TableHead>
                   <TableHead className="font-medium text-muted-foreground">График работы</TableHead>
+                  <TableHead className="font-medium text-muted-foreground">Часов в сутки</TableHead>
                   <TableHead className="font-medium text-muted-foreground">Оклад (тариф)</TableHead>
                   <TableHead className="font-medium text-muted-foreground">Количество ставок</TableHead>
                   <TableHead className="font-medium text-muted-foreground">Тип оплат</TableHead>
@@ -496,6 +500,22 @@ export default function Staffing() {
                           <SelectItem value="вахта (7/0)">вахта (7/0)</SelectItem>
                         </SelectContent>
                       </Select>
+                    </TableCell>
+
+                    {/* Часов в сутки */}
+                    <TableCell>
+                      <Input
+                        type="number"
+                        min="1"
+                        max="24"
+                        value={editData.hoursPerShift || 8}
+                        onChange={(e) => setEditingPositions(prev => ({ 
+                          ...prev, 
+                          [newId]: { ...prev[newId], hoursPerShift: parseInt(e.target.value) || 8 } 
+                        }))}
+                        placeholder="8"
+                        className="h-8 w-16"
+                      />
                     </TableCell>
 
                     {/* Оклад (тариф) */}
@@ -662,6 +682,25 @@ export default function Staffing() {
                           </Select>
                         ) : (
                           <div className="text-sm text-muted-foreground">{position.workSchedule}</div>
+                        )}
+                      </TableCell>
+
+                      {/* Часов в сутки */}
+                      <TableCell>
+                        {isEditing ? (
+                          <Input
+                            type="number"
+                            min="1"
+                            max="24"
+                            value={editData.hoursPerShift || 8}
+                            onChange={(e) => setEditingPositions(prev => ({ 
+                              ...prev, 
+                              [position.id]: { ...prev[position.id], hoursPerShift: parseInt(e.target.value) || 8 } 
+                            }))}
+                            className="h-8 w-16"
+                          />
+                        ) : (
+                          <div className="text-sm text-center font-medium text-foreground">{position.hoursPerShift || 8}</div>
                         )}
                       </TableCell>
 
