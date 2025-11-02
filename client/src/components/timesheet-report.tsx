@@ -100,6 +100,37 @@ export function TimesheetReport({
     emp.id
   ).sort((a, b) => a.name.localeCompare(b.name, 'ru'));
 
+  // Вакансии для отчета
+  const vacancies = useMemo(() => {
+    const allVisibleEmployees = employees.filter(emp => 
+      emp.objectId === objectId && 
+      (emp.status === "active" || emp.status === "not_registered")
+    );
+    
+    const vacancyList: Array<{ positionTitle: string; count: number }> = [];
+    
+    positions
+      .filter(pos => pos.objectId === objectId)
+      .forEach(position => {
+        const assignedCount = allVisibleEmployees.filter(emp => 
+          emp.position === position.title
+        ).length;
+        const vacanciesNeeded = Math.max(0, position.positionsCount - assignedCount);
+        
+        if (vacanciesNeeded > 0) {
+          vacancyList.push({
+            positionTitle: position.title,
+            count: vacanciesNeeded
+          });
+        }
+      });
+    
+    // Сортировка по названию должности
+    return vacancyList.sort((a, b) => 
+      a.positionTitle.localeCompare(b.positionTitle, 'ru')
+    );
+  }, [positions, employees, objectId]);
+
   const objectEmployees = [...staffEmployees, ...partTimeEmployees];
 
   // Функция для расчёта данных одного сотрудника
@@ -370,6 +401,52 @@ export function TimesheetReport({
                     <TableCell className="text-right">{partTimeSubtotals.fot.toLocaleString()} ₽</TableCell>
                     <TableCell colSpan={3}></TableCell>
                   </TableRow>
+                </>
+              )}
+
+              {/* Секция: Вакансии (свернутая) */}
+              {vacancies.length > 0 && (
+                <>
+                  <TableRow 
+                    className="bg-gray-50 dark:bg-gray-950/20 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-900/40"
+                    onClick={() => setVacanciesExpanded(!vacanciesExpanded)}
+                    data-testid="vacancies-header"
+                  >
+                    <TableCell colSpan={9} className="font-semibold text-gray-800 dark:text-gray-200">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span>Вакансии</span>
+                          <span className="text-xs font-normal text-muted-foreground">
+                            ({vacancies.reduce((sum, v) => sum + v.count, 0)} {vacancies.reduce((sum, v) => sum + v.count, 0) === 1 ? 'вакансия' : vacancies.reduce((sum, v) => sum + v.count, 0) < 5 ? 'вакансии' : 'вакансий'})
+                          </span>
+                        </div>
+                        {vacanciesExpanded ? (
+                          <ChevronDown className="w-4 h-4" />
+                        ) : (
+                          <ChevronRight className="w-4 h-4" />
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                  {/* Список вакансий (показываем только при развертывании) */}
+                  {vacanciesExpanded && vacancies.map((vacancy, idx) => (
+                    <TableRow key={idx} className="bg-gray-50 dark:bg-gray-900/20" data-testid={`vacancy-row-${idx}`}>
+                      <TableCell colSpan={2} className="font-medium text-gray-600 dark:text-gray-400">
+                        {vacancy.positionTitle} ({vacancy.count} {vacancy.count === 1 ? 'шт.' : 'шт.'})
+                      </TableCell>
+                      <TableCell colSpan={7} className="text-sm text-muted-foreground">
+                        Незаполненные позиции
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {/* Промежуточные итоги для вакансий */}
+                  {vacanciesExpanded && (
+                    <TableRow className="bg-gray-100 dark:bg-gray-900/30 font-semibold">
+                      <TableCell colSpan={9}>
+                        Итого вакансий: {vacancies.reduce((sum, v) => sum + v.count, 0)} шт.
+                      </TableCell>
+                    </TableRow>
+                  )}
                 </>
               )}
               
