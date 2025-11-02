@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -36,10 +36,20 @@ export function EconomistReportsControl() {
     queryKey: ["/api/objects"],
   });
 
+  console.log(`[ECONOMIST DEBUG] objects.length = ${objects.length}, selectedPeriod = ${selectedPeriod}`);
+
   // Fetch period statuses for all objects
-  const { data: allPeriods = [], refetch: refetchPeriods } = useQuery<TimesheetPeriod[]>({
+  const { data: allPeriods = [], refetch: refetchPeriods, isLoading: periodsLoading } = useQuery<TimesheetPeriod[]>({
     queryKey: ["/api/timesheet-periods/all", selectedPeriod],
     queryFn: async () => {
+      console.log(`[ECONOMIST queryFn] Starting - objects.length = ${objects.length}`);
+      
+      // Return empty array if no objects yet
+      if (objects.length === 0) {
+        console.log(`[ECONOMIST queryFn] No objects yet, returning []`);
+        return [];
+      }
+      
       const token = localStorage.getItem("auth_token");
       if (!token) {
         throw new Error("No auth token");
@@ -66,12 +76,21 @@ export function EconomistReportsControl() {
       console.log(`[ECONOMIST] All periods fetched:`, results);
       return results.filter(Boolean);
     },
-    enabled: objects.length > 0,
     gcTime: 0, // Не кешировать вообще
     staleTime: 0, // Данные устаревают сразу
     refetchOnMount: "always", // Всегда загружать при монтировании
     refetchOnWindowFocus: true, // Обновление при возврате на вкладку
   });
+
+  console.log(`[ECONOMIST DEBUG] periodsLoading = ${periodsLoading}, allPeriods.length = ${allPeriods.length}`);
+
+  // Refetch periods when objects load or period changes
+  useEffect(() => {
+    if (objects.length > 0) {
+      console.log(`[ECONOMIST useEffect] Triggering refetch for ${objects.length} objects, period: ${selectedPeriod}`);
+      refetchPeriods();
+    }
+  }, [objects.length, selectedPeriod, refetchPeriods]);
 
   // Generate month options for the last 12 months
   const generateMonthOptions = () => {
