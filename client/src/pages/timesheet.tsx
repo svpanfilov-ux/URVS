@@ -1172,8 +1172,8 @@ export default function Timesheet() {
         </div>
       </div>
 
-      {/* Legend - Compact */}
-      <div className="w-56 bg-muted/30 rounded-lg p-3 flex-shrink-0 text-xs">
+        {/* Legend - Compact */}
+        <div className="w-56 bg-muted/30 rounded-lg p-3 flex-shrink-0 text-xs">
           <h3 className="font-semibold mb-2 text-xs">Обозначения:</h3>
           <div className="space-y-1.5">
             <div className="flex items-center space-x-1.5">
@@ -1216,7 +1216,7 @@ export default function Timesheet() {
           
           <div className="text-[10px] text-muted-foreground mt-3 space-y-1">
             <div>• 1-24 — часы</div>
-            <div>• ПКМ — оценка</div>
+            <div>• Пр. кн. мыши — оценка</div>
             <div>• Enter — сохранить</div>
           </div>
         </div>
