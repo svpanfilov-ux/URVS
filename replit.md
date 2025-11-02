@@ -75,6 +75,7 @@ Preferred communication style: Simple, everyday language.
     - Report submitted → Shows "Отчёт отправлен" with approval pending status
     - Report approved → Shows "Отчёт утверждён" with read-only mode, prevents editing
   - **Report Generation**: Creates timesheet report with per-employee payroll calculations, payment method splitting (card/ledger), and period splitting (advance/salary)
+  - **Employee Filtering**: Only active employees (status="active") with valid objectId, name, and ID are included in reports
   - **Approval Workflow**: Draft → Requested → Submitted → Approved/Rejected states with status badges
 - **Reports Control Module for Economists**: Comprehensive report management across all objects:
   - **Control Table**: Summary view of all objects with timesheet and report statuses
