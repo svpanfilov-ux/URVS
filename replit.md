@@ -9,7 +9,19 @@ This project is a comprehensive workforce management system (УРВС - Упра
 - **Timesheet Data**: Time entries with hours and quality ratings populated
 - **Test Object**: ПортЭнерго configured as primary test object for manager role testing
 
-## Recent Fixes (November 2, 2024)
+## Recent Updates (November 2, 2024)
+
+### PostgreSQL Database Integration ✅
+- **Database Setup**: PostgreSQL database created and configured via Replit's built-in database service
+- **Migration Status**: Database schema synchronized successfully using Drizzle ORM (`npm run db:push`)
+- **Storage Implementation**: Created DbStorage class to replace MemStorage for persistent data storage
+  - Implemented full CRUD operations for all entities (users, objects, employees, positions, time entries, reports, timesheet periods)
+  - Connection pooling via @neondatabase/serverless with Neon Database backend
+  - Automatic fallback: Uses PostgreSQL when DATABASE_URL is available, otherwise falls back to MemStorage
+- **Seed Data**: Initial demo data created (users, objects, positions) for testing and development
+- **Environment Variables**: All database credentials auto-configured (DATABASE_URL, PGPORT, PGUSER, PGPASSWORD, PGDATABASE, PGHOST)
+
+### Bug Fixes
 - **Employee Filtering in Reports**: Fixed issue where fired employees appeared in reports - now only active employees with valid data are included
 - **Report Status Synchronization (Critical Fix)**: Fixed economist reports control component not fetching period data due to incorrect auth token retrieval
   - **Root Cause**: Component was looking for token under wrong localStorage key (`"auth_token"` instead of `"auth-storage"`)
@@ -35,7 +47,7 @@ Preferred communication style: Simple, everyday language.
 - **Runtime**: Node.js with Express.js
 - **Language**: TypeScript with ES modules
 - **API Design**: RESTful API with JSON responses
-- **Data Storage**: In-memory storage with an interface for future database integration
+- **Data Storage**: PostgreSQL database via Drizzle ORM (with MemStorage fallback for development)
 
 ## Database Layer
 - **ORM**: Drizzle ORM configured for PostgreSQL

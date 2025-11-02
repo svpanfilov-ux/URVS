@@ -27,7 +27,7 @@ import {
 import { randomUUID } from "crypto";
 import { drizzle } from "drizzle-orm/neon-http";
 import { neon } from "@neondatabase/serverless";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 
 export interface IStorage {
   // Users
@@ -276,6 +276,7 @@ export class MemStorage implements IStorage {
       const employee: Employee = {
         id: randomUUID(),
         ...emp,
+        terminationDate: emp.terminationDate || null,
         paymentType: "hourly",
         hourlyRate: 300,
         monthlySalary: null,
@@ -419,7 +420,7 @@ export class MemStorage implements IStorage {
       position: insertEmployee.position,
       status: insertEmployee.status || "active",
       workSchedule: insertEmployee.workSchedule || "5/2",
-      objectId: insertEmployee.objectId,
+      objectId: insertEmployee.objectId!,
       paymentType: insertEmployee.paymentType || "hourly",
       paymentMethod: insertEmployee.paymentMethod || "card",
       hourlyRate: insertEmployee.hourlyRate || null,
@@ -681,5 +682,204 @@ export class MemStorage implements IStorage {
   }
 }
 
-// Use in-memory storage for development
-export const storage: IStorage = new MemStorage();
+// PostgreSQL Storage using Drizzle ORM
+export class DbStorage implements IStorage {
+  private db;
+
+  constructor() {
+    const sql = neon(process.env.DATABASE_URL!);
+    this.db = drizzle(sql);
+  }
+
+  // Users
+  async getUser(id: string): Promise<User | undefined> {
+    const result = await this.db.select().from(users).where(eq(users.id, id));
+    return result[0];
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const result = await this.db.select().from(users).where(eq(users.username, username));
+    return result[0];
+  }
+
+  async createUser(insertUser: InsertUser): Promise<User> {
+    const result = await this.db.insert(users).values(insertUser).returning();
+    return result[0];
+  }
+
+  async getUsers(): Promise<User[]> {
+    return await this.db.select().from(users);
+  }
+
+  async updateUser(id: string, updateData: Partial<InsertUser>): Promise<User | undefined> {
+    const result = await this.db.update(users).set(updateData).where(eq(users.id, id)).returning();
+    return result[0];
+  }
+
+  // Employees
+  async getEmployees(): Promise<Employee[]> {
+    return await this.db.select().from(employees);
+  }
+
+  async getEmployee(id: string): Promise<Employee | undefined> {
+    const result = await this.db.select().from(employees).where(eq(employees.id, id));
+    return result[0];
+  }
+
+  async createEmployee(insertEmployee: InsertEmployee): Promise<Employee> {
+    const result = await this.db.insert(employees).values([insertEmployee]).returning();
+    return result[0];
+  }
+
+  async updateEmployee(id: string, updateData: Partial<InsertEmployee>): Promise<Employee | undefined> {
+    const result = await this.db.update(employees).set(updateData).where(eq(employees.id, id)).returning();
+    return result[0];
+  }
+
+  async deleteEmployee(id: string): Promise<boolean> {
+    const result = await this.db.delete(employees).where(eq(employees.id, id));
+    return result.rowCount! > 0;
+  }
+
+  // Time Entries
+  async getTimeEntries(): Promise<TimeEntry[]> {
+    return await this.db.select().from(timeEntries);
+  }
+
+  async createTimeEntry(insertEntry: InsertTimeEntry): Promise<TimeEntry> {
+    const result = await this.db.insert(timeEntries).values(insertEntry).returning();
+    return result[0];
+  }
+
+  async updateTimeEntry(id: string, updateData: Partial<InsertTimeEntry>): Promise<TimeEntry | undefined> {
+    const result = await this.db.update(timeEntries).set(updateData).where(eq(timeEntries.id, id)).returning();
+    return result[0];
+  }
+
+  async deleteTimeEntry(id: string): Promise<boolean> {
+    const result = await this.db.delete(timeEntries).where(eq(timeEntries.id, id));
+    return result.rowCount! > 0;
+  }
+
+  // Reports
+  async getReports(): Promise<Report[]> {
+    return await this.db.select().from(reports);
+  }
+
+  async getReport(id: string): Promise<Report | undefined> {
+    const result = await this.db.select().from(reports).where(eq(reports.id, id));
+    return result[0];
+  }
+
+  async createReport(insertReport: InsertReport): Promise<Report> {
+    const result = await this.db.insert(reports).values(insertReport).returning();
+    return result[0];
+  }
+
+  async updateReport(id: string, updateData: Partial<InsertReport>): Promise<Report | undefined> {
+    const result = await this.db.update(reports).set(updateData).where(eq(reports.id, id)).returning();
+    return result[0];
+  }
+
+  // Settings
+  async getSettings(): Promise<Setting[]> {
+    return await this.db.select().from(settings);
+  }
+
+  async getSetting(key: string): Promise<Setting | undefined> {
+    const result = await this.db.select().from(settings).where(eq(settings.key, key));
+    return result[0];
+  }
+
+  async setSetting(insertSetting: InsertSetting): Promise<Setting> {
+    const existing = await this.getSetting(insertSetting.key);
+    if (existing) {
+      const result = await this.db.update(settings)
+        .set({ value: insertSetting.value, updatedAt: new Date() })
+        .where(eq(settings.key, insertSetting.key))
+        .returning();
+      return result[0];
+    } else {
+      const result = await this.db.insert(settings).values(insertSetting).returning();
+      return result[0];
+    }
+  }
+
+  // Objects
+  async getObjects(): Promise<Object[]> {
+    return await this.db.select().from(objects);
+  }
+
+  async getObject(id: string): Promise<Object | undefined> {
+    const result = await this.db.select().from(objects).where(eq(objects.id, id));
+    return result[0];
+  }
+
+  async createObject(insertObject: InsertObject): Promise<Object> {
+    const result = await this.db.insert(objects).values(insertObject).returning();
+    return result[0];
+  }
+
+  async updateObject(id: string, updateData: Partial<InsertObject>): Promise<Object | undefined> {
+    const result = await this.db.update(objects).set(updateData).where(eq(objects.id, id)).returning();
+    return result[0];
+  }
+
+  async deleteObject(id: string): Promise<boolean> {
+    const result = await this.db.delete(objects).where(eq(objects.id, id));
+    return result.rowCount! > 0;
+  }
+
+  // Positions
+  async getPositions(): Promise<Position[]> {
+    return await this.db.select().from(positions);
+  }
+
+  async getPosition(id: string): Promise<Position | undefined> {
+    const result = await this.db.select().from(positions).where(eq(positions.id, id));
+    return result[0];
+  }
+
+  async createPosition(insertPosition: InsertPosition): Promise<Position> {
+    const result = await this.db.insert(positions).values(insertPosition).returning();
+    return result[0];
+  }
+
+  async updatePosition(id: string, updateData: Partial<InsertPosition>): Promise<Position | undefined> {
+    const result = await this.db.update(positions).set(updateData).where(eq(positions.id, id)).returning();
+    return result[0];
+  }
+
+  async deletePosition(id: string): Promise<boolean> {
+    const result = await this.db.delete(positions).where(eq(positions.id, id));
+    return result.rowCount! > 0;
+  }
+
+  // Timesheet Periods
+  async getTimesheetPeriod(objectId: string, period: string): Promise<TimesheetPeriod | undefined> {
+    const result = await this.db.select().from(timesheetPeriods)
+      .where(and(
+        eq(timesheetPeriods.objectId, objectId),
+        eq(timesheetPeriods.period, period)
+      ));
+    return result[0];
+  }
+
+  async getTimesheetPeriodById(id: string): Promise<TimesheetPeriod | undefined> {
+    const result = await this.db.select().from(timesheetPeriods).where(eq(timesheetPeriods.id, id));
+    return result[0];
+  }
+
+  async createTimesheetPeriod(insertPeriod: InsertTimesheetPeriod): Promise<TimesheetPeriod> {
+    const result = await this.db.insert(timesheetPeriods).values(insertPeriod).returning();
+    return result[0];
+  }
+
+  async updateTimesheetPeriod(id: string, updateData: Partial<InsertTimesheetPeriod>): Promise<TimesheetPeriod | undefined> {
+    const result = await this.db.update(timesheetPeriods).set(updateData).where(eq(timesheetPeriods.id, id)).returning();
+    return result[0];
+  }
+}
+
+// Use PostgreSQL storage for production
+export const storage: IStorage = process.env.DATABASE_URL ? new DbStorage() : new MemStorage();
