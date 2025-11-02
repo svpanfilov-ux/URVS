@@ -191,15 +191,33 @@ export default function Timesheet() {
   const timesheetRows = createTimesheetRows();
 
   // Разделить на три секции: активные сотрудники, подработчики, вакансии  
-  const activeEmployeeRows = timesheetRows.filter(row => 
-    row.type === 'employee' && (row.employee?.status === "active" || row.employee?.status === "fired")
-  );
-  const partTimeEmployeeRows = timesheetRows.filter(row => 
-    row.type === 'employee' && row.employee?.status === "not_registered"
-  );
-  const vacancyRows = timesheetRows.filter(row => 
-    row.type === 'vacancy'
-  );
+  const activeEmployeeRows = timesheetRows
+    .filter(row => 
+      row.type === 'employee' && (row.employee?.status === "active" || row.employee?.status === "fired")
+    )
+    .sort((a, b) => {
+      // Сортировка по должности, затем по имени
+      if (a.positionTitle !== b.positionTitle) {
+        return a.positionTitle.localeCompare(b.positionTitle, 'ru');
+      }
+      return a.name.localeCompare(b.name, 'ru');
+    });
+    
+  const partTimeEmployeeRows = timesheetRows
+    .filter(row => 
+      row.type === 'employee' && row.employee?.status === "not_registered"
+    )
+    .sort((a, b) => {
+      // Сортировка по должности, затем по имени
+      if (a.positionTitle !== b.positionTitle) {
+        return a.positionTitle.localeCompare(b.positionTitle, 'ru');
+      }
+      return a.name.localeCompare(b.name, 'ru');
+    });
+    
+  const vacancyRows = timesheetRows
+    .filter(row => row.type === 'vacancy')
+    .sort((a, b) => a.positionTitle.localeCompare(b.positionTitle, 'ru'));
 
   // Keep old variables for compatibility
   const activeEmployees = activeEmployeeRows.map(row => row.employee!);
