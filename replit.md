@@ -9,6 +9,10 @@ This project is a comprehensive workforce management system (УРВС - Упра
 - **Timesheet Data**: Time entries with hours and quality ratings populated
 - **Test Object**: ПортЭнерго configured as primary test object for manager role testing
 
+## Recent Fixes (November 2, 2024)
+- **Employee Filtering in Reports**: Fixed issue where fired employees appeared in reports - now only active employees with valid data are included
+- **Report Status Synchronization**: Fixed cache invalidation so economist sees updated report status immediately after manager submission - added `queryClient.invalidateQueries({ queryKey: ["/api/timesheet-periods/all", reportMonth] })` to manager's send for approval mutation
+
 # User Preferences
 
 Preferred communication style: Simple, everyday language.
