@@ -13,7 +13,7 @@ import {
 import { Employee, TimeEntry, Position } from "@shared/schema";
 import { calculatePlannedHours, calculateSalary } from "@/lib/payroll-calculations";
 import { getDaysInMonth } from "date-fns";
-import { AlertTriangle, CheckCircle, Send } from "lucide-react";
+import { AlertTriangle, CheckCircle } from "lucide-react";
 
 interface TimesheetReportProps {
   month: string; // Format: "YYYY-MM"
@@ -21,7 +21,6 @@ interface TimesheetReportProps {
   timeEntries: TimeEntry[];
   positions: Position[];
   objectId: string;
-  onSendReport?: () => void;
 }
 
 interface EmployeeReportRow {
@@ -46,7 +45,6 @@ export function TimesheetReport({
   timeEntries,
   positions,
   objectId,
-  onSendReport,
 }: TimesheetReportProps) {
   const [year, monthNum] = month.split("-").map(Number);
   const daysInMonth = getDaysInMonth(new Date(year, monthNum - 1));
@@ -393,18 +391,6 @@ export function TimesheetReport({
           </CardContent>
         </Card>
 
-        {/* Кнопка отправки */}
-        <div className="flex justify-end">
-          <Button
-            onClick={onSendReport}
-            disabled={!canSend}
-            className="bg-blue-600 hover:bg-blue-700"
-            data-testid="button-send-report"
-          >
-            <Send className="w-4 h-4 mr-2" />
-            Отправить на согласование
-          </Button>
-        </div>
       </CardContent>
     </Card>
   );

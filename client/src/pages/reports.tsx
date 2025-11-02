@@ -214,10 +214,6 @@ export default function Reports() {
     toast({ title: "Отчёт сформирован", description: "Отчёт готов к предпросмотру и отправке" });
   };
 
-  const handleSendReport = () => {
-    setShowReport(false);
-    toast({ title: "Отчёт отправлен на утверждение", description: "Отчёт передан руководству для проверки" });
-  };
 
   const sendForApprovalMutation = useMutation({
     mutationFn: async () => {
@@ -360,7 +356,6 @@ export default function Reports() {
           timeEntries={timeEntries}
           positions={positions}
           objectId={selectedObjectId}
-          onSendReport={handleSendReport}
         />
       )}
 
