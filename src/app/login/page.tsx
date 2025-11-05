@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -28,20 +28,6 @@ export default function LoginPage() {
 
   const today = new Date()
   const todayFormatted = format(today, "d MMMM yyyy 'г.'", { locale: ru })
-
-  // Check if user is already logged in on component mount
-  useEffect(() => {
-    const storedUser = localStorage.getItem('urvs_user')
-    if (storedUser) {
-      try {
-        const parsedUser = JSON.parse(storedUser)
-        setUser(parsedUser)
-        window.location.href = '/dashboard'
-      } catch (err) {
-        localStorage.removeItem('urvs_user')
-      }
-    }
-  }, [])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
