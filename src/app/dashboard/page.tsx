@@ -109,15 +109,17 @@ export default function Dashboard() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Check if user is logged in
-        const storedUser = localStorage.getItem('urvs_user')
-        if (!storedUser) {
-          router.push('/')
-          return
+        // Check if user is logged in (only on client side)
+        if (typeof window !== 'undefined') {
+          const storedUser = localStorage.getItem('urvs_user')
+          if (!storedUser) {
+            router.push('/')
+            return
+          }
+          
+          const parsedUser = JSON.parse(storedUser)
+          setUser(parsedUser)
         }
-        
-        const parsedUser = JSON.parse(storedUser)
-        setUser(parsedUser)
 
         // Fetch objects
         const objectsResponse = await fetch('/api/objects')
@@ -143,7 +145,9 @@ export default function Dashboard() {
   }, [router])
 
   const handleLogout = () => {
-    localStorage.removeItem('urvs_user')
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('urvs_user')
+    }
     router.push('/')
   }
 

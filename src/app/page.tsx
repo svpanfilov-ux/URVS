@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -25,25 +25,10 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [user, setUser] = useState<User | null>(null)
   const router = useRouter()
 
   const today = new Date()
   const todayFormatted = format(today, "d MMMM yyyy 'г.'", { locale: ru })
-
-  // Check if user is already logged in on component mount
-  useEffect(() => {
-    const storedUser = localStorage.getItem('urvs_user')
-    if (storedUser) {
-      try {
-        const parsedUser = JSON.parse(storedUser)
-        setUser(parsedUser)
-        router.push('/dashboard')
-      } catch (err) {
-        localStorage.removeItem('urvs_user')
-      }
-    }
-  }, [router])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -62,9 +47,10 @@ export default function LoginPage() {
       const data = await response.json()
 
       if (response.ok) {
-        setUser(data.user)
         // Store user in localStorage for session persistence
-        localStorage.setItem('urvs_user', JSON.stringify(data.user))
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('urvs_user', JSON.stringify(data.user))
+        }
         // Redirect to dashboard
         router.push('/dashboard')
       } else {
@@ -75,18 +61,6 @@ export default function LoginPage() {
     } finally {
       setLoading(false)
     }
-  }
-
-  // Don't redirect here - let useEffect handle it
-  if (user) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Переход в систему...</p>
-        </div>
-      </div>
-    )
   }
 
   return (
