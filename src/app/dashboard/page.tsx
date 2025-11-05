@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -53,6 +54,7 @@ export default function Dashboard() {
   const [objects, setObjects] = useState<Object[]>([])
   const [employees, setEmployees] = useState<Employee[]>([])
   const [loading, setLoading] = useState(true)
+  const router = useRouter()
 
   // Calculate real deadline days
   const today = new Date()
@@ -110,7 +112,7 @@ export default function Dashboard() {
         // Check if user is logged in
         const storedUser = localStorage.getItem('urvs_user')
         if (!storedUser) {
-          window.location.href = '/'
+          router.push('/')
           return
         }
         
@@ -138,11 +140,11 @@ export default function Dashboard() {
     }
 
     fetchData()
-  }, [])
+  }, [router])
 
   const handleLogout = () => {
     localStorage.removeItem('urvs_user')
-    window.location.href = '/'
+    router.push('/')
   }
 
   if (loading) {
@@ -157,7 +159,14 @@ export default function Dashboard() {
   }
 
   if (!user) {
-    return null
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Проверка авторизации...</p>
+        </div>
+      </div>
+    )
   }
 
   return (

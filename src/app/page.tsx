@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -25,6 +26,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [user, setUser] = useState<User | null>(null)
+  const router = useRouter()
 
   const today = new Date()
   const todayFormatted = format(today, "d MMMM yyyy 'г.'", { locale: ru })
@@ -36,12 +38,12 @@ export default function LoginPage() {
       try {
         const parsedUser = JSON.parse(storedUser)
         setUser(parsedUser)
-        window.location.href = '/dashboard'
+        router.push('/dashboard')
       } catch (err) {
         localStorage.removeItem('urvs_user')
       }
     }
-  }, [])
+  }, [router])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -64,7 +66,7 @@ export default function LoginPage() {
         // Store user in localStorage for session persistence
         localStorage.setItem('urvs_user', JSON.stringify(data.user))
         // Redirect to dashboard
-        window.location.href = '/dashboard'
+        router.push('/dashboard')
       } else {
         setError(data.error || 'Ошибка входа в систему')
       }
@@ -75,10 +77,16 @@ export default function LoginPage() {
     }
   }
 
-  // If user is already logged in, redirect to dashboard
+  // Don't redirect here - let useEffect handle it
   if (user) {
-    window.location.href = '/dashboard'
-    return null
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Переход в систему...</p>
+        </div>
+      </div>
+    )
   }
 
   return (
