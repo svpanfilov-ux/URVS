@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -27,7 +26,7 @@ interface User {
   isActive: boolean
 }
 
-interface Object {
+interface ObjectData {
   id: string
   name: string
   code: string
@@ -45,16 +44,15 @@ interface Employee {
   position: string
   status: 'ACTIVE' | 'NOT_REGISTERED' | 'FIRED'
   objectId: string
-  object?: Object
+  object?: ObjectData
 }
 
 export default function Dashboard() {
   const [selectedObjectId, setSelectedObjectId] = useState<string>('')
   const [user, setUser] = useState<User | null>(null)
-  const [objects, setObjects] = useState<Object[]>([])
+  const [objects, setObjects] = useState<ObjectData[]>([])
   const [employees, setEmployees] = useState<Employee[]>([])
   const [loading, setLoading] = useState(true)
-  const router = useRouter()
 
   // Calculate real deadline days
   const today = new Date()
@@ -109,16 +107,13 @@ export default function Dashboard() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Check if user is logged in (only on client side)
+        // Get user from localStorage
         if (typeof window !== 'undefined') {
           const storedUser = localStorage.getItem('urvs_user')
-          if (!storedUser) {
-            router.push('/')
-            return
+          if (storedUser) {
+            const parsedUser = JSON.parse(storedUser)
+            setUser(parsedUser)
           }
-          
-          const parsedUser = JSON.parse(storedUser)
-          setUser(parsedUser)
         }
 
         // Fetch objects
@@ -142,13 +137,13 @@ export default function Dashboard() {
     }
 
     fetchData()
-  }, [router])
+  }, [])
 
   const handleLogout = () => {
     if (typeof window !== 'undefined') {
       localStorage.removeItem('urvs_user')
     }
-    router.push('/')
+    window.location.href = '/'
   }
 
   if (loading) {
@@ -164,11 +159,18 @@ export default function Dashboard() {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Проверка авторизации...</p>
-        </div>
+      <div className="min-h-screen bg-background flex items-center justify-center p-6">
+        <Card className="w-full max-w-md">
+          <CardContent className="pt-6">
+            <div className="text-center">
+              <h2 className="text-xl font-semibold text-foreground mb-2">Доступ запрещен</h2>
+              <p className="text-muted-foreground mb-4">Пожалуйста, войдите в систему для доступа к дашборду</p>
+              <Button onClick={() => window.location.href = '/'} className="w-full">
+                Перейти на страницу входа
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     )
   }

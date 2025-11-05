@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -11,21 +10,13 @@ import { Building2, Users, Eye, EyeOff, LogIn } from 'lucide-react'
 import { format } from 'date-fns'
 import { ru } from 'date-fns/locale'
 
-interface User {
-  id: string
-  username: string
-  name: string
-  role: 'MANAGER' | 'ECONOMIST'
-  isActive: boolean
-}
-
 export default function LoginPage() {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const router = useRouter()
+  const [message, setMessage] = useState('')
 
   const today = new Date()
   const todayFormatted = format(today, "d MMMM yyyy 'г.'", { locale: ru })
@@ -34,6 +25,7 @@ export default function LoginPage() {
     e.preventDefault()
     setLoading(true)
     setError('')
+    setMessage('')
 
     try {
       const response = await fetch('/api/auth/login', {
@@ -47,12 +39,15 @@ export default function LoginPage() {
       const data = await response.json()
 
       if (response.ok) {
-        // Store user in localStorage for session persistence
+        setMessage('Вход выполнен успешно! Перенаправление на дашборд...')
+        // Store user session
         if (typeof window !== 'undefined') {
           localStorage.setItem('urvs_user', JSON.stringify(data.user))
+          // Simple redirect after delay
+          setTimeout(() => {
+            window.location.href = '/dashboard'
+          }, 1000)
         }
-        // Redirect to dashboard
-        router.push('/dashboard')
       } else {
         setError(data.error || 'Ошибка входа в систему')
       }
@@ -141,6 +136,13 @@ export default function LoginPage() {
                   </Button>
                 </div>
               </div>
+
+              {/* Success Message */}
+              {message && (
+                <Alert className="border-green-200 bg-green-50 text-green-800">
+                  <AlertDescription>{message}</AlertDescription>
+                </Alert>
+              )}
 
               {/* Error Alert */}
               {error && (
