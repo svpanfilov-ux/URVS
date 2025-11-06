@@ -49,7 +49,13 @@
     "@reactuses/core": "^6.0.5",
     "@tanstack/react-query": "^5.82.0",
     "@tanstack/react-table": "^8.21.3",
+<<<<<<< HEAD
     "axios": "^1.10.0",
+=======
+    "@types/bcryptjs": "^2.4.6",
+    "axios": "^1.10.0",
+    "bcryptjs": "^3.0.3",
+>>>>>>> 0cc5df195b32b405faa3d8360018c265bb7a8559
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",

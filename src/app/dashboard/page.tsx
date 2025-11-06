@@ -1,20 +1,9 @@
-<<<<<<< HEAD
-export default function Home() {
-  return (
-    <div className="flex flex-col items-center justify-center min-h-screen gap-8 p-4">
-      <div className="relative w-24 h-24 md:w-32 md:h-32">
-        <img
-          src="/logo.svg"
-          alt="Z.ai Logo"
-          className="w-full h-full object-contain"
-        />
-      </div>
-=======
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { 
   Users, 
   Building2, 
@@ -22,12 +11,49 @@ import {
   Briefcase,
   BarChart3,
   TriangleAlert,
-  CheckCircle
+  CheckCircle,
+  LogOut
 } from 'lucide-react'
 import { format, differenceInDays } from 'date-fns'
 import { ru } from 'date-fns/locale'
 
-export default function SimpleDashboard() {
+// Types
+interface User {
+  id: string
+  username: string
+  name: string
+  role: 'MANAGER' | 'ECONOMIST'
+  isActive: boolean
+}
+
+interface ObjectData {
+  id: string
+  name: string
+  code: string
+  description?: string
+  status: 'ACTIVE' | 'CLOSED'
+  managerId?: string
+  _count?: {
+    employees: number
+  }
+}
+
+interface Employee {
+  id: string
+  name: string
+  position: string
+  status: 'ACTIVE' | 'NOT_REGISTERED' | 'FIRED'
+  objectId: string
+  object?: ObjectData
+}
+
+export default function Dashboard() {
+  const [selectedObjectId, setSelectedObjectId] = useState<string>('')
+  const [user, setUser] = useState<User | null>(null)
+  const [objects, setObjects] = useState<ObjectData[]>([])
+  const [employees, setEmployees] = useState<Employee[]>([])
+  const [loading, setLoading] = useState(true)
+
   // Calculate real deadline days
   const today = new Date()
   const currentMonth = today.getMonth()
@@ -41,9 +67,34 @@ export default function SimpleDashboard() {
   const daysToAdvanceDeadline = Math.max(0, differenceInDays(advanceDeadline, today))
   const daysToSalaryDeadline = Math.max(0, differenceInDays(salaryDeadline, today))
 
+  // Filter employees by selected object for managers
+  const relevantEmployees = user?.role === 'MANAGER' && selectedObjectId
+    ? employees.filter(emp => emp.objectId === selectedObjectId)
+    : employees
+
+  const activeEmployees = relevantEmployees.filter((emp) => emp.status === 'ACTIVE')
+  const firedEmployees = relevantEmployees.filter((emp) => emp.status === 'FIRED')
+  const contractEmployees = relevantEmployees.filter((emp) => emp.status === 'NOT_REGISTERED')
+  
+  const totalEmployees = relevantEmployees.length
+
+  // Get objects for current manager
+  const managerObjects = user?.role === 'MANAGER' 
+    ? objects.filter(obj => obj.status === 'ACTIVE')
+    : objects.filter(obj => obj.status === 'ACTIVE')
+
+  // Auto-select first object if manager has objects and none selected
+  useEffect(() => {
+    if (user?.role === 'MANAGER' && managerObjects.length > 0 && !selectedObjectId) {
+      setSelectedObjectId(managerObjects[0].id)
+    }
+  }, [user, managerObjects, selectedObjectId])
+
+  const selectedObject = objects.find(obj => obj.id === selectedObjectId)
+  
   // Format today's date in Russian
-  const todayFormatted = format(today, "d MMMM yyyy 'г.'", { locale: ru })
-  const todayWeekday = format(today, "EEEE", { locale: ru })
+  const todayFormatted = format(new Date(), "d MMMM yyyy 'г.'", { locale: ru })
+  const todayWeekday = format(new Date(), "EEEE", { locale: ru })
 
   // Helper function for proper Russian pluralization
   const getDayWord = (days: number) => {
@@ -52,19 +103,77 @@ export default function SimpleDashboard() {
     return "дней"
   }
 
-  // Mock data for demonstration
-  const stats = {
-    activeEmployees: 2,
-    firedEmployees: 1,
-    contractEmployees: 1,
-    totalEmployees: 4
+  // Fetch data on component mount
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        // Get user from localStorage
+        if (typeof window !== 'undefined') {
+          const storedUser = localStorage.getItem('urvs_user')
+          if (storedUser) {
+            const parsedUser = JSON.parse(storedUser)
+            setUser(parsedUser)
+          }
+        }
+
+        // Fetch objects
+        const objectsResponse = await fetch('/api/objects')
+        if (objectsResponse.ok) {
+          const objectsData = await objectsResponse.json()
+          setObjects(objectsData)
+        }
+
+        // Fetch employees
+        const employeesResponse = await fetch('/api/employees')
+        if (employeesResponse.ok) {
+          const employeesData = await employeesResponse.json()
+          setEmployees(employeesData)
+        }
+      } catch (error) {
+        console.error('Error fetching data:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchData()
+  }, [])
+
+  const handleLogout = () => {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('urvs_user')
+    }
+    window.location.href = '/'
   }
 
-  const objects = [
-    { id: '1', name: 'Офисный центр "Солнечный"', code: 'OC001' },
-    { id: '2', name: 'ЖК "Новые горизонты"', code: 'ZH002' },
-    { id: '3', name: 'Торговый комплекс "Атлант"', code: 'TK003' }
-  ]
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Загрузка...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-6">
+        <Card className="w-full max-w-md">
+          <CardContent className="pt-6">
+            <div className="text-center">
+              <h2 className="text-xl font-semibold text-foreground mb-2">Доступ запрещен</h2>
+              <p className="text-muted-foreground mb-4">Пожалуйста, войдите в систему для доступа к дашборду</p>
+              <Button onClick={() => window.location.href = '/'} className="w-full">
+                Перейти на страницу входа
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -81,9 +190,20 @@ export default function SimpleDashboard() {
             </div>
             <div className="flex items-center space-x-4">
               <div className="text-right">
-                <p className="text-sm font-medium text-slate-900">Демо-режим</p>
-                <p className="text-xs text-slate-600">Менеджер</p>
+                <p className="text-sm font-medium text-slate-900">{user.name}</p>
+                <p className="text-xs text-slate-600">
+                  {user.role === 'MANAGER' ? 'Менеджер' : 'Экономист'}
+                </p>
               </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleLogout}
+                className="flex items-center gap-2"
+              >
+                <LogOut className="h-4 w-4" />
+                Выйти
+              </Button>
             </div>
           </div>
         </div>
@@ -107,30 +227,41 @@ export default function SimpleDashboard() {
             <p className="text-muted-foreground">Общая информация и статистика</p>
           </div>
 
-          {/* Object Selector */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Building2 className="h-5 w-5" />
-                Выбор объекта
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                <p className="text-sm text-muted-foreground">
-                  Доступно {objects.length} объекта для демонстрации
-                </p>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-                  {objects.map((obj) => (
-                    <div key={obj.id} className="p-3 border rounded-lg bg-slate-50">
-                      <p className="text-sm font-medium text-slate-900">{obj.name}</p>
-                      <p className="text-xs text-slate-600">{obj.code}</p>
-                    </div>
-                  ))}
+          {/* Object Selector for Manager */}
+          {user?.role === 'MANAGER' && managerObjects.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Building2 className="h-5 w-5" />
+                  Выбор объекта
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <p className="text-sm text-muted-foreground">
+                    У вас доступ к {managerObjects.length} объекту{managerObjects.length === 1 ? '' : managerObjects.length < 5 ? 'ам' : 'ам'}
+                  </p>
+                  <Select value={selectedObjectId || ''} onValueChange={setSelectedObjectId}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Выберите объект" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {managerObjects.map((obj) => (
+                        <SelectItem key={obj.id} value={obj.id}>
+                          {obj.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {selectedObject && (
+                    <p className="text-sm text-muted-foreground mt-2">
+                      Выбранный объект: <span className="font-medium">{selectedObject.name}</span>
+                    </p>
+                  )}
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Stats Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -140,7 +271,7 @@ export default function SimpleDashboard() {
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">Активных сотрудников</p>
                     <p className="text-2xl font-semibold text-foreground mt-1">
-                      {stats.activeEmployees}
+                      {activeEmployees.length}
                     </p>
                   </div>
                   <div className="bg-green-100 dark:bg-green-900/20 p-3 rounded-full">
@@ -156,7 +287,7 @@ export default function SimpleDashboard() {
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">Уволенные</p>
                     <p className="text-2xl font-semibold text-foreground mt-1">
-                      {stats.firedEmployees}
+                      {firedEmployees.length}
                     </p>
                   </div>
                   <div className="bg-red-100 dark:bg-red-900/20 p-3 rounded-full">
@@ -172,7 +303,7 @@ export default function SimpleDashboard() {
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">По договорам</p>
                     <p className="text-2xl font-semibold text-foreground mt-1">
-                      {stats.contractEmployees}
+                      {contractEmployees.length}
                     </p>
                   </div>
                   <div className="bg-blue-100 dark:bg-blue-900/20 p-3 rounded-full">
@@ -188,7 +319,7 @@ export default function SimpleDashboard() {
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">Всего сотрудников</p>
                     <p className="text-2xl font-semibold text-foreground mt-1">
-                      {stats.totalEmployees}
+                      {totalEmployees}
                     </p>
                   </div>
                   <div className="bg-purple-100 dark:bg-purple-900/20 p-3 rounded-full">
@@ -282,38 +413,8 @@ export default function SimpleDashboard() {
               </div>
             </CardContent>
           </Card>
-
-          {/* Demo Info */}
-          <Card>
-            <CardContent className="pt-6">
-              <div className="text-center">
-                <h3 className="text-lg font-semibold text-foreground mb-2">Демонстрационный режим</h3>
-                <p className="text-muted-foreground mb-4">
-                  Это демонстрационная версия системы УРВС. Все данные являются примерами для демонстрации функциональности.
-                </p>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-left">
-                  <div>
-                    <p className="text-sm font-medium text-foreground mb-2">Демо-аккаунты:</p>
-                    <div className="space-y-1 text-sm">
-                      <p><strong>Администратор:</strong> admin / admin123</p>
-                      <p><strong>Менеджер:</strong> manager / admin123</p>
-                    </div>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-foreground mb-2">Функции:</p>
-                    <div className="space-y-1 text-sm">
-                      <p>✓ Управление сотрудниками</p>
-                      <p>✓ Учет рабочего времени</p>
-                      <p>✓ Формирование отчетов</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
         </div>
       </main>
->>>>>>> 0cc5df195b32b405faa3d8360018c265bb7a8559
     </div>
   )
 }

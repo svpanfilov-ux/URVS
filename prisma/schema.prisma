@@ -14,6 +14,7 @@ datasource db {
 }
 
 model User {
+<<<<<<< HEAD
   id        String   @id @default(cuid())
   email     String   @unique
   name      String?
@@ -29,4 +30,256 @@ model Post {
   authorId  String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+=======
+  id                String   @id @default(cuid())
+  username          String   @unique
+  password          String
+  name              String
+  role              UserRole @default(MANAGER)
+  isActive          Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  // Relations
+  managedObjects    Object[] @relation("ObjectManager")
+  groupManagedObjects Object[] @relation("GroupManager")
+  submittedReports  Report[] @relation("SubmittedReports")
+  reviewedReports   Report[] @relation("ReviewedReports")
+  createdPayments   AdditionalPayment[]
+  closedPeriods     TimesheetPeriod[] @relation("ClosedPeriods")
+  requestedPeriods  TimesheetPeriod[] @relation("RequestedPeriods")
+  rejectedPeriods   TimesheetPeriod[] @relation("RejectedPeriods")
+  approvedPeriods   TimesheetPeriod[] @relation("ApprovedPeriods")
+}
+
+model Employee {
+  id             String        @id @default(cuid())
+  name           String
+  position       String
+  status         EmployeeStatus @default(ACTIVE)
+  workSchedule   String        @default("5/2")
+  objectId       String
+  paymentType    PaymentType   @default(HOURLY)
+  hourlyRate     Int?
+  monthlySalary  Int?
+  paymentMethod  PaymentMethod @default(CARD)
+  hireDate       String?
+  terminationDate String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  
+  // Relations
+  object         Object        @relation(fields: [objectId], references: [id], onDelete: Cascade)
+  timeEntries    TimeEntry[]
+  additionalPayments AdditionalPayment[]
+}
+
+model TimeEntry {
+  id           String     @id @default(cuid())
+  employeeId   String
+  date         String     // YYYY-MM-DD format
+  hours        Int?       // 0-24 or null for special statuses
+  dayType      DayType    @default(WORK)
+  qualityScore Int        @default(3) // 1-4 scale
+  comment      String?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  
+  // Relations
+  employee     Employee   @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+}
+
+model Report {
+  id          String      @id @default(cuid())
+  objectId    String
+  period      String      // YYYY-MM format
+  type        ReportType
+  status      ReportStatus @default(DRAFT)
+  submittedBy String?
+  reviewedBy  String?
+  data        String      // JSON stringified report data
+  comments    String?
+  sentAt      DateTime?
+  reviewedAt  DateTime?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  
+  // Relations
+  object      Object      @relation(fields: [objectId], references: [id], onDelete: Cascade)
+  submitter   User?       @relation("SubmittedReports", fields: [submittedBy], references: [id])
+  reviewer    User?       @relation("ReviewedReports", fields: [reviewedBy], references: [id])
+  timesheetPeriods TimesheetPeriod[]
+}
+
+model Budget {
+  id           String   @id @default(cuid())
+  objectId     String
+  year         Int
+  month        Int      // 1-12
+  budgetAmount Int      // бюджет ФОТ в копейках
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  // Relations
+  object       Object   @relation(fields: [objectId], references: [id], onDelete: Cascade)
+  
+  @@unique([objectId, year, month])
+}
+
+model AdditionalPayment {
+  id          String              @id @default(cuid())
+  employeeId  String
+  objectId    String
+  period      String              // YYYY-MM format
+  type        AdditionalPaymentType
+  amount      Int                 // сумма в копейках
+  description String?
+  createdBy   String?
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  
+  // Relations
+  employee    Employee            @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  object      Object              @relation(fields: [objectId], references: [id], onDelete: Cascade)
+  creator     User?               @relation(fields: [createdBy], references: [id])
+}
+
+model TimesheetPeriod {
+  id                String            @id @default(cuid())
+  objectId          String
+  period            String            // YYYY-MM format
+  status            PeriodStatus      @default(OPEN)
+  closedBy          String?
+  closedAt          DateTime?
+  reportStatus      ReportStatus?
+  reportId          String?
+  requestedBy       String?
+  requestedAt       DateTime?
+  rejectionComment  String?
+  rejectedBy        String?
+  rejectedAt        DateTime?
+  approvedBy        String?
+  approvedAt        DateTime?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  
+  // Relations
+  object            Object            @relation(fields: [objectId], references: [id], onDelete: Cascade)
+  report            Report?           @relation(fields: [reportId], references: [id])
+  closer            User?             @relation("ClosedPeriods", fields: [closedBy], references: [id])
+  requester         User?             @relation("RequestedPeriods", fields: [requestedBy], references: [id])
+  rejecter          User?             @relation("RejectedPeriods", fields: [rejectedBy], references: [id])
+  approver          User?             @relation("ApprovedPeriods", fields: [approvedBy], references: [id])
+  
+  @@unique([objectId, period])
+}
+
+model Setting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String
+  updatedAt DateTime @default(now()) @updatedAt
+}
+
+model Object {
+  id              String    @id @default(cuid())
+  name            String
+  code            String    @unique
+  description     String?
+  managerId       String?
+  groupManagerId  String?
+  status          ObjectStatus @default(ACTIVE)
+  closedAt        String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  // Relations
+  manager         User?     @relation("ObjectManager", fields: [managerId], references: [id])
+  groupManager    User?     @relation("GroupManager", fields: [groupManagerId], references: [id])
+  employees       Employee[]
+  positions       Position[]
+  reports         Report[]
+  budgets         Budget[]
+  additionalPayments AdditionalPayment[]
+  timesheetPeriods TimesheetPeriod[]
+}
+
+model Position {
+  id              String      @id @default(cuid())
+  objectId        String
+  title           String
+  workSchedule    String      @default("5/2")
+  hoursPerShift   Int         @default(8)
+  paymentType     PaymentType @default(HOURLY)
+  hourlyRate      Int?
+  monthlySalary   Int?
+  positionsCount  Int         @default(1)
+  isActive        Boolean     @default(true)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  
+  // Relations
+  object          Object      @relation(fields: [objectId], references: [id], onDelete: Cascade)
+}
+
+// Enums
+enum UserRole {
+  MANAGER
+  ECONOMIST
+}
+
+enum EmployeeStatus {
+  ACTIVE
+  NOT_REGISTERED
+  FIRED
+}
+
+enum PaymentType {
+  HOURLY
+  SALARY
+}
+
+enum PaymentMethod {
+  CARD
+  CASH
+}
+
+enum DayType {
+  WORK
+  SICK
+  VACATION
+  ABSENCE
+  FIRED
+}
+
+enum ReportType {
+  ADVANCE
+  SALARY
+}
+
+enum ReportStatus {
+  DRAFT
+  SENT
+  APPROVED
+  REJECTED
+  REQUESTED
+  SUBMITTED
+}
+
+enum AdditionalPaymentType {
+  SICK_LEAVE
+  VACATION
+  BONUS
+  OTHER
+}
+
+enum PeriodStatus {
+  OPEN
+  CLOSED
+}
+
+enum ObjectStatus {
+  ACTIVE
+  CLOSED
+>>>>>>> 0cc5df195b32b405faa3d8360018c265bb7a8559
 }
